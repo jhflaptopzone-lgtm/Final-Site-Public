@@ -1,0 +1,171 @@
+{
+  "entities": {
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authenticated administrator and staff user record with role permissions",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string", "description": "Full name of admin user" },
+        "email": { "type": "string", "format": "email", "description": "Admin email address" },
+        "role": {
+          "type": "string",
+          "enum": ["super_admin", "admin", "manager", "sales_staff", "inventory_staff", "customer_support", "content_editor", "viewer"]
+        },
+        "status": { "type": "string", "enum": ["active", "disabled", "pending"] },
+        "createdAt": { "type": "string", "description": "ISO timestamp" },
+        "lastLogin": { "type": "string", "description": "ISO timestamp" }
+      },
+      "required": ["uid", "name", "email", "role", "status", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Laptop inventory product item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sku": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "brand": { "type": "string" },
+        "model": { "type": "string" },
+        "category": { "type": "string" },
+        "condition": { "type": "string" },
+        "processor": { "type": "string" },
+        "generation": { "type": "string" },
+        "ram": { "type": "string" },
+        "storage": { "type": "string" },
+        "graphics": { "type": "string" },
+        "display": { "type": "string" },
+        "purchasePrice": { "type": "number" },
+        "sellingPrice": { "type": "number" },
+        "stockQuantity": { "type": "number" },
+        "minimumStockAlert": { "type": "number" },
+        "warranty": { "type": "string" },
+        "status": { "type": "string", "enum": ["published", "draft", "out_of_stock", "archived"] },
+        "isFeatured": { "type": "boolean" },
+        "isDeleted": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["id", "sku", "name", "brand", "sellingPrice", "stockQuantity", "status"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer laptop purchase order record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "deliveryAddress": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "orderStatus": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "orderNumber", "customerName", "customerPhone", "totalAmount", "orderStatus", "paymentStatus"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer contact and order aggregate profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fullName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "address": { "type": "string" },
+        "district": { "type": "string" },
+        "totalOrders": { "type": "number" },
+        "totalSpending": { "type": "number" },
+        "accountStatus": { "type": "string" }
+      },
+      "required": ["id", "fullName", "phoneNumber"]
+    },
+    "InventoryTransaction": {
+      "title": "InventoryTransaction",
+      "description": "Audit log for stock in, stock out, and adjustment events",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "type": { "type": "string", "enum": ["stock_in", "stock_out", "adjustment"] },
+        "quantity": { "type": "number" },
+        "previousStock": { "type": "number" },
+        "newStock": { "type": "number" },
+        "reason": { "type": "string" },
+        "performedBy": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "productId", "type", "quantity", "previousStock", "newStock", "reason", "performedBy", "timestamp"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Operating expenditure entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "date", "category", "description", "amount", "createdBy", "createdAt"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "System administrative audit trail record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "adminName": { "type": "string" },
+        "adminEmail": { "type": "string" },
+        "adminRole": { "type": "string" },
+        "action": { "type": "string" },
+        "module": { "type": "string" },
+        "target": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "adminName", "adminEmail", "action", "module", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "AdminUser",
+      "description": "Authorized staff profiles and role assignments"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Catalog of laptop devices and inventory specifications"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer purchase orders and fulfillment lifecycle"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Customer CRM profiles with purchase metrics"
+    },
+    "/inventoryTransactions/{transactionId}": {
+      "schema": "InventoryTransaction",
+      "description": "Append-only stock movements and adjustment audit history"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Operating expense vouchers for net profit calculation"
+    },
+    "/activityLogs/{logId}": {
+      "schema": "ActivityLog",
+      "description": "Administrative actions audit log"
+    }
+  }
+}

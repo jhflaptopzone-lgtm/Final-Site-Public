@@ -1,0 +1,6 @@
+{
+  "name": "JHF Laptop Zone",
+  "description": "Full Stack Sales, Inventory, EMI, Supplier Ledger & Customer Due ERP System for JHF Laptop Zone Bangladesh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

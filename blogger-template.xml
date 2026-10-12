@@ -1,0 +1,1947 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<html b:css='false' b:defaultwidgetversion='2' b:layoutsVersion='3' b:responsive='true' b:templateVersion='1.0' expr:class='data:blog.languageDirection' xmlns='http://www.w3.org/1999/xhtml' xmlns:b='http://www.google.com/2005/gml/b' xmlns:data='http://www.google.com/2005/gml/data' xmlns:expr='http://www.google.com/2005/gml/expr'>
+<head>
+  <meta charset='UTF-8'/>
+  <meta content='width=device-width, initial-scale=1.0' name='viewport'/>
+
+  <!-- Google Site Verifications -->
+  <meta content='znQWopVItv01fEum7SvKDNZk_fDhpas1RDQB4DlrQ40' name='google-site-verification'/>
+  <meta content='B0Ju6naCWVgtsQVDZvbFUxQAXMvQx_vijQZNu49EJME' name='google-site-verification'/>
+  
+  <!-- SEO Title -->
+  <b:if cond='data:view.isHomepage'>
+    <title>JHF LAPTOP ZONE | Quality Laptops in Bangladesh</title>
+  <b:elseif cond='data:view.isError'/>
+    <title>Page Not Found | JHF LAPTOP ZONE</title>
+  <b:else/>
+    <title><data:blog.pageName/> | JHF LAPTOP ZONE</title>
+  </b:if>
+
+  <!-- Meta Description & SEO -->
+  <b:if cond='data:blog.metaDescription'>
+    <meta expr:content='data:blog.metaDescription' name='description'/>
+    <meta expr:content='data:blog.metaDescription' property='og:description'/>
+  <b:else/>
+    <meta content='JHF LAPTOP ZONE - Quality Used &amp; Business-Class Laptops in Bangladesh. Lenovo ThinkPad, HP EliteBook, Dell Latitude with Warranty &amp; Nationwide Delivery.' name='description'/>
+    <meta content='JHF LAPTOP ZONE - Quality Used &amp; Business-Class Laptops in Bangladesh. Lenovo ThinkPad, HP EliteBook, Dell Latitude with Warranty &amp; Nationwide Delivery.' property='og:description'/>
+  </b:if>
+
+  <meta expr:content='data:blog.canonicalUrl' property='og:url'/>
+  <meta expr:content='data:blog.title' property='og:site_name'/>
+  <meta content='website' property='og:type'/>
+  <meta content='summary_large_image' name='twitter:card'/>
+
+  <link expr:href='data:blog.canonicalUrl' rel='canonical'/>
+
+  <!-- Google Fonts: Inter & Hind Siliguri -->
+  <link href='https://fonts.googleapis.com' rel='preconnect'/>
+  <link crossorigin='' href='https://fonts.gstatic.com' rel='preconnect'/>
+  <link href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Hind+Siliguri:wght@400;500;600;700&amp;display=swap' rel='stylesheet'/>
+
+  <!-- Google AdSense -->
+  <script async='async' crossorigin='anonymous' src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9128569000742841'></script>
+
+  <b:skin><![CDATA[
+  /*
+  Name: JHF LAPTOP ZONE Modern E-Commerce Theme
+  Designer: Jahid Hasan Firoz (JHF LAPTOP ZONE)
+  URL: https://www.jhflaptopzone.com/
+  Contact: +88 01935 69 30 71 / +88 01731 69 30 71
+  Version: 3.0.0
+  */
+  ]]></b:skin>
+
+  <style type='text/css'>
+  /*<![CDATA[*/
+  :root {
+    --primary: #0f172a;
+    --primary-dark: #020617;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-light: #eff6ff;
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --surface-alt: #f1f5f9;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --border-light: #f1f5f9;
+    --success: #16a34a;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 16px;
+    --radius-full: 9999px;
+    --container: 1240px;
+    --header-height: 72px;
+  }
+
+  [data-theme='dark'] {
+    --primary: #f8fafc;
+    --primary-dark: #ffffff;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+    --accent-light: #1e293b;
+    --background: #090d16;
+    --surface: #111827;
+    --surface-alt: #1f2937;
+    --text: #f3f4f6;
+    --text-muted: #9ca3af;
+    --border: #1f2937;
+    --border-light: #374151;
+    --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.5);
+  }
+
+  /* Reset & Baseline */
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+  }
+
+  body {
+    font-family: 'Inter', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--background);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  button, input, select, textarea {
+    font-family: inherit;
+    font-size: inherit;
+  }
+
+  .container {
+    width: 100%;
+    max-width: var(--container);
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  /* SVG Icons */
+  .icon {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    fill: currentColor;
+  }
+  .icon-stroke {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Top Bar */
+  .topbar {
+    background: #020617;
+    color: #cbd5e1;
+    font-size: 13px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .topbar-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .topbar-contact {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .topbar-contact a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #94a3b8;
+  }
+  .topbar-contact a:hover {
+    color: #38bdf8;
+  }
+  .topbar-badge {
+    background: rgba(37,99,235,0.25);
+    color: #60a5fa;
+    padding: 2px 10px;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 12px;
+  }
+
+  /* Header */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--header-height);
+    gap: 20px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .logo-badge {
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    letter-spacing: 0.05em;
+  }
+
+  /* Desktop Nav */
+  .nav-desktop {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    list-style: none;
+  }
+  .nav-desktop a {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    padding: 6px 0;
+    position: relative;
+  }
+  .nav-desktop a:hover,
+  .nav-desktop a.active {
+    color: var(--accent);
+  }
+  .nav-desktop a::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--accent);
+    transition: width 0.2s ease;
+  }
+  .nav-desktop a:hover::after {
+    width: 100%;
+  }
+
+  /* Header Actions */
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .search-box {
+    position: relative;
+    width: 220px;
+  }
+  .search-input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .search-input:focus {
+    border-color: var(--accent);
+    background: var(--surface);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+    width: 260px;
+  }
+  .search-icon-btn {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 18px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  .btn-outline {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover {
+    background: var(--surface-alt);
+    border-color: var(--text-muted);
+  }
+  .btn-whatsapp {
+    background: #25D366;
+    color: #fff;
+  }
+  .btn-whatsapp:hover {
+    background: #20ba59;
+    color: #fff;
+  }
+  .btn-sm {
+    padding: 6px 12px;
+    font-size: 12.5px;
+    border-radius: var(--radius-sm);
+  }
+
+  .theme-toggle-btn, .mobile-toggle-btn {
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .theme-toggle-btn:hover, .mobile-toggle-btn:hover {
+    background: var(--border);
+  }
+  .mobile-toggle-btn {
+    display: none;
+  }
+
+  /* Mobile Drawer */
+  .mobile-drawer {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: 84%;
+    max-width: 330px;
+    height: 100vh;
+    background: var(--surface);
+    z-index: 10000;
+    box-shadow: var(--shadow-lg);
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    overflow-y: auto;
+  }
+  .mobile-drawer.open {
+    left: 0;
+  }
+  .drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s;
+  }
+  .drawer-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+  .drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .drawer-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    list-style: none;
+  }
+  .drawer-nav a {
+    display: block;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    color: var(--text);
+  }
+  .drawer-nav a:hover {
+    background: var(--surface-alt);
+    color: var(--accent);
+  }
+
+  /* Hero Section */
+  .hero {
+    background: linear-gradient(135deg, #090d16 0%, #0f172a 100%);
+    color: #fff;
+    padding: 56px 0 64px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(37,99,235,0.2) 0%, rgba(37,99,235,0) 70%);
+    pointer-events: none;
+  }
+  .hero-content {
+    max-width: 800px;
+    text-align: left;
+    position: relative;
+    z-index: 2;
+  }
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(37,99,235,0.2);
+    border: 1px solid rgba(59,130,246,0.3);
+    color: #93c5fd;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    margin-bottom: 18px;
+  }
+  .hero-title {
+    font-size: 42px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+    color: #ffffff;
+  }
+  .hero-subtitle {
+    font-size: 20px;
+    color: #94a3b8;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+  .hero-support-text {
+    font-size: 14.5px;
+    color: #cbd5e1;
+    margin-bottom: 28px;
+  }
+  .hero-buttons {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  /* Trust Features */
+  .trust-section {
+    padding: 32px 0;
+    margin-top: -24px;
+    position: relative;
+    z-index: 3;
+  }
+  .trust-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .trust-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .trust-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .trust-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-light);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .trust-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 3px;
+    color: var(--text);
+  }
+  .trust-desc {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  /* Main Sections */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .section-title {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .section-subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* Product Catalog Grid */
+  .products-section {
+    padding: 36px 0 60px;
+  }
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+
+  /* Product Card */
+  .product-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    position: relative;
+  }
+  .product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent);
+  }
+  .product-thumb-wrap {
+    position: relative;
+    width: 100%;
+    padding-top: 68%;
+    background: var(--surface-alt);
+    overflow: hidden;
+  }
+  .product-thumb {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+  .product-card:hover .product-thumb {
+    transform: scale(1.05);
+  }
+  .product-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(15,23,42,0.85);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+  }
+
+  .product-info {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+  .product-cat {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .product-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 42px;
+  }
+  .product-card:hover .product-title {
+    color: var(--accent);
+  }
+  .product-snippet {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.5;
+  }
+  .product-meta {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .product-price {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .price-ask {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .product-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  /* Single Post Product Layout */
+  .post-detail-wrap {
+    padding: 36px 0 60px;
+  }
+  .breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .breadcrumbs a:hover {
+    color: var(--accent);
+  }
+
+  .post-layout-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 36px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 40px;
+  }
+  .post-gallery-side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .post-main-img-wrap {
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    aspect-ratio: 4/3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .post-main-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .post-info-side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .post-detail-title {
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.25;
+    color: var(--text);
+  }
+  .post-labels-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .post-label-tag {
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--accent-light);
+    color: var(--accent);
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+  }
+
+  .post-price-box {
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    padding: 16px 20px;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .post-price-val {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  .post-quick-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .quick-feature-item {
+    background: var(--surface-alt);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .post-cta-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  /* Post Body / Tables */
+  .post-body-container {
+    margin-top: 32px;
+    line-height: 1.8;
+    color: var(--text);
+    font-size: 15px;
+  }
+  .post-body-container table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 20px 0 !important;
+    background: var(--surface) !important;
+    border-radius: var(--radius) !important;
+    overflow: hidden !important;
+    border: 1px solid var(--border) !important;
+  }
+  .post-body-container th, .post-body-container td {
+    padding: 12px 16px !important;
+    border-bottom: 1px solid var(--border) !important;
+    font-size: 14px !important;
+  }
+  .post-body-container th {
+    background: var(--surface-alt) !important;
+    font-weight: 700 !important;
+    text-align: left !important;
+  }
+
+  /* Information Blocks */
+  .info-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    margin-bottom: 28px;
+  }
+
+  /* JHF Hub Download Grid */
+  .hub-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .hub-card {
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s;
+  }
+  .hub-card:hover {
+    border-color: var(--accent);
+    background: var(--surface);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+  }
+  .hub-card-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .hub-card-cat {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .hub-card-btn {
+    margin-top: auto;
+  }
+
+  /* Dhaka Clock Widget Styles */
+  .clock-wrapper {
+    height: 64px;
+    width: 200px;
+    position: relative;
+    background: linear-gradient(135deg, #14ffe9, #ffeb3b, #ff00e0);
+    border-radius: 10px;
+    cursor: default;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .clock-display {
+    height: 56px;
+    width: 192px;
+    background: #020617;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-family: monospace;
+  }
+
+  /* Floating Tools */
+  .floating-tools {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 999;
+  }
+  .float-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-lg);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    border: none;
+  }
+  .float-btn:hover {
+    transform: scale(1.08);
+  }
+  .float-whatsapp {
+    background: #25D366;
+    color: #fff;
+  }
+  .float-top {
+    background: var(--primary);
+    color: #fff;
+    display: none;
+  }
+  .float-top.show {
+    display: flex;
+  }
+
+  /* Footer */
+  .footer {
+    background: #020617;
+    color: #94a3b8;
+    padding: 56px 0 24px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: 14px;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1.5fr;
+    gap: 36px;
+    margin-bottom: 40px;
+  }
+  .footer-col-title {
+    color: #f8fafc;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 18px;
+  }
+  .footer-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .footer-links a:hover {
+    color: #38bdf8;
+  }
+  .footer-bottom {
+    padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    text-align: center;
+    font-size: 13px;
+    color: #64748b;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 1024px) {
+    .trust-grid { grid-template-columns: repeat(2, 1fr); }
+    .product-grid { grid-template-columns: repeat(3, 1fr); }
+    .hub-grid { grid-template-columns: repeat(2, 1fr); }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .post-layout-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 768px) {
+    .topbar { display: none; }
+    .nav-desktop, .search-box { display: none; }
+    .mobile-toggle-btn { display: flex; }
+    .hero-title { font-size: 30px; }
+    .hero-subtitle { font-size: 17px; }
+    .product-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .trust-grid { grid-template-columns: 1fr; }
+    .hub-grid { grid-template-columns: 1fr; }
+    .footer-grid { grid-template-columns: 1fr; }
+    .post-detail-wrap { padding: 16px 0; }
+    .post-layout-grid { padding: 16px; }
+  }
+
+  @media (max-width: 480px) {
+    .product-grid { grid-template-columns: 1fr; }
+    .product-card-actions { grid-template-columns: 1fr; }
+  }
+  /*]]>*/
+  </style>
+</head>
+
+<body>
+  <!-- Top Bar -->
+  <div class='topbar'>
+    <div class='container topbar-inner'>
+      <div class='topbar-contact'>
+        <a href='https://wa.me/8801935693071' target='_blank'>
+          <svg class='icon' viewBox='0 0 24 24'><path d='M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z'/></svg>
+          <span>WhatsApp: 01935-693071</span>
+        </a>
+        <a href='tel:01731693071'>
+          <svg class='icon' viewBox='0 0 24 24'><path d='M6.62 10.79C8.06 13.62 10.38 15.94 13.21 17.38L15.41 15.18C15.69 14.9 16.08 14.82 16.43 14.93C17.55 15.3 18.75 15.5 20 15.5C20.55 15.5 21 15.95 21 16.5V20C21 20.55 20.55 21 20 21C10.61 21 3 13.39 3 4C3 3.45 3.45 3 4 3H7.5C8.05 3 8.5 3.45 8.5 4C8.5 5.25 8.7 6.45 9.07 7.57C9.18 7.92 9.1 8.31 8.82 8.59L6.62 10.79Z'/></svg>
+          <span>Hotline: 01731-693071</span>
+        </a>
+      </div>
+      <div class='topbar-badge'>
+        100% Tested Devices • 64 Districts Delivery
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class='header'>
+    <div class='container header-inner'>
+      <!-- Logo -->
+      <a class='logo' expr:href='data:blog.homepageUrl'>
+        <span>JHF LAPTOP ZONE</span>
+        <span class='logo-badge'>STORE</span>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav>
+        <ul class='nav-desktop'>
+          <li><a expr:href='data:blog.homepageUrl'>Home</a></li>
+          <li><a href='/search/label/Lenovo'>Lenovo ThinkPad</a></li>
+          <li><a href='/search/label/HP'>HP EliteBook</a></li>
+          <li><a href='/search/label/Dell'>Dell Latitude</a></li>
+          <li><a href='#testing-tools'>Testing Tools</a></li>
+          <li><a href='#software-zone'>Software Zone</a></li>
+          <li><a href='#os-iso-zone'>OS &amp; ISO</a></li>
+          <li><a href='#warranty-section'>Warranty</a></li>
+          <li><a href='#payment-section'>Payment</a></li>
+        </ul>
+      </nav>
+
+      <!-- Actions -->
+      <div class='header-actions'>
+        <!-- Search -->
+        <form action='/search' class='search-box' method='get'>
+          <button aria-label='Search' class='search-icon-btn' type='submit'>
+            <svg class='icon-stroke' height='16' viewBox='0 0 24 24' width='16'><circle cx='11' cy='11' r='8'/><path d='M21 21l-4.35-4.35'/></svg>
+          </button>
+          <input class='search-input' name='q' placeholder='Search ThinkPad, HP, Dell...' type='text'/>
+        </form>
+
+        <!-- Dark mode toggle -->
+        <button aria-label='Toggle Dark Mode' class='theme-toggle-btn' id='themeToggle' type='button'>
+          <svg class='icon-stroke' height='18' viewBox='0 0 24 24' width='18'><path d='M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'/></svg>
+        </button>
+
+        <!-- Mobile Drawer Toggle -->
+        <button aria-label='Open Menu' class='mobile-toggle-btn' id='mobileMenuBtn' type='button'>
+          <svg class='icon-stroke' height='20' viewBox='0 0 24 24' width='20'><line x1='3' x2='21' y1='12' y2='12'/><line x1='3' x2='21' y1='6' y2='6'/><line x1='3' x2='21' y1='18' y2='18'/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer Menu -->
+  <div class='drawer-overlay' id='drawerOverlay'></div>
+  <aside class='mobile-drawer' id='mobileDrawer'>
+    <div class='drawer-header'>
+      <div class='logo'>
+        <span>JHF LAPTOP ZONE</span>
+      </div>
+      <button aria-label='Close Menu' class='mobile-toggle-btn' id='drawerCloseBtn' style='display:flex;' type='button'>
+        <svg class='icon-stroke' height='20' viewBox='0 0 24 24' width='20'><line x1='18' x2='6' y1='6' y2='18'/><line x1='6' x2='18' y1='6' y2='18'/></svg>
+      </button>
+    </div>
+
+    <form action='/search' method='get' style='margin-bottom: 20px;'>
+      <input class='search-input' name='q' placeholder='Search laptops...' style='width: 100%; border-radius: var(--radius);' type='text'/>
+    </form>
+
+    <ul class='drawer-nav'>
+      <li><a expr:href='data:blog.homepageUrl'>Home</a></li>
+      <li><a href='/search/label/Lenovo'>Lenovo ThinkPad</a></li>
+      <li><a href='/search/label/HP'>HP EliteBook</a></li>
+      <li><a href='/search/label/Dell'>Dell Latitude</a></li>
+      <li><a href='#testing-tools'>Testing Tools Hub</a></li>
+      <li><a href='#software-zone'>Software Library</a></li>
+      <li><a href='#os-iso-zone'>OS &amp; ISO Downloads</a></li>
+      <li><a href='#warranty-section'>Warranty Policies</a></li>
+      <li><a href='#payment-section'>Payment Methods</a></li>
+      <li><a href='#visiting-card'>Visiting Card</a></li>
+    </ul>
+
+    <div style='margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border);'>
+      <a class='btn btn-whatsapp' href='https://wa.me/8801935693071' style='width: 100%;' target='_blank'>
+        WhatsApp: 01935-693071
+      </a>
+    </div>
+  </aside>
+
+  <!-- Hero Section (Homepage Only) -->
+  <b:if cond='data:view.isHomepage'>
+    <section class='hero'>
+      <div class='container hero-content'>
+        <div class='hero-tag'>
+          <span>✨ 100% Tested Business Series Laptops</span>
+        </div>
+        <h1 class='hero-title'>Find Your Perfect Business Laptop</h1>
+        <p class='hero-subtitle'>Quality Used &amp; Business-Class Laptops at Honest Prices</p>
+        <p class='hero-support-text'>Tested Devices • Clear Specifications • Warranty Support • Nationwide Delivery</p>
+        <div class='hero-buttons'>
+          <a class='btn btn-primary' href='#laptops-grid'>Browse Laptops</a>
+          <a class='btn btn-whatsapp' href='https://wa.me/8801935693071?text=Hello%20JHF%20Laptop%20Zone,%20I%20am%20looking%20for%20a%20laptop' target='_blank'>
+            WhatsApp Us (01935-693071)
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trust Features -->
+    <section class='trust-section'>
+      <div class='container'>
+        <div class='trust-grid'>
+          <div class='trust-card'>
+            <div class='trust-icon'>
+              <svg class='icon-stroke' height='22' viewBox='0 0 24 24' width='22'><polyline points='20 6 9 17 4 12'/></svg>
+            </div>
+            <div>
+              <h3 class='trust-title'>Tested Devices</h3>
+              <p class='trust-desc'>Every laptop undergoes rigorous hardware checks before hand-off.</p>
+            </div>
+          </div>
+          <div class='trust-card'>
+            <div class='trust-icon'>
+              <svg class='icon-stroke' height='22' viewBox='0 0 24 24' width='22'><rect height='16' rx='2' width='20' x='2' y='4'/><path d='M6 12h4m4 0h4'/></svg>
+            </div>
+            <div>
+              <h3 class='trust-title'>Clear Specifications</h3>
+              <p class='trust-desc'>Accurate CPU, RAM, SSD, and battery details provided transparently.</p>
+            </div>
+          </div>
+          <div class='trust-card'>
+            <div class='trust-icon'>
+              <svg class='icon-stroke' height='22' viewBox='0 0 24 24' width='22'><path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/></svg>
+            </div>
+            <div>
+              <h3 class='trust-title'>Warranty Support</h3>
+              <p class='trust-desc'>Comprehensive replacement and service warranty tiers.</p>
+            </div>
+          </div>
+          <div class='trust-card'>
+            <div class='trust-icon'>
+              <svg class='icon-stroke' height='22' viewBox='0 0 24 24' width='22'><path d='M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z'/></svg>
+            </div>
+            <div>
+              <h3 class='trust-title'>Nationwide Delivery</h3>
+              <p class='trust-desc'>Fast, safe courier delivery across all 64 districts in Bangladesh.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </b:if>
+
+  <!-- Main Content & Posts System -->
+  <main class='container products-section' id='laptops-grid'>
+    <!-- Section Title when on search/label/archive page -->
+    <b:if cond='!data:view.isHomepage and !data:view.isPost and !data:view.isPage'>
+      <div class='section-header' style='margin-bottom:28px;'>
+        <div>
+          <h1 class='section-title'>
+            <b:if cond='data:view.isLabelSearch'>
+              Category: <data:view.search.label/>
+            <b:elseif cond='data:view.isSearch'/>
+              Search Results for: &quot;<data:view.search.query/>&quot;
+            <b:elseif cond='data:view.isArchive'/>
+              Archive: <data:view.archive.rangeMessage/>
+            <b:else/>
+              Available Laptops
+            </b:if>
+          </h1>
+          <p class='section-subtitle'>Browse our verified laptops and computer hardware</p>
+        </div>
+      </div>
+    </b:if>
+
+    <!-- Blogger Core Section -->
+    <b:section id='main-posts' showaddelement='yes'>
+      <b:widget id='Blog1' locked='true' title='Blog Posts' type='Blog' version='2'>
+        <b:includable id='main' var='this'>
+          <!-- If 404 Error -->
+          <b:if cond='data:view.isError'>
+            <div class='error-wrap'>
+              <div class='error-code'>404</div>
+              <h1 class='error-title'>Oops! Page Not Found</h1>
+              <p class='error-text'>The laptop or page you are looking for may have been sold or moved.</p>
+              <div style='display:flex; justify-content:center; gap:12px; flex-wrap:wrap;'>
+                <a class='btn btn-primary' expr:href='data:blog.homepageUrl'>Back to Home</a>
+                <a class='btn btn-whatsapp' href='https://wa.me/8801935693071' target='_blank'>WhatsApp Us</a>
+              </div>
+            </div>
+          <!-- Single Post / Product Page -->
+          <b:elseif cond='data:view.isPost or data:view.isPage'/>
+            <b:loop values='data:posts' var='post'>
+              <article class='post-detail-wrap'>
+                <!-- Breadcrumbs -->
+                <div class='breadcrumbs'>
+                  <a expr:href='data:blog.homepageUrl'>Home</a>
+                  <span>/</span>
+                  <b:if cond='data:post.labels and not data:post.labels.empty'>
+                    <a expr:href='data:post.labels.first.url'><data:post.labels.first.name/></a>
+                    <span>/</span>
+                  </b:if>
+                  <span style='color:var(--text);font-weight:600;'><data:post.title/></span>
+                </div>
+
+                <div class='post-layout-grid'>
+                  <!-- Left: Product Image -->
+                  <div class='post-gallery-side'>
+                    <div class='post-main-img-wrap'>
+                      <b:if cond='data:post.featuredImage'>
+                        <img alt='data:post.title' class='post-main-img' expr:src='data:post.featuredImage'/>
+                      <b:else/>
+                        <div style='display:flex;flex-direction:column;align-items:center;color:var(--text-muted);gap:8px;'>
+                          <svg class='icon-stroke' height='48' viewBox='0 0 24 24' width='48'><rect height='14' rx='2' width='20' x='2' y='3'/><line x1='8' x2='16' y1='21' y2='21'/><line x1='12' x2='12' y1='17' y2='21'/></svg>
+                          <span>JHF LAPTOP ZONE</span>
+                        </div>
+                      </b:if>
+                    </div>
+                  </div>
+
+                  <!-- Right: Product Information & Ordering -->
+                  <div class='post-info-side'>
+                    <h1 class='post-detail-title'><data:post.title/></h1>
+
+                    <b:if cond='data:post.labels and not data:post.labels.empty'>
+                      <div class='post-labels-list'>
+                        <b:loop values='data:post.labels' var='label'>
+                          <a class='post-label-tag' expr:href='data:label.url'><data:label.name/></a>
+                        </b:loop>
+                      </div>
+                    </b:if>
+
+                    <div class='post-price-box'>
+                      <div>
+                        <small style='color:var(--text-muted);display:block;font-size:12px;'>Price / Condition</small>
+                        <span class='post-price-val' id='detectedPrice'>Contact on WhatsApp</span>
+                      </div>
+                      <div style='text-align:right;'>
+                        <span style='background:rgba(22,163,74,0.15);color:var(--success);padding:4px 8px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;'>
+                          Tested &amp; In Stock
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class='post-quick-features'>
+                      <div class='quick-feature-item'>
+                        <svg class='icon-stroke' height='16' viewBox='0 0 24 24' width='16'><polyline points='20 6 9 17 4 12'/></svg>
+                        <span>Hardware Checked</span>
+                      </div>
+                      <div class='quick-feature-item'>
+                        <svg class='icon-stroke' height='16' viewBox='0 0 24 24' width='16'><path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/></svg>
+                        <span>Warranty Policy</span>
+                      </div>
+                      <div class='quick-feature-item'>
+                        <svg class='icon-stroke' height='16' viewBox='0 0 24 24' width='16'><rect height='13' rx='2' width='16' x='1' y='3'/><circle cx='5.5' cy='18.5' r='2.5'/><circle cx='18.5' cy='18.5' r='2.5'/></svg>
+                        <span>Nationwide Courier</span>
+                      </div>
+                      <div class='quick-feature-item'>
+                        <svg class='icon-stroke' height='16' viewBox='0 0 24 24' width='16'><path d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z'/></svg>
+                        <span>Direct Hotline</span>
+                      </div>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class='post-cta-buttons'>
+                      <a class='btn btn-whatsapp js-whatsapp-order' expr:data-title='data:post.title' href='#' target='_blank'>
+                        <svg class='icon' viewBox='0 0 24 24'><path d='M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z'/></svg>
+                        Order on WhatsApp
+                      </a>
+                      <a class='btn btn-outline' href='tel:01935693071'>
+                        <svg class='icon-stroke' height='16' viewBox='0 0 24 24' width='16'><path d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z'/></svg>
+                        Call: 01935-693071 / 01731-693071
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Full Post Content / Specs Table -->
+                <div class='info-block'>
+                  <h2 style='font-size:20px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:10px;'>
+                    Product Specifications &amp; Overview
+                  </h2>
+                  <div class='post-body-container' id='postBodyContent'>
+                    <data:post.body/>
+                  </div>
+                </div>
+              </article>
+            </b:loop>
+          <!-- Homepage / Category Grid Loop -->
+          <b:else/>
+            <div class='product-grid'>
+              <b:loop values='data:posts' var='post'>
+                <article class='product-card'>
+                  <a class='product-thumb-wrap' expr:href='data:post.url'>
+                    <b:if cond='data:post.featuredImage'>
+                      <img alt='data:post.title' class='product-thumb' expr:src='data:post.featuredImage' loading='lazy'/>
+                    <b:else/>
+                      <div class='product-thumb' style='display:flex;align-items:center;justify-content:center;background:var(--surface-alt);color:var(--text-muted);'>
+                        <svg class='icon-stroke' height='36' viewBox='0 0 24 24' width='36'><rect height='14' rx='2' width='20' x='2' y='3'/><line x1='8' x2='16' y1='21' y2='21'/><line x1='12' x2='12' y1='17' y2='21'/></svg>
+                      </div>
+                    </b:if>
+                    <b:if cond='data:post.labels and not data:post.labels.empty'>
+                      <span class='product-badge'><data:post.labels.first.name/></span>
+                    </b:if>
+                  </a>
+
+                  <div class='product-info'>
+                    <b:if cond='data:post.labels and not data:post.labels.empty'>
+                      <div class='product-cat'><data:post.labels.first.name/></div>
+                    </b:if>
+                    <h3 class='product-title'>
+                      <a expr:href='data:post.url'><data:post.title/></a>
+                    </h3>
+                    <div class='product-snippet'>
+                      <data:post.snippet/>
+                    </div>
+                    <div class='product-meta'>
+                      <span class='price-ask js-card-price'>Verified Device</span>
+                    </div>
+                    <div class='product-card-actions'>
+                      <a class='btn btn-outline btn-sm' expr:href='data:post.url'>Details</a>
+                      <a class='btn btn-whatsapp btn-sm js-whatsapp-order' expr:data-title='data:post.title' href='#' target='_blank'>WhatsApp</a>
+                    </div>
+                  </div>
+                </article>
+              </b:loop>
+            </div>
+          </b:if>
+        </b:includable>
+      </b:widget>
+    </b:section>
+  </main>
+
+  <!-- JHF Testing Zone (Hardware Diagnostic Utilities) -->
+  <section class='container' id='testing-tools' style='padding: 20px 20px 40px;'>
+    <div class='info-block'>
+      <div class='section-header'>
+        <div>
+          <h2 class='section-title'>🛠️ JHF Laptop Testing Software Zone</h2>
+          <p class='section-subtitle'>Download verified diagnostic tools to test laptop battery health, SSD health, display &amp; performance</p>
+        </div>
+      </div>
+
+      <div class='hub-grid'>
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Battery Diagnostic</div>
+          <div class='hub-card-title'>Battery Info View</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Test battery cycle count, wear level, and designed capacity.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1xt4B3e6xAAi_hBBaqjhfYe9B4JBYxEyG/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>SSD / HDD Health</div>
+          <div class='hub-card-title'>Hard Disk Sentinel Pro 6.20</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>100% health &amp; sector verification for SSD and HDD drives.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1nm2tcJ16ZTe4XoJc_Yq23gR27pme602X/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Disk Benchmark</div>
+          <div class='hub-card-title'>HDTunePro Benchmark</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Read/Write speed benchmark and drive error scanner.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1kvhFdigFAe4EnjcdeR3fhs_WNI-e27gY/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Display Diagnostic</div>
+          <div class='hub-card-title'>Dead-pixel-tester 3.0</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Check for stuck or dead pixels on LCD/IPS panels.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1GdKUAujUDqM1WZPb-s0d0I9ivsNaHqeJ/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Display Diagnostic</div>
+          <div class='hub-card-title'>LCD Tester Portable</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Color accuracy and backlight bleed diagnostic tester.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1fLQHgvnhsg26bf0KggASh00jxqCiSjdC/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Keyboard Diagnostic</div>
+          <div class='hub-card-title'>Keyboard Test Utility</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Instant on-screen keypress response checker.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1sz2fYi9ttxq4NpB4zmgdCiVSGQWWBJDZ/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Keyboard Diagnostic</div>
+          <div class='hub-card-title'>Keyboard Test Portable</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Lightweight portable key diagnostic utility.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1a_mQeRSEYLVliWdFInBVeeTDcES9ECkk/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>GPU &amp; Thermal Test</div>
+          <div class='hub-card-title'>FurMark 1.21 Stress Test</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Heavy graphics &amp; thermal stress test.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1KK_7kB823YlsltX6G3geUYy5Jy8AaqS5/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>GPU &amp; Graphics</div>
+          <div class='hub-card-title'>GPU-Z Utility</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Clock speeds, VRAM, and GPU architecture inspector.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/11c1Dwyc8bQ0tMbU3wrFYIhuFwOc3Jfa7/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Hardware Monitor</div>
+          <div class='hub-card-title'>HWMonitor x64</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Real-time CPU temperatures, fan RPM and voltage.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1uQzAeQmvncxOJl9j__dYkQqb-KuDhA4Z/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>CPU Stress Test</div>
+          <div class='hub-card-title'>HeavyLoad Benchmark Setup</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>CPU core workload and RAM stress-test benchmark.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1mOxwEWbR-idghBPhAaDI80efE_fpRl2M/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>3D Benchmark</div>
+          <div class='hub-card-title'>Heaven 4.0 Benchmark</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Unigine 3D DirectX graphics benchmark.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1cZyK9GP1Muw9irX7kqXSFeY-pYdqJpGw/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>RAM Diagnostic</div>
+          <div class='hub-card-title'>MemTest86 USB Bootable</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Comprehensive bootable RAM memory cell testing tool.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1l5cjL7pE_0bt-aFwgeNUT46YVT8YO2tP/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Hardware Inspector</div>
+          <div class='hub-card-title'>CHWiNFO32 Hardware Info</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Motherboard, PCIe lanes, and chipset sensor tool.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1dsjcEHy0V5fO_rAsSDG-tj94YYWYdgkB/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>WebCam Diagnostic</div>
+          <div class='hub-card-title'>WebCam ECap 1.0.0.9</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Webcam resolution, mic audio, and video feed checker.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1YoJQ9NFxlhFqa7HXM9kE3geMvH91mg-d/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>WebCam Diagnostic</div>
+          <div class='hub-card-title'>Cam Test Utility</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Laptop built-in HD web camera testing software.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1e0-sTLhp1h-eRVTyhZpqu3pZZc5HG8Fs/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Driver Updater</div>
+          <div class='hub-card-title'>SDI (Snappy Driver Installer)</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Automated offline driver updater for all laptops.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1bLo3CvTTCfW-5oA996Q3Sq8fHj13Rk7s/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- JHF Software Zone -->
+  <section class='container' id='software-zone' style='padding: 0 20px 40px;'>
+    <div class='info-block'>
+      <div class='section-header'>
+        <div>
+          <h2 class='section-title'>💾 JHF Software Zone</h2>
+          <p class='section-subtitle'>Essential software packages, activators, design &amp; editing suites hosted by JHF Laptop Zone</p>
+        </div>
+      </div>
+
+      <div class='hub-grid'>
+        <div class='hub-card'>
+          <div class='hub-card-cat'>System Utilities</div>
+          <div class='hub-card-title'>Windows 10 &amp; Office Activator</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1Zf2CF41XA9CMje1-nzc3qBtlBCTj_xDR/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>System Utilities</div>
+          <div class='hub-card-title'>Windows 7, 8.1 &amp; Office Activator</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1Zv2IeUj-yQsyyLiZ7_5cwLilFeuW_LNA/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Graphics &amp; Design</div>
+          <div class='hub-card-title'>Adobe Photoshop 2022 Full</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/17dUmaqHZNZuBPb-HjZiVId0Ar67Kp0uv/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Graphics &amp; Design</div>
+          <div class='hub-card-title'>Adobe Illustrator 2022 Full</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1RwbDOMXJy68sUbM9Uu-Gb7LBOIDwqn4z/view?usp=sharing' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Graphics &amp; Design</div>
+          <div class='hub-card-title'>Adobe Photoshop CS 8.0 Lite</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1c8t3DCHY1FItPlje4iC6FveACQsfpsxR/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Engineering &amp; CAD</div>
+          <div class='hub-card-title'>AutoCAD 2023 Full Setup</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1_TkMaVjHvsvpndyAl5wY69ZKVQOJlFB0/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Engineering &amp; CAD</div>
+          <div class='hub-card-title'>AutoCAD 2007 Classic Setup</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1mJAPiOshWaV5Yz9nxMHYMJsO5d10lCH0/view?usp=sharing' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Video Editing</div>
+          <div class='hub-card-title'>Wondershare Filmora 14.0</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1WMMRZh4iKF9lofJmh8yanQIh2nRuyMKj/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Download Managers</div>
+          <div class='hub-card-title'>Internet Download Manager (IDM)</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1oYVugrvqIMDuRPw75dV5_A6m6wkyHDkU/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Compression</div>
+          <div class='hub-card-title'>WinRAR x64 Bit Full</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1YcY9kjBlOSfpuerZ0yurzvXMN0x2eRFT/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Compression</div>
+          <div class='hub-card-title'>7-Zip 64-Bit</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1xlj7dMqTnkXq7qKqb0uWvpwzPXVwVP4d/view?usp=sharing' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Typing &amp; Bangla</div>
+          <div class='hub-card-title'>Avro Keyboard Bangla</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1dG_h-1yLr5S8zWigvwFeXPp6V_ZU7mGv/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Typing &amp; Bangla</div>
+          <div class='hub-card-title'>Bijoy 52 (Bayanno) with Key</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1o8v0yvtdQevOCs0ddGYfTa3vFraPMHmE/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Typing &amp; Bangla</div>
+          <div class='hub-card-title'>Typing Master Pro Full</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1wQgQ4VQeJ6-p140NMOGP5Ktm-F31SpT2/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Office Suites</div>
+          <div class='hub-card-title'>Microsoft Office 2013 Pro</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/14TZoZNSQ1hAcmcTkMr2MPr2UgOehqXcR/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Boot &amp; ISO Tools</div>
+          <div class='hub-card-title'>Rufus 4.3 Bootable USB</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://mega.nz/file/Y8JRDBZK#gr8pbiMTQiEiCSGkq3L0BCENvmFrVVYAWCbbGx_WAC4' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Disk Management</div>
+          <div class='hub-card-title'>MiniTool Partition Wizard</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1CC_1eCX4cvVgtm3o0snLUuOI2hvdFFGF/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Disk Management</div>
+          <div class='hub-card-title'>EaseUS Partition Master</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1bSfgoCL1adlAIOgggvxF-hgh028zj1lA/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Media Players</div>
+          <div class='hub-card-title'>K-Lite Codec Pack Full</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1KjVQr3vMTYK70r4tuJJ7o1U_ct5hl0fO/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Data Recovery</div>
+          <div class='hub-card-title'>iCare Data Recovery Pro</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1cwT5EZKRTSA7ZzFfS3nxWPq28nP0oMfj/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>System Utilities</div>
+          <div class='hub-card-title'>Everything Search Utility</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1s4By2XSuMqo0qE5kU9eRlBmrwtc6MtUR/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>System Utilities</div>
+          <div class='hub-card-title'>Windows Repair Professional</div>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1G1obbWUcNL5mHrkWKtb75r9ma3kYuDs0/view?usp=drive_link' target='_blank'>Download</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- JHF Operating System & ISO Zone -->
+  <section class='container' id='os-iso-zone' style='padding: 0 20px 40px;'>
+    <div class='info-block'>
+      <div class='section-header'>
+        <div>
+          <h2 class='section-title'>💿 JHF Operating System &amp; ISO Zone</h2>
+          <p class='section-subtitle'>Pre-configured clean Windows ISOs, USB boot utilities, drivers &amp; recovery tools</p>
+        </div>
+      </div>
+
+      <div class='hub-grid'>
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Operating System</div>
+          <div class='hub-card-title'>Windows 11 Pro + Office 2021</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Pre-activated clean setup for business laptops.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/14MmzwaT1CbVhWj__8Ls5r5zZZMK71ZKV/view?usp=drive_link' target='_blank'>Download ISO</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Operating System</div>
+          <div class='hub-card-title'>Windows 10 Pro 64-Bit</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Original clean Windows 10 installation image.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1qEg_UJH18QRSKGGT15k97eub2SfP4lb3/view?usp=sharing' target='_blank'>Download ISO</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Operating System</div>
+          <div class='hub-card-title'>Windows 10 &amp; 11 Pro Dual Bundle</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Dual ISO bundle ready for office deployment.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1fZNvkHQxRuchTij8OVxNl8XgbjjDR9iH/view?usp=drive_link' target='_blank'>Download ISO</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Boot Tool</div>
+          <div class='hub-card-title'>Ventoy Multi-Boot Pendrive</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Boot multiple ISOs directly from 1 USB drive.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1s0U5JxgmQU1HxfUqAOEozOwFfAcHPwQi/view?usp=sharing' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Driver / Fix</div>
+          <div class='hub-card-title'>11th Gen Boot VMD Driver</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Fix NVMe SSD detection on 11th Gen Intel laptops.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1z3dV2ON9gO-kztYX2oRW-4i9_kVLPwMy/view?usp=sharing' target='_blank'>Download Driver</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Recovery OS</div>
+          <div class='hub-card-title'>Live OS (USB Portable Windows)</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Emergency portable Windows PE for data recovery.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1hps507ke9nczOXkjE_hqidTvB8yBI50a/view?usp=sharing' target='_blank'>Download ISO</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Legacy OS</div>
+          <div class='hub-card-title'>Windows 7 Final with Drivers</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Clean Windows 7 SP1 64-bit with USB 3.0 support.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1gPVpMmJQfy3JFuLOOef9345VxFf-Mtn5/view?usp=sharing' target='_blank'>Download ISO</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Disk Imaging</div>
+          <div class='hub-card-title'>Acronis True Image 2018</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Full system partition backup and cloning tool.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1pGZNprJytt1parTu7I1PcS6VAqS4B4IN/view?usp=sharing' target='_blank'>Download Tool</a>
+        </div>
+
+        <div class='hub-card'>
+          <div class='hub-card-cat'>Password Recovery</div>
+          <div class='hub-card-title'>Admin Password Reset Tool</div>
+          <p style='font-size:12px;color:var(--text-muted);margin-bottom:12px;'>Unlock and reset forgotten Windows login password.</p>
+          <a class='btn btn-outline btn-sm hub-card-btn' href='https://drive.google.com/file/d/1u0S9Ux5Qd_XmFtMEz3F6EdC_iYBrgDvW/view?usp=drive_link' target='_blank'>Download Tool</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Warranty Policy Section (Real Bengali 3-Tiers) -->
+  <section class='container' id='warranty-section' style='padding: 0 20px 40px;'>
+    <div class='info-block'>
+      <h2 class='section-title' style='margin-bottom:8px;'>🛡️ Warranty &amp; Service Policies (ওয়ারেন্টি নীতিমালা)</h2>
+      <p style='color:var(--text-muted);margin-bottom:24px;'>JHF LAPTOP ZONE এ সকল ল্যাপটপের জন্য স্পষ্ট এবং সৎ ওয়ারেন্টি পলিসি প্রদান করা হয়:</p>
+
+      <div style='display:flex;flex-direction:column;gap:18px;'>
+        <!-- Tier 1: Dubai Original -->
+        <div style='background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius);padding:20px;'>
+          <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;'>
+            <h3 style='font-size:17px;font-weight:700;color:var(--accent);'>🏆 Dubai Original Laptop Warranty Policy</h3>
+            <span style='background:#16a34a;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;'>১ মাস রিপ্লেস + ৫ বছর সার্ভিস</span>
+          </div>
+          <p style='font-size:14px;line-height:1.7;color:var(--text);margin-bottom:10px;'>
+            সম্পূর্ণ ল্যাপটপের ১ মাসের রিপ্লেস পাবেন (স্পেয়ার পার্টস সহ)। SSD এর ক্ষেত্রে ১ বছরের রিপ্লেস পাবেন এবং ৬ মাসের RAM রিপ্লেস পাবেন (শর্ত সাপেক্ষে)। ৫ বছরের সার্ভিস ওয়ারেন্টি পাবেন এবং লাইফ টাইম এক্সচেঞ্জ সুবিধা পাবেন (শর্ত সাপেক্ষে)।
+          </p>
+        </div>
+
+        <!-- Tier 2: China Laptop -->
+        <div style='background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius);padding:20px;'>
+          <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;'>
+            <h3 style='font-size:17px;font-weight:700;color:#d97706;'>😉 China Laptop Warranty Policy</h3>
+            <span style='background:#d97706;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;'>১৫ দিন পার্টস রিপ্লেস</span>
+          </div>
+          <p style='font-size:14px;line-height:1.7;color:var(--text);margin-bottom:10px;'>
+            যে সকল ল্যাপটপ কালার করা এবং SSD এবং RAM নরমাল China সে সকল ল্যাপটপের শুধুমাত্র ১৫ দিনের স্পেয়ার পার্টস রিপ্লেস পাবেন। বিক্রয় তারিখ হতে ১ দিন বেশি হলে পার্টসের দাম দিতে হবে।
+          </p>
+        </div>
+
+        <!-- Tier 3: Local Laptop -->
+        <div style='background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius);padding:20px;'>
+          <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;'>
+            <h3 style='font-size:17px;font-weight:700;color:var(--text-muted);'>🤔 Local Laptop (Like BD-Stall)</h3>
+            <span style='background:#475569;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;'>৭ দিন সার্ভিস</span>
+          </div>
+          <p style='font-size:14px;line-height:1.7;color:var(--text);margin-bottom:10px;'>
+            ঢাকার টানা মাল যেগুলা কালার করা ওই সকল ল্যাপটপের কোন গ্যারান্টি নাই। শুধু মাত্র ৭ দিনের সার্ভিস ওয়ারেন্টি পাবেন।
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Payment & Visiting Card Section -->
+  <section class='container' id='payment-section' style='padding: 0 20px 40px;'>
+    <div class='info-block'>
+      <div style='display:grid;grid-template-columns:1fr 1fr;gap:24px;'>
+        <!-- Mobile Banking & Bank Account -->
+        <div>
+          <h2 class='section-title' style='margin-bottom:12px;font-size:20px;'>💳 Payment Methods (পেমেন্ট পদ্ধতি)</h2>
+          <p style='font-size:13.5px;color:var(--text-muted);margin-bottom:16px;'>
+            We accept all Mobile Banking (bKash, Nagad, Rocket) and direct Bangladesh Bank Account transfers.
+          </p>
+          <img alt='Payment from all Mobile Banking and Bank Account' src='https://blogger.googleusercontent.com/img/a/AVvXsEilNe2rlDC7nm2yIfHfbCwTI0NPsptHf5qFhqsF8D5NNaCmB_t-WZoHPCK74TuXF33c_YUHaJGMcIeLz-ZDl282oDFgliYaCFr6a6syTMEHf5LVf5NspnUrzF8t-qc9kBo_9tG6zWEPDX_w3qXUpfI-CXS_INTLOL7YFjWD0BTKJvvkuN7rz16Rkn8uLVI=s250' style='border-radius:8px;border:1px solid var(--border);max-width:100%;height:auto;'/>
+        </div>
+
+        <!-- Visiting Card & Live Clock -->
+        <div id='visiting-card'>
+          <h2 class='section-title' style='margin-bottom:12px;font-size:20px;'>📇 Visiting Card &amp; Support</h2>
+          <p style='font-size:13.5px;color:var(--text-muted);margin-bottom:16px;'>
+            Dhaka, Bangladesh • Contact: 01935-693071 / 01731-693071
+          </p>
+          <img alt='JHF Laptop Zone Visiting Card' src='https://blogger.googleusercontent.com/img/a/AVvXsEiQMH4jr1rzv-0L-a1ZxRPDwNbEoeMhQi-a8wJQn2grOsoyMJMvsOnJX3-alKrKP0p-uRAs3jmXuRYHLG8Ru6tvwtmtKLQXo3anBaAdL1aTEYKP0OMlgfQ6X8H9u-ElAgoe5VJGgRDdh-ILSkZUA5-6IqHwPl86mtRpn9Rj5IYDlF3LhdzyyNk0vwhs0G0=s320' style='border-radius:8px;border:1px solid var(--border);max-width:100%;height:auto;margin-bottom:16px;'/>
+          
+          <!-- Live Dhaka Clock -->
+          <div class='clock-wrapper'>
+            <div class='clock-display' id='liveDhakaClock'>--:--:--</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Floating Tools (WhatsApp + Back to Top) -->
+  <div class='floating-tools'>
+    <button aria-label='Back to Top' class='float-btn float-top' id='backToTop' type='button'>
+      <svg class='icon-stroke' height='20' viewBox='0 0 24 24' width='20'><polyline points='18 15 12 9 6 15'/></svg>
+    </button>
+    <a aria-label='Order on WhatsApp' class='float-btn float-whatsapp' href='https://wa.me/8801935693071?text=Hello%20JHF%20Laptop%20Zone,%20I%20have%20an%20inquiry' target='_blank'>
+      <svg class='icon' viewBox='0 0 24 24'><path d='M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z'/></svg>
+    </a>
+  </div>
+
+  <!-- Footer -->
+  <footer class='footer'>
+    <div class='container'>
+      <div class='footer-grid'>
+        <div>
+          <div class='logo' style='color:#fff;margin-bottom:14px;'>
+            <span>JHF LAPTOP ZONE</span>
+            <span class='logo-badge'>STORE</span>
+          </div>
+          <p style='line-height:1.6;font-size:13.5px;max-width:320px;'>
+            Your trusted store in Bangladesh for verified, business-class laptops, Lenovo ThinkPads, HP EliteBooks, and Dell Latitudes.
+          </p>
+        </div>
+
+        <div>
+          <h4 class='footer-col-title'>Laptop Series</h4>
+          <ul class='footer-links'>
+            <li><a href='/search/label/Lenovo'>Lenovo ThinkPad</a></li>
+            <li><a href='/search/label/HP'>HP EliteBook</a></li>
+            <li><a href='/search/label/Dell'>Dell Latitude</a></li>
+            <li><a href='https://drive.google.com/drive/folders/1Xx1d3c872tWo40U9N1clQ8ObTuc3ykwg?usp=sharing' target='_blank'>Photo Gallery</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class='footer-col-title'>Download Hubs</h4>
+          <ul class='footer-links'>
+            <li><a href='#testing-tools'>Hardware Testing Tools</a></li>
+            <li><a href='#software-zone'>Software Library</a></li>
+            <li><a href='#os-iso-zone'>Windows ISOs</a></li>
+            <li><a href='https://drive.google.com/file/d/1QBBHI_903zP1PJdkIkLJonwJIrqQc-id/view?usp=drive_link' target='_blank'>Shara The AI</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class='footer-col-title'>Contact &amp; Hotlines</h4>
+          <ul class='footer-links'>
+            <li>WhatsApp: 01935-693071</li>
+            <li>Phone: 01731-693071</li>
+            <li>Location: Dhaka, Bangladesh</li>
+            <li>Delivery: 64 Districts</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class='footer-bottom'>
+        <p>&#169; 2026 JHF LAPTOP ZONE. If any Query Please Contact: +88 01935 69 30 71 &amp; +88 01731 69 30 71 (WhatsApp).</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script type='text/javascript'>
+  //<![CDATA[
+  (function() {
+    // 1. Dark Mode
+    var themeToggle = document.getElementById('themeToggle');
+    var currentTheme = localStorage.getItem('jhf_theme') || 'light';
+    if (currentTheme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+    if (themeToggle) {
+      themeToggle.addEventListener('click', function() {
+        var theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('jhf_theme', theme);
+      });
+    }
+
+    // 2. Mobile Drawer
+    var mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    var mobileDrawer = document.getElementById('mobileDrawer');
+    var drawerOverlay = document.getElementById('drawerOverlay');
+    var drawerCloseBtn = document.getElementById('drawerCloseBtn');
+
+    function openDrawer() {
+      if (mobileDrawer) mobileDrawer.classList.add('open');
+      if (drawerOverlay) drawerOverlay.classList.add('open');
+    }
+    function closeDrawer() {
+      if (mobileDrawer) mobileDrawer.classList.remove('open');
+      if (drawerOverlay) drawerOverlay.classList.remove('open');
+    }
+    if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', openDrawer);
+    if (drawerCloseBtn) drawerCloseBtn.addEventListener('click', closeDrawer);
+    if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
+
+    // 3. Back To Top
+    var backToTop = document.getElementById('backToTop');
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 300) {
+        if (backToTop) backToTop.classList.add('show');
+      } else {
+        if (backToTop) backToTop.classList.remove('show');
+      }
+    });
+    if (backToTop) {
+      backToTop.addEventListener('click', function() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    // 4. Live Digital Clock
+    var clockEl = document.getElementById('liveDhakaClock');
+    if (clockEl) {
+      function updateClock() {
+        var now = new Date();
+        var hours = now.getHours();
+        var minutes = now.getMinutes();
+        var seconds = now.getSeconds();
+        var ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        var strTime = (hours < 10 ? '0' : '') + hours + ':' +
+                      (minutes < 10 ? '0' : '') + minutes + ':' +
+                      (seconds < 10 ? '0' : '') + seconds + ' ' + ampm;
+        clockEl.textContent = strTime;
+      }
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    // 5. Dynamic WhatsApp Ordering
+    var phone = '8801935693071';
+    var waButtons = document.querySelectorAll('.js-whatsapp-order');
+    waButtons.forEach(function(btn) {
+      var productTitle = btn.getAttribute('data-title') || document.title;
+      var cleanTitle = productTitle.replace(' | JHF LAPTOP ZONE', '').trim();
+      var msg = 'Hello JHF Laptop Zone, I am interested in: ' + cleanTitle + '. Please provide availability, price and delivery information.';
+      btn.href = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
+    });
+
+    // 6. Price Detection in Single Post body
+    var postBody = document.getElementById('postBodyContent');
+    var priceTarget = document.getElementById('detectedPrice');
+    if (postBody && priceTarget) {
+      var bodyText = postBody.innerText || postBody.textContent;
+      var priceMatch = bodyText.match(/(?:৳|Tk\.?|BDT)\s*([0-9,]+)/i) || bodyText.match(/([0-9,]+)\s*(?:৳|Tk\.?|BDT)/i);
+      if (priceMatch && priceMatch[1]) {
+        priceTarget.textContent = '৳ ' + priceMatch[1].trim();
+      }
+    }
+  })();
+  //]]>
+  </script>
+</body>
+</html>
