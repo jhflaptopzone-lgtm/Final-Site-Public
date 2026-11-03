@@ -393,50 +393,39 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
               )}
             </button>
 
-            {/* Quick Master Credential Bar */}
-            <div className="pt-2">
-              <div className="bg-[#080c12]/90 border border-emerald-950/80 rounded-xl p-3 text-xs font-mono">
-                <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="flex items-center gap-1.5 text-emerald-400 font-bold text-[11px]">
-                    <KeyRound className="w-3.5 h-3.5" />
-                    <span>DEFAULT CREDENTIALS</span>
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-bold">SUPER ADMIN</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-[11px] mb-2.5">
-                  <div className="bg-slate-900/80 px-2 py-1.5 rounded border border-slate-800">
-                    <span className="text-slate-500 block text-[9px] uppercase">Username</span>
-                    <span className="text-emerald-300 font-bold select-all">jhfboss</span>
+            {/* Developer Attribution & Brand Authority with Hacker Cyber Marquee */}
+            <div className="pt-3">
+              <div className="relative overflow-hidden rounded-xl bg-gradient-to-b from-[#030a08]/95 to-[#020505]/95 border border-emerald-500/40 p-2.5 shadow-[0_0_20px_rgba(16,185,129,0.25)] cyber-box-glow">
+                {/* Scanline & ambient cyber glow */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/10 via-transparent to-transparent pointer-events-none" />
+                
+                {/* Edge fade gradients */}
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-[#030a08] to-transparent z-10" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[#030a08] to-transparent z-10" />
+
+                {/* Marquee sliding track with dual different font & style lines */}
+                <div className="overflow-hidden py-1">
+                  <div className="animate-marquee-hacker flex items-center gap-10 whitespace-nowrap">
+                    {[1, 2, 3].map((num) => (
+                      <div key={num} className="flex flex-col items-center justify-center gap-1 text-center px-4">
+                        {/* Line 1: Modern Display Sans, Black Weight, Emerald/Cyan Hacker Neon */}
+                        <div className="font-sans font-black tracking-wider uppercase text-xs sm:text-[13px] text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-200 to-cyan-300 drop-shadow-[0_0_10px_rgba(16,185,129,0.95)] flex items-center gap-1.5">
+                          <span className="text-emerald-400 text-xs animate-pulse">⚡</span>
+                          <span>Software Development by</span>
+                          <span className="text-white font-black bg-emerald-950/90 px-2 py-0.5 rounded border border-emerald-400/80 shadow-[0_0_12px_rgba(52,211,153,0.9)]">
+                            Jahid Hasan
+                          </span>
+                        </div>
+
+                        {/* Line 2: Distinct Font-Serif Italic, Amber/Gold Cyber Chrome */}
+                        <div className="font-serif italic font-extrabold tracking-wide text-xs sm:text-[13px] text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.9)] flex items-center justify-center gap-1.5">
+                          <span className="text-amber-400 not-italic text-[11px]">✦</span>
+                          <span>(Owner of JHF Laptop Zone)</span>
+                          <span className="text-amber-400 not-italic text-[11px]">✦</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="bg-slate-900/80 px-2 py-1.5 rounded border border-slate-800">
-                    <span className="text-slate-500 block text-[9px] uppercase">Password</span>
-                    <span className="text-emerald-300 font-bold font-mono select-all">J@hf693071</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUsername('jhfboss');
-                      setPassword('J@hf693071');
-                      setLoginFailed(false);
-                    }}
-                    className="flex-1 py-1.5 px-2.5 bg-emerald-950/60 hover:bg-emerald-900/70 border border-emerald-500/30 hover:border-emerald-500/60 text-emerald-300 rounded-lg text-[10px] font-bold tracking-wider uppercase transition text-center flex items-center justify-center gap-1.5"
-                  >
-                    <Zap className="w-3 h-3 text-emerald-400" />
-                    <span>Auto-Fill Super Admin</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUsername('admin');
-                      setPassword('admin123');
-                      setLoginFailed(false);
-                    }}
-                    className="py-1.5 px-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg text-[10px] font-bold tracking-wider uppercase transition"
-                  >
-                    admin / admin123
-                  </button>
                 </div>
               </div>
             </div>
@@ -470,9 +459,26 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
         </div>
       </main>
 
-      {/* Footer Disclaimer */}
-      <footer className="w-full max-w-5xl z-20 text-center py-2 text-[11px] font-mono text-slate-500">
-        JHF Cyber Security SOC • Enterprise Laptop ERP &amp; Administrative Management Platform
+      {/* Footer Disclaimer with Global Hacker Marquee Ticker */}
+      <footer className="w-full max-w-5xl z-20 text-center py-3">
+        <div className="relative overflow-hidden rounded-xl bg-black/60 border border-emerald-950/80 px-3 py-1.5 backdrop-blur-xs">
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-black to-transparent z-10" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-black to-transparent z-10" />
+          <div className="animate-marquee-footer flex items-center gap-8 whitespace-nowrap">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-3 text-xs">
+                <span className="font-sans font-black uppercase tracking-wider text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.9)]">
+                  Software Development by Jahid Hasan
+                </span>
+                <span className="text-slate-600">•</span>
+                <span className="font-serif italic font-bold text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
+                  (Owner of JHF Laptop Zone)
+                </span>
+                <span className="text-emerald-500/60 font-mono text-[10px]">[ENTERPRISE ERP 2026]</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </footer>
 
       {/* Custom Styles for Keyframe Animations */}
@@ -481,6 +487,51 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
           0%, 100% { transform: translateX(0); }
           20%, 60% { transform: translateX(-6px); }
           40%, 80% { transform: translateX(6px); }
+        }
+
+        @keyframes marqueeSlide {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+
+        @keyframes marqueeFooterSlide {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+
+        @keyframes cyberBorderGlow {
+          0%, 100% {
+            border-color: rgba(16, 185, 129, 0.5);
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.25), inset 0 0 10px rgba(16, 185, 129, 0.1);
+          }
+          50% {
+            border-color: rgba(6, 182, 212, 0.6);
+            box-shadow: 0 0 22px rgba(6, 182, 212, 0.35), inset 0 0 14px rgba(6, 182, 212, 0.15);
+          }
+        }
+
+        .animate-marquee-hacker {
+          display: flex;
+          width: max-content;
+          animation: marqueeSlide 18s linear infinite;
+        }
+
+        .animate-marquee-hacker:hover {
+          animation-play-state: paused;
+        }
+
+        .animate-marquee-footer {
+          display: flex;
+          width: max-content;
+          animation: marqueeFooterSlide 24s linear infinite;
+        }
+
+        .animate-marquee-footer:hover {
+          animation-play-state: paused;
+        }
+
+        .cyber-box-glow {
+          animation: cyberBorderGlow 4s ease-in-out infinite;
         }
       `}</style>
     </div>

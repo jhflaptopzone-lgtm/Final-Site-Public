@@ -311,14 +311,62 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAdminLogin, onOpenPrivacyM
           </div>
         </div>
 
+        {/* Software Development by Jahid Hasan (Owner) Hacker Cyber Marquee Strip */}
+        <div className="mt-8 mb-4">
+          <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-slate-950 via-black to-slate-950 border border-emerald-500/30 p-2 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-slate-950 to-transparent z-10" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-slate-950 to-transparent z-10" />
+            <div className="overflow-hidden">
+              <div className="animate-footer-cyber-marquee flex items-center gap-12 whitespace-nowrap">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                    {/* Line 1: Bold Display Sans in Emerald/Cyan Hacker Neon */}
+                    <div className="font-sans font-black tracking-wider uppercase text-xs sm:text-[13px] text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.9)] flex items-center gap-1.5">
+                      <span className="text-emerald-400 text-xs animate-pulse">⚡</span>
+                      <span>Software Development by</span>
+                      <span className="text-white font-extrabold bg-emerald-950/90 px-2 py-0.5 rounded border border-emerald-400/80 shadow-[0_0_10px_rgba(52,211,153,0.8)]">
+                        Jahid Hasan
+                      </span>
+                    </div>
+
+                    <span className="hidden sm:inline text-slate-600">•</span>
+
+                    {/* Line 2: Distinct Font Serif Italic in Golden Cyber Glow */}
+                    <div className="font-serif italic font-extrabold tracking-wide text-xs sm:text-[13px] text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.85)] flex items-center gap-1">
+                      <span className="text-amber-400 not-italic text-[11px]">✦</span>
+                      <span>(Owner of JHF Laptop Zone)</span>
+                      <span className="text-amber-400 not-italic text-[11px]">✦</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Copyright */}
-        <div className="mt-12 pt-6 border-t border-slate-800 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="pt-4 border-t border-slate-800 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p>© {new Date().getFullYear()} JHF Laptop Zone. {texts.rights}</p>
           <p className="text-[11px]">
             {texts.footerTagline}
           </p>
         </div>
       </div>
+
+      <style>{`
+        @keyframes footerCyberMarquee {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-footer-cyber-marquee {
+          display: flex;
+          width: max-content;
+          animation: footerCyberMarquee 20s linear infinite;
+        }
+        .animate-footer-cyber-marquee:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
     </footer>
   );
 };

@@ -1,5 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  writeBatch
+} from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../admin/firebase';
+import {
   LaptopItem,
   DownloadItem,
   WarrantyTier,
@@ -41,6 +51,7 @@ interface StoreContextType {
   osList: DownloadItem[];
   warrantyTiers: WarrantyTier[];
   storeInfo: StoreInfoType;
+  isFirestoreLive: boolean;
   
   // Admin Auth
   isAuthenticated: boolean;
@@ -191,7 +202,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
-  // Save to LocalStorage on updates
+  const [isFirestoreLive, setIsFirestoreLive] = useState<boolean>(true);
+
+  // Save to LocalStorage on updates for offline fallback
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.LAPTOPS, JSON.stringify(laptops));
   }, [laptops]);
@@ -215,6 +228,182 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.STORE_INFO, JSON.stringify(storeInfo));
   }, [storeInfo]);
+
+  // Real-time Firestore Listener: Software Collection
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'software');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: DownloadItem[] = [];
+            snapshot.forEach((d) => {
+              const data = d.data() as DownloadItem;
+              list.push({ ...data, id: d.id });
+            });
+            setSoftwareList(list);
+            setIsFirestoreLive(true);
+          } else {
+            // Seed initial software library into Firestore so it is permanently stored
+            const batch = writeBatch(db);
+            SOFTWARE_LIBRARY.forEach((item) => {
+              const docRef = doc(db, 'software', item.id);
+              batch.set(docRef, item);
+            });
+            batch.commit().then(() => setIsFirestoreLive(true)).catch((err) => {
+              console.warn('Seeding software to Firestore:', err);
+            });
+          }
+        },
+        (error) => {
+          handleFirestoreError(error, OperationType.GET, 'software');
+        }
+      );
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('Software snapshot subscription error:', err);
+    }
+  }, []);
+
+  // Real-time Firestore Listener: Testing Tools Collection
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'testingTools');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: DownloadItem[] = [];
+            snapshot.forEach((d) => {
+              const data = d.data() as DownloadItem;
+              list.push({ ...data, id: d.id });
+            });
+            setTestingTools(list);
+            setIsFirestoreLive(true);
+          } else {
+            // Seed initial testing tools into Firestore
+            const batch = writeBatch(db);
+            TESTING_TOOLS.forEach((item) => {
+              const docRef = doc(db, 'testingTools', item.id);
+              batch.set(docRef, item);
+            });
+            batch.commit().then(() => setIsFirestoreLive(true)).catch((err) => {
+              console.warn('Seeding testing tools to Firestore:', err);
+            });
+          }
+        },
+        (error) => {
+          handleFirestoreError(error, OperationType.GET, 'testingTools');
+        }
+      );
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('Testing tools snapshot subscription error:', err);
+    }
+  }, []);
+
+  // Real-time Firestore Listener: Operating Systems Collection
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'operatingSystems');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: DownloadItem[] = [];
+            snapshot.forEach((d) => {
+              const data = d.data() as DownloadItem;
+              list.push({ ...data, id: d.id });
+            });
+            setOsList(list);
+            setIsFirestoreLive(true);
+          } else {
+            // Seed initial OS images into Firestore
+            const batch = writeBatch(db);
+            OS_ISOS.forEach((item) => {
+              const docRef = doc(db, 'operatingSystems', item.id);
+              batch.set(docRef, item);
+            });
+            batch.commit().then(() => setIsFirestoreLive(true)).catch((err) => {
+              console.warn('Seeding OS to Firestore:', err);
+            });
+          }
+        },
+        (error) => {
+          handleFirestoreError(error, OperationType.GET, 'operatingSystems');
+        }
+      );
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('OS snapshot subscription error:', err);
+    }
+  }, []);
+
+  // Real-time Firestore Listener: Laptops Collection
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'laptops');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: LaptopItem[] = [];
+            snapshot.forEach((d) => {
+              const data = d.data() as LaptopItem;
+              list.push({ ...data, id: d.id });
+            });
+            setLaptops(list);
+            setIsFirestoreLive(true);
+          } else {
+            // Seed initial laptops into Firestore
+            const batch = writeBatch(db);
+            LAPTOPS_DATA.forEach((item) => {
+              const docRef = doc(db, 'laptops', item.id);
+              batch.set(docRef, item);
+            });
+            batch.commit().then(() => setIsFirestoreLive(true)).catch((err) => {
+              console.warn('Seeding laptops to Firestore:', err);
+            });
+          }
+        },
+        (error) => {
+          handleFirestoreError(error, OperationType.GET, 'laptops');
+        }
+      );
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('Laptops snapshot subscription error:', err);
+    }
+  }, []);
+
+  // Real-time Firestore Listener: Store Info & Settings
+  useEffect(() => {
+    try {
+      const docRef = doc(db, 'settings', 'storeConfig');
+      const unsubscribe = onSnapshot(
+        docRef,
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data() as StoreInfoType;
+            setStoreInfo((prev) => ({ ...prev, ...data }));
+            setIsFirestoreLive(true);
+          } else {
+            // Seed initial store configuration
+            setDoc(docRef, STORE_INFO).then(() => setIsFirestoreLive(true)).catch((err) => {
+              console.warn('Seeding storeConfig:', err);
+            });
+          }
+        },
+        (error) => {
+          handleFirestoreError(error, OperationType.GET, 'settings/storeConfig');
+        }
+      );
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('StoreConfig snapshot subscription error:', err);
+    }
+  }, []);
 
   // Auth functions
   const login = (emailInput: string, passInput: string) => {
@@ -277,88 +466,206 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // CRUD Laptop
-  const addLaptop = (item: Omit<LaptopItem, 'id'>) => {
+  const addLaptop = async (item: Omit<LaptopItem, 'id'>) => {
     const newId = `laptop-${Date.now()}`;
-    setLaptops((prev) => [{ ...item, id: newId }, ...prev]);
+    const newItem: LaptopItem = { ...item, id: newId };
+    setLaptops((prev) => [newItem, ...prev]);
+    try {
+      await setDoc(doc(db, 'laptops', newId), newItem);
+    } catch (error) {
+      console.error('Failed to save laptop to Firestore:', error);
+      handleFirestoreError(error, OperationType.CREATE, `laptops/${newId}`);
+    }
   };
 
-  const updateLaptop = (id: string, updatedFields: Partial<LaptopItem>) => {
+  const updateLaptop = async (id: string, updatedFields: Partial<LaptopItem>) => {
     setLaptops((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...updatedFields } : item))
     );
+    try {
+      await setDoc(doc(db, 'laptops', id), updatedFields, { merge: true });
+    } catch (error) {
+      console.error('Failed to update laptop in Firestore:', error);
+      handleFirestoreError(error, OperationType.UPDATE, `laptops/${id}`);
+    }
   };
 
-  const deleteLaptop = (id: string) => {
+  const deleteLaptop = async (id: string) => {
     setLaptops((prev) => prev.filter((item) => item.id !== id));
+    try {
+      await deleteDoc(doc(db, 'laptops', id));
+    } catch (error) {
+      console.error('Failed to delete laptop from Firestore:', error);
+      handleFirestoreError(error, OperationType.DELETE, `laptops/${id}`);
+    }
   };
 
-  const clearAllLaptops = () => {
+  const clearAllLaptops = async () => {
     setLaptops([]);
+    try {
+      const snap = await getDocs(collection(db, 'laptops'));
+      const batch = writeBatch(db);
+      snap.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    } catch (error) {
+      console.error('Failed to clear laptops in Firestore:', error);
+      handleFirestoreError(error, OperationType.DELETE, 'laptops');
+    }
   };
 
   // CRUD Software
-  const addSoftware = (item: Omit<DownloadItem, 'id'>) => {
+  const addSoftware = async (item: Omit<DownloadItem, 'id'>) => {
     const newId = `sw-${Date.now()}`;
-    setSoftwareList((prev) => [{ ...item, id: newId }, ...prev]);
+    const newItem: DownloadItem = { ...item, id: newId };
+    setSoftwareList((prev) => [newItem, ...prev]);
+    try {
+      await setDoc(doc(db, 'software', newId), newItem);
+    } catch (error) {
+      console.error('Failed to save software to Firestore:', error);
+      handleFirestoreError(error, OperationType.CREATE, `software/${newId}`);
+    }
   };
 
-  const updateSoftware = (id: string, updatedFields: Partial<DownloadItem>) => {
+  const updateSoftware = async (id: string, updatedFields: Partial<DownloadItem>) => {
     setSoftwareList((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...updatedFields } : item))
     );
+    try {
+      await setDoc(doc(db, 'software', id), updatedFields, { merge: true });
+    } catch (error) {
+      console.error('Failed to update software in Firestore:', error);
+      handleFirestoreError(error, OperationType.UPDATE, `software/${id}`);
+    }
   };
 
-  const deleteSoftware = (id: string) => {
+  const deleteSoftware = async (id: string) => {
     setSoftwareList((prev) => prev.filter((item) => item.id !== id));
+    try {
+      await deleteDoc(doc(db, 'software', id));
+    } catch (error) {
+      console.error('Failed to delete software from Firestore:', error);
+      handleFirestoreError(error, OperationType.DELETE, `software/${id}`);
+    }
   };
 
-  const clearAllSoftware = () => {
+  const clearAllSoftware = async () => {
     setSoftwareList([]);
+    try {
+      const snap = await getDocs(collection(db, 'software'));
+      const batch = writeBatch(db);
+      snap.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    } catch (error) {
+      console.error('Failed to clear software in Firestore:', error);
+      handleFirestoreError(error, OperationType.DELETE, 'software');
+    }
   };
 
   // CRUD Testing Tool
-  const addTestingTool = (item: Omit<DownloadItem, 'id'>) => {
+  const addTestingTool = async (item: Omit<DownloadItem, 'id'>) => {
     const newId = `test-${Date.now()}`;
-    setTestingTools((prev) => [{ ...item, id: newId }, ...prev]);
+    const newItem: DownloadItem = { ...item, id: newId };
+    setTestingTools((prev) => [newItem, ...prev]);
+    try {
+      await setDoc(doc(db, 'testingTools', newId), newItem);
+    } catch (error) {
+      console.error('Failed to save testing tool to Firestore:', error);
+      handleFirestoreError(error, OperationType.CREATE, `testingTools/${newId}`);
+    }
   };
 
-  const updateTestingTool = (id: string, updatedFields: Partial<DownloadItem>) => {
+  const updateTestingTool = async (id: string, updatedFields: Partial<DownloadItem>) => {
     setTestingTools((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...updatedFields } : item))
     );
+    try {
+      await setDoc(doc(db, 'testingTools', id), updatedFields, { merge: true });
+    } catch (error) {
+      console.error('Failed to update testing tool in Firestore:', error);
+      handleFirestoreError(error, OperationType.UPDATE, `testingTools/${id}`);
+    }
   };
 
-  const deleteTestingTool = (id: string) => {
+  const deleteTestingTool = async (id: string) => {
     setTestingTools((prev) => prev.filter((item) => item.id !== id));
+    try {
+      await deleteDoc(doc(db, 'testingTools', id));
+    } catch (error) {
+      console.error('Failed to delete testing tool from Firestore:', error);
+      handleFirestoreError(error, OperationType.DELETE, `testingTools/${id}`);
+    }
   };
 
-  const clearAllTestingTools = () => {
+  const clearAllTestingTools = async () => {
     setTestingTools([]);
+    try {
+      const snap = await getDocs(collection(db, 'testingTools'));
+      const batch = writeBatch(db);
+      snap.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    } catch (error) {
+      console.error('Failed to clear testing tools in Firestore:', error);
+      handleFirestoreError(error, OperationType.DELETE, 'testingTools');
+    }
   };
 
   // CRUD OS Item
-  const addOsItem = (item: Omit<DownloadItem, 'id'>) => {
+  const addOsItem = async (item: Omit<DownloadItem, 'id'>) => {
     const newId = `os-${Date.now()}`;
-    setOsList((prev) => [{ ...item, id: newId }, ...prev]);
+    const newItem: DownloadItem = { ...item, id: newId };
+    setOsList((prev) => [newItem, ...prev]);
+    try {
+      await setDoc(doc(db, 'operatingSystems', newId), newItem);
+    } catch (error) {
+      console.error('Failed to save OS item to Firestore:', error);
+      handleFirestoreError(error, OperationType.CREATE, `operatingSystems/${newId}`);
+    }
   };
 
-  const updateOsItem = (id: string, updatedFields: Partial<DownloadItem>) => {
+  const updateOsItem = async (id: string, updatedFields: Partial<DownloadItem>) => {
     setOsList((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...updatedFields } : item))
     );
+    try {
+      await setDoc(doc(db, 'operatingSystems', id), updatedFields, { merge: true });
+    } catch (error) {
+      console.error('Failed to update OS item in Firestore:', error);
+      handleFirestoreError(error, OperationType.UPDATE, `operatingSystems/${id}`);
+    }
   };
 
-  const deleteOsItem = (id: string) => {
+  const deleteOsItem = async (id: string) => {
     setOsList((prev) => prev.filter((item) => item.id !== id));
+    try {
+      await deleteDoc(doc(db, 'operatingSystems', id));
+    } catch (error) {
+      console.error('Failed to delete OS item from Firestore:', error);
+      handleFirestoreError(error, OperationType.DELETE, `operatingSystems/${id}`);
+    }
   };
 
-  const clearAllOsItems = () => {
+  const clearAllOsItems = async () => {
     setOsList([]);
+    try {
+      const snap = await getDocs(collection(db, 'operatingSystems'));
+      const batch = writeBatch(db);
+      snap.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    } catch (error) {
+      console.error('Failed to clear OS items in Firestore:', error);
+      handleFirestoreError(error, OperationType.DELETE, 'operatingSystems');
+    }
   };
 
   // Store & Warranty Updates
-  const updateStoreInfo = (info: Partial<StoreInfoType>) => {
+  const updateStoreInfo = async (info: Partial<StoreInfoType>) => {
     setStoreInfo((prev) => ({ ...prev, ...info }));
+    try {
+      await setDoc(doc(db, 'settings', 'storeConfig'), info, { merge: true });
+    } catch (error) {
+      console.error('Failed to update store info in Firestore:', error);
+      handleFirestoreError(error, OperationType.UPDATE, 'settings/storeConfig');
+    }
   };
 
   const updateWarrantyTier = (id: string, tier: Partial<WarrantyTier>) => {
@@ -1216,6 +1523,7 @@ ${warrantyTiersXml}
         isVisitingCardOpen,
         openVisitingCard,
         closeVisitingCard,
+        isFirestoreLive,
       }}
     >
       {children}

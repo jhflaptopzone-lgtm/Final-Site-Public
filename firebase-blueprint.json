@@ -136,6 +136,100 @@
         "timestamp": { "type": "string" }
       },
       "required": ["id", "adminName", "adminEmail", "action", "module", "timestamp"]
+    },
+    "SoftwareItem": {
+      "title": "SoftwareItem",
+      "description": "Software library download item with genuine links and details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "link": { "type": "string" },
+        "directLink": { "type": "string" },
+        "source": { "type": "string" },
+        "size": { "type": "string" },
+        "description": { "type": "string" },
+        "image": { "type": "string" },
+        "version": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "title", "link", "category"]
+    },
+    "TestingToolItem": {
+      "title": "TestingToolItem",
+      "description": "Hardware and system testing tools download item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "link": { "type": "string" },
+        "directLink": { "type": "string" },
+        "source": { "type": "string" },
+        "size": { "type": "string" },
+        "description": { "type": "string" },
+        "image": { "type": "string" },
+        "version": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "title", "link", "category"]
+    },
+    "OperatingSystemItem": {
+      "title": "OperatingSystemItem",
+      "description": "Genuine operating system ISO images and drivers download item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "link": { "type": "string" },
+        "directLink": { "type": "string" },
+        "source": { "type": "string" },
+        "size": { "type": "string" },
+        "description": { "type": "string" },
+        "image": { "type": "string" },
+        "version": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "title", "link", "category"]
+    },
+    "ServiceRequest": {
+      "title": "ServiceRequest",
+      "description": "Customer public laptop servicing request",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "srNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+        "mobile": { "type": "string" },
+        "location": { "type": "string" },
+        "laptopBrand": { "type": "string" },
+        "laptopModel": { "type": "string" },
+        "serialNumber": { "type": "string" },
+        "problem": { "type": "string" },
+        "details": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "srNumber", "customerName", "mobile", "problem", "status", "createdAt"]
+    },
+    "StoreConfig": {
+      "title": "StoreConfig",
+      "description": "Store contact details, visiting card and payment card media links",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "tagline": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "location": { "type": "string" },
+        "visitingCardImg": { "type": "string" },
+        "paymentCardImg": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id"]
     }
   },
   "firestore": {
@@ -166,6 +260,26 @@
     "/activityLogs/{logId}": {
       "schema": "ActivityLog",
       "description": "Administrative actions audit log"
+    },
+    "/software/{softwareId}": {
+      "schema": "SoftwareItem",
+      "description": "Software library downloads items with persistent links"
+    },
+    "/testingTools/{toolId}": {
+      "schema": "TestingToolItem",
+      "description": "Hardware testing diagnostic tools with persistent download links"
+    },
+    "/operatingSystems/{osId}": {
+      "schema": "OperatingSystemItem",
+      "description": "Official Operating Systems and ISO downloads items"
+    },
+    "/serviceRequests/{requestId}": {
+      "schema": "ServiceRequest",
+      "description": "Public customer service requests with SR tracking"
+    },
+    "/settings/{settingId}": {
+      "schema": "StoreConfig",
+      "description": "Store configuration and media assets"
     }
   }
 }

@@ -202,27 +202,32 @@ export const PaymentAndVisitingCardZone: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setPaymentTab('bank')}
-                className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
+                className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
                   paymentTab === 'bank'
-                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
+                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm border border-blue-200 dark:border-blue-900/50'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
+                title="Click left side to view Official Bank Accounts"
               >
-                <Landmark className="w-4 h-4" />
+                <Landmark className="w-4 h-4 text-blue-500" />
                 <span>{texts.bankTab}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setPaymentTab('mobile')}
-                className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
+                className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer relative ${
                   paymentTab === 'mobile'
-                    ? 'bg-white dark:bg-slate-900 text-pink-600 dark:text-pink-400 shadow-sm'
+                    ? 'bg-white dark:bg-slate-900 text-pink-600 dark:text-pink-400 shadow-sm border border-pink-200 dark:border-pink-900/50'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
+                title="Default Payment Method: bKash / Nagad / Rocket"
               >
-                <Smartphone className="w-4 h-4" />
+                <Smartphone className="w-4 h-4 text-pink-500" />
                 <span>{texts.mobileTab}</span>
+                <span className="text-[9px] bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-300 font-extrabold px-1.5 py-0.2 rounded-full border border-pink-200 dark:border-pink-800/40">
+                  {isBn ? 'ডিফল্ট' : 'Default'}
+                </span>
               </button>
             </div>
 

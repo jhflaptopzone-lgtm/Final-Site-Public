@@ -54,6 +54,19 @@ import {
   getAllVaultSnapshots,
   deleteSnapshotFromVault,
 } from '../utils/persistentVault';
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  writeBatch,
+  runTransaction
+} from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from './firebase';
+import { ServiceRequest, ServiceRequestStatus, ServiceRequestAuditLog } from '../types/serviceRequest';
+import { INITIAL_SERVICE_REQUESTS } from './data/serviceRequestInitialData';
 
 export const BUSINESS_INFO = {
   name: 'JHF Laptop Zone',
@@ -282,6 +295,20 @@ interface AdminStoreType {
   recordServicePayment: (serviceJobId: string, payment: Omit<ServicePaymentRecord, 'id'>) => void;
   addWarrantyClaim: (claim: Omit<WarrantyClaim, 'id' | 'claimDate'>) => WarrantyClaim;
   updateWarrantyClaim: (id: string, updates: Partial<WarrantyClaim>) => void;
+
+  // Customer Service Requests & Public Tracking
+  serviceRequests: ServiceRequest[];
+  addServiceRequest: (request: Omit<ServiceRequest, 'id' | 'srNumber' | 'createdAt' | 'lastUpdatedAt'>) => Promise<ServiceRequest>;
+  updateServiceRequestStatus: (
+    id: string,
+    newStatus: ServiceRequestStatus,
+    customerNote?: string,
+    internalNote?: string
+  ) => Promise<void>;
+  updateServiceRequest: (id: string, updates: Partial<ServiceRequest>) => Promise<void>;
+  deleteServiceRequest: (id: string) => Promise<void>;
+  generateNextSrNumber: () => Promise<string>;
+  convertRequestToServiceJob: (srId: string, assignedEngineerId?: string) => Promise<ServiceJob | null>;
 
   // Data Center & Dummy Data Management
   clearAllDummyData: () => { deletedTotal: number };
@@ -1629,6 +1656,20 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   });
 
+  // Customer Service Requests & Public Tracking State
+  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>(() => {
+    try {
+      const saved = localStorage.getItem('jhf_admin_service_requests');
+      return saved ? JSON.parse(saved) : INITIAL_SERVICE_REQUESTS;
+    } catch {
+      return INITIAL_SERVICE_REQUESTS;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('jhf_admin_service_requests', JSON.stringify(serviceRequests));
+  }, [serviceRequests]);
+
   // Disaster Recovery Full System Backups
   const [fullBackups, setFullBackups] = useState<FullSystemBackup[]>(() => {
     try {
@@ -1793,6 +1834,174 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     localStorage.setItem('jhf_admin_tool_comments', JSON.stringify(toolComments));
   }, [toolComments]);
 
+  // ==========================================
+  // REAL-TIME CLOUD FIRESTORE SYNC LISTENERS
+  // ==========================================
+
+  // 1. Products Collection Listener
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'products');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: Product[] = [];
+            snapshot.forEach((d) => list.push({ ...(d.data() as Product), id: d.id }));
+            setProducts(list);
+          } else {
+            // Seed initial products to Firestore
+            const batch = writeBatch(db);
+            INITIAL_PRODUCTS.forEach((p) => {
+              batch.set(doc(db, 'products', p.id), p);
+            });
+            batch.commit().catch((err) => console.warn('Product Firestore seed:', err));
+          }
+        },
+        (error) => handleFirestoreError(error, OperationType.GET, 'products')
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Products Firestore snapshot subscription error:', e);
+    }
+  }, []);
+
+  // 2. Service Requests Collection Listener
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'serviceRequests');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: ServiceRequest[] = [];
+            snapshot.forEach((d) => list.push({ ...(d.data() as ServiceRequest), id: d.id }));
+            setServiceRequests(list);
+          } else {
+            // Seed initial service requests to Firestore
+            const batch = writeBatch(db);
+            INITIAL_SERVICE_REQUESTS.forEach((sr) => {
+              batch.set(doc(db, 'serviceRequests', sr.id), sr);
+            });
+            batch.commit().catch((err) => console.warn('ServiceRequests Firestore seed:', err));
+          }
+        },
+        (error) => handleFirestoreError(error, OperationType.GET, 'serviceRequests')
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('ServiceRequests Firestore snapshot subscription error:', e);
+    }
+  }, []);
+
+  // 3. Service Jobs Collection Listener
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'services');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: ServiceJob[] = [];
+            snapshot.forEach((d) => list.push({ ...(d.data() as ServiceJob), id: d.id }));
+            setServices(list);
+          } else {
+            const batch = writeBatch(db);
+            INITIAL_SERVICES.forEach((s) => {
+              batch.set(doc(db, 'services', s.id), s);
+            });
+            batch.commit().catch((err) => console.warn('Services Firestore seed:', err));
+          }
+        },
+        (error) => handleFirestoreError(error, OperationType.GET, 'services')
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Services Firestore snapshot subscription error:', e);
+    }
+  }, []);
+
+  // 4. Orders Collection Listener
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'orders');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: Order[] = [];
+            snapshot.forEach((d) => list.push({ ...(d.data() as Order), id: d.id }));
+            setOrders(list);
+          } else {
+            const batch = writeBatch(db);
+            INITIAL_ORDERS.forEach((o) => {
+              batch.set(doc(db, 'orders', o.id), o);
+            });
+            batch.commit().catch((err) => console.warn('Orders Firestore seed:', err));
+          }
+        },
+        (error) => handleFirestoreError(error, OperationType.GET, 'orders')
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Orders Firestore snapshot subscription error:', e);
+    }
+  }, []);
+
+  // 5. Customers Collection Listener
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'customers');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: Customer[] = [];
+            snapshot.forEach((d) => list.push({ ...(d.data() as Customer), id: d.id }));
+            setCustomers(list);
+          } else {
+            const batch = writeBatch(db);
+            INITIAL_CUSTOMERS.forEach((c) => {
+              batch.set(doc(db, 'customers', c.id), c);
+            });
+            batch.commit().catch((err) => console.warn('Customers Firestore seed:', err));
+          }
+        },
+        (error) => handleFirestoreError(error, OperationType.GET, 'customers')
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Customers Firestore snapshot subscription error:', e);
+    }
+  }, []);
+
+  // 6. Expenses Collection Listener
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'expenses');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: Expense[] = [];
+            snapshot.forEach((d) => list.push({ ...(d.data() as Expense), id: d.id }));
+            setExpenses(list);
+          } else {
+            const batch = writeBatch(db);
+            INITIAL_EXPENSES.forEach((ex) => {
+              batch.set(doc(db, 'expenses', ex.id), ex);
+            });
+            batch.commit().catch((err) => console.warn('Expenses Firestore seed:', err));
+          }
+        },
+        (error) => handleFirestoreError(error, OperationType.GET, 'expenses')
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Expenses Firestore snapshot subscription error:', e);
+    }
+  }, []);
+
   // Product Actions
   const addProduct = (data: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>) => {
     const newId = 'prod-' + Date.now();
@@ -1804,6 +2013,12 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       createdBy: currentUser?.name || 'Administrator',
     };
     setProducts((prev) => [newProduct, ...prev]);
+
+    // Persist to Cloud Firestore in real time
+    setDoc(doc(db, 'products', newId), newProduct).catch((err) => {
+      console.warn('Failed to persist product to Firestore:', err);
+      handleFirestoreError(err, OperationType.CREATE, `products/${newId}`);
+    });
 
     // Record initial stock transaction if quantity > 0
     if (newProduct.stockQuantity > 0) {
@@ -1829,6 +2044,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
+    let updatedPayload: Partial<Product> = { ...updates, updatedAt: new Date().toISOString() };
     setProducts((prev) =>
       prev.map((p) => {
         if (p.id === id) {
@@ -1841,54 +2057,73 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           if (updated.sellingPrice && updated.purchasePrice) {
             updated.profitMargin = updated.sellingPrice - updated.purchasePrice;
           }
+          updatedPayload = updated;
           return updated;
         }
         return p;
       })
     );
+    // Persist to Cloud Firestore in real time
+    setDoc(doc(db, 'products', id), updatedPayload, { merge: true }).catch((err) => {
+      console.warn('Failed to update product in Firestore:', err);
+      handleFirestoreError(err, OperationType.UPDATE, `products/${id}`);
+    });
     logActivity('Update Product', 'Products', id, `Updated product fields`);
   };
 
   const softDeleteProduct = (id: string, reason: string) => {
+    const deletedInfo = {
+      isDeleted: true,
+      deletedAt: new Date().toISOString(),
+      deletedBy: currentUser?.name || 'Admin',
+      deleteReason: reason,
+      status: 'archived' as const,
+    };
     setProducts((prev) =>
       prev.map((p) =>
         p.id === id
           ? {
               ...p,
-              isDeleted: true,
-              deletedAt: new Date().toISOString(),
-              deletedBy: currentUser?.name || 'Admin',
-              deleteReason: reason,
-              status: 'archived',
+              ...deletedInfo,
             }
           : p
       )
     );
+    setDoc(doc(db, 'products', id), deletedInfo, { merge: true }).catch((err) => {
+      console.warn('Failed to soft delete product in Firestore:', err);
+    });
     logActivity('Soft Delete Product', 'Products', id, `Moved to Trash. Reason: ${reason}`);
     triggerAutoBackup(`Product Moved to Trash: ${id}`);
   };
 
   const restoreProduct = (id: string) => {
+    const restoredInfo = {
+      isDeleted: false,
+      status: 'published' as const,
+      updatedAt: new Date().toISOString(),
+    };
     setProducts((prev) =>
       prev.map((p) =>
         p.id === id
           ? {
               ...p,
-              isDeleted: false,
-              deletedAt: undefined,
-              deletedBy: undefined,
-              deleteReason: undefined,
-              status: 'published',
+              ...restoredInfo,
             }
           : p
       )
     );
+    setDoc(doc(db, 'products', id), restoredInfo, { merge: true }).catch((err) => {
+      console.warn('Failed to restore product in Firestore:', err);
+    });
     logActivity('Restore Product', 'Products', id, `Restored product from Trash to Catalog`);
     triggerAutoBackup(`Product Restored from Trash: ${id}`);
   };
 
   const permanentDeleteProduct = (id: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
+    deleteDoc(doc(db, 'products', id)).catch((err) => {
+      console.warn('Failed to permanently delete product from Firestore:', err);
+    });
     logActivity('Permanent Delete', 'Products', id, `Permanently purged product from database`);
     triggerAutoBackup(`Product Permanently Purged: ${id}`);
   };
@@ -3412,6 +3647,272 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // ==========================================
+  // CUSTOMER SERVICE REQUESTS & SR TRACKING
+  // ==========================================
+
+  // Transactional / Server-safe daily sequence generator: JHF-SR-YYYYMMDDNNN
+  const generateNextSrNumber = async (): Promise<string> => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const dateKey = `${yyyy}${mm}${dd}`;
+
+    try {
+      const counterRef = doc(db, 'counters', `sr_${dateKey}`);
+      const nextSeq = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(counterRef);
+        let seq = 1;
+        if (snap.exists()) {
+          seq = (Number(snap.data().seq) || 0) + 1;
+        }
+        tx.set(counterRef, { seq, dateKey, updatedAt: new Date().toISOString() }, { merge: true });
+        return seq;
+      });
+      return `JHF-SR-${dateKey}${String(nextSeq).padStart(3, '0')}`;
+    } catch (err) {
+      console.warn('Transaction counter fallback:', err);
+      // Fallback inspection of in-memory existing requests for today
+      const todayPrefix = `JHF-SR-${dateKey}`;
+      const todayExisting = serviceRequests
+        .filter((r) => r.srNumber?.startsWith(todayPrefix))
+        .map((r) => {
+          const numPart = parseInt(r.srNumber.replace(todayPrefix, ''), 10);
+          return isNaN(numPart) ? 0 : numPart;
+        });
+      const maxNum = todayExisting.length > 0 ? Math.max(...todayExisting) : 0;
+      return `${todayPrefix}${String(maxNum + 1).padStart(3, '0')}`;
+    }
+  };
+
+  const addServiceRequest = async (
+    reqData: Omit<ServiceRequest, 'id' | 'srNumber' | 'createdAt' | 'lastUpdatedAt'>
+  ): Promise<ServiceRequest> => {
+    const srNumber = await generateNextSrNumber();
+    const now = new Date().toISOString();
+    const newId = `sr-${Date.now()}`;
+    const initialHistory =
+      reqData.statusHistory && reqData.statusHistory.length > 0
+        ? reqData.statusHistory
+        : [
+            {
+              id: `sh-${Date.now()}-1`,
+              newStatus: 'REQUEST RECEIVED' as ServiceRequestStatus,
+              changedBy: 'Customer (Online)',
+              changedAt: now,
+              customerNote: 'Your service request has been received.',
+            },
+          ];
+
+    const newRequest: ServiceRequest = {
+      ...reqData,
+      id: newId,
+      srNumber,
+      createdAt: now,
+      lastUpdatedAt: now,
+      status: reqData.status || 'PENDING',
+      statusHistory: initialHistory,
+      isArchived: false,
+    };
+
+    setServiceRequests((prev) => [newRequest, ...prev]);
+
+    try {
+      await setDoc(doc(db, 'serviceRequests', newId), newRequest);
+    } catch (err) {
+      console.error('Failed to save service request to Firestore:', err);
+      handleFirestoreError(err, OperationType.CREATE, `serviceRequests/${newId}`);
+    }
+
+    logActivity(
+      'Service Request',
+      'ServiceRequests',
+      srNumber,
+      `Customer ${newRequest.customerName} requested service for ${newRequest.laptopModel}`
+    );
+    triggerAutoBackup(`New Service Request: ${srNumber}`);
+    return newRequest;
+  };
+
+  const updateServiceRequestStatus = async (
+    id: string,
+    newStatus: ServiceRequestStatus,
+    customerNote?: string,
+    internalNote?: string
+  ): Promise<void> => {
+    const now = new Date().toISOString();
+    const performer = currentUser?.name || 'Administrator';
+    let updatedObj: ServiceRequest | null = null;
+
+    setServiceRequests((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          const prevStatus = r.status;
+          const newHistory = [
+            ...(r.statusHistory || []),
+            {
+              id: `sh-${Date.now()}`,
+              previousStatus: prevStatus,
+              newStatus,
+              changedBy: performer,
+              changedAt: now,
+              customerNote: customerNote || `Status updated to ${newStatus}`,
+              internalNote: internalNote || undefined,
+            },
+          ];
+          const updated: ServiceRequest = {
+            ...r,
+            status: newStatus,
+            customerUpdate: customerNote || r.customerUpdate,
+            internalNote: internalNote !== undefined ? internalNote : r.internalNote,
+            lastUpdatedAt: now,
+            lastUpdatedBy: performer,
+            statusHistory: newHistory,
+          };
+          updatedObj = updated;
+          return updated;
+        }
+        return r;
+      })
+    );
+
+    if (updatedObj) {
+      try {
+        await setDoc(doc(db, 'serviceRequests', id), updatedObj, { merge: true });
+      } catch (err) {
+        console.error('Failed to update service request status in Firestore:', err);
+        handleFirestoreError(err, OperationType.UPDATE, `serviceRequests/${id}`);
+      }
+    }
+
+    logActivity('Update SR Status', 'ServiceRequests', id, `Status updated to ${newStatus}`);
+    triggerAutoBackup(`SR Status Updated: ${id} -> ${newStatus}`);
+  };
+
+  const updateServiceRequest = async (id: string, updates: Partial<ServiceRequest>): Promise<void> => {
+    const now = new Date().toISOString();
+    let updatedObj: ServiceRequest | null = null;
+
+    setServiceRequests((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          const updated = {
+            ...r,
+            ...updates,
+            lastUpdatedAt: now,
+            lastUpdatedBy: currentUser?.name || 'Administrator',
+          };
+          updatedObj = updated;
+          return updated;
+        }
+        return r;
+      })
+    );
+
+    if (updatedObj) {
+      try {
+        await setDoc(doc(db, 'serviceRequests', id), updatedObj, { merge: true });
+      } catch (err) {
+        console.error('Failed to update service request in Firestore:', err);
+        handleFirestoreError(err, OperationType.UPDATE, `serviceRequests/${id}`);
+      }
+    }
+  };
+
+  const deleteServiceRequest = async (id: string): Promise<void> => {
+    setServiceRequests((prev) => prev.filter((r) => r.id !== id));
+    try {
+      await deleteDoc(doc(db, 'serviceRequests', id));
+    } catch (err) {
+      console.error('Failed to delete service request from Firestore:', err);
+      handleFirestoreError(err, OperationType.DELETE, `serviceRequests/${id}`);
+    }
+    logActivity('Delete Service Request', 'ServiceRequests', id, 'Deleted service request record.');
+  };
+
+  const convertRequestToServiceJob = async (
+    srId: string,
+    assignedEngineerId?: string
+  ): Promise<ServiceJob | null> => {
+    const req = serviceRequests.find((r) => r.id === srId);
+    if (!req) return null;
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const rand = Math.floor(100 + Math.random() * 900);
+    const newJobId = `JHF-SRV-${yyyy}${mm}${dd}${rand}`;
+    const now = today.toISOString();
+    const engineer = serviceEngineers.find((e) => e.id === assignedEngineerId) || serviceEngineers[0];
+
+    const newJob: ServiceJob = {
+      id: newJobId,
+      srNumber: req.srNumber,
+      createdAt: now,
+      updatedAt: now,
+      status: 'Diagnosing',
+      isDummy: false,
+      customerName: req.customerName,
+      customerPhone: req.mobile,
+      customerAddress: req.address ? `${req.address}, ${req.area || ''}, ${req.city || ''}` : `${req.city || ''}`,
+      laptopBrand: req.laptopBrand || 'General Laptop',
+      laptopModel: req.laptopModel,
+      serialNumber: req.serialNumber || 'N/A',
+      physicalCondition: 'Customer Service Request Dropoff',
+      includedAccessories: ['Laptop Unit'],
+      problemCategory: req.problemCategory || 'Hardware Diagnosis',
+      customerReportedIssues: `${req.problemCategory}: ${req.problemDescription || ''}`,
+      assignedEngineerId: engineer?.id || 'eng-01',
+      assignedEngineerName: engineer?.name || 'Chief Hardware Engineer',
+      priority: 'High',
+      estimatedDeliveryDate: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
+      diagnosticFee: 300,
+      estimatedCost: 1500,
+      totalCost: 1500,
+      paidAmount: 0,
+      dueAmount: 1500,
+      profit: 800,
+      partsUsed: [],
+      paymentHistory: [],
+      warrantyStatus: 'STANDARD',
+      warrantyPeriodDays: 30,
+      logs: [
+        {
+          id: `log-${Date.now()}`,
+          timestamp: now,
+          action: 'Service Job Converted',
+          user: currentUser?.name || 'Admin',
+          details: `Converted from Customer Service Request ${req.srNumber}. Assigned to ${engineer?.name || 'Engineer'}.`,
+        },
+      ],
+    };
+
+    setServices((prev) => [newJob, ...prev]);
+
+    try {
+      await setDoc(doc(db, 'services', newJobId), newJob);
+    } catch (e) {
+      console.warn('Failed to save service job to Firestore:', e);
+    }
+
+    // Link Service Request to this job and update status to RUNNING
+    await updateServiceRequestStatus(
+      srId,
+      'RUNNING',
+      `Service job ${newJobId} created and assigned to ${newJob.assignedEngineerName}. Diagnostics in progress.`,
+      `Linked Service Job: ${newJobId}`
+    );
+    await updateServiceRequest(srId, {
+      serviceJobId: newJobId,
+      assignedStaff: newJob.assignedEngineerName,
+    });
+
+    logActivity('Convert SR to Job', 'ServiceRequests', req.srNumber, `Created Service Job ${newJobId}`);
+    return newJob;
+  };
+
+  // ==========================================
   // DATA CENTER: DUMMY DATA CLEANUP (SAFE FILTERING)
   // Only records explicitly marked as isDummy: true may be deleted!
   // ==========================================
@@ -3812,6 +4313,13 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         recordServicePayment,
         addWarrantyClaim,
         updateWarrantyClaim,
+        serviceRequests,
+        addServiceRequest,
+        updateServiceRequestStatus,
+        updateServiceRequest,
+        deleteServiceRequest,
+        generateNextSrNumber,
+        convertRequestToServiceJob,
         clearAllDummyData,
         fullBackups,
         createFullSystemBackup,

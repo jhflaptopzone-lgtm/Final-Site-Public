@@ -14,9 +14,19 @@ import {
   Laptop,
   ArrowRight,
   Zap,
+  Wrench,
+  Search,
 } from 'lucide-react';
 
-export const HeroSection: React.FC = () => {
+interface HeroSectionProps {
+  onRequestService?: () => void;
+  onTrackService?: () => void;
+}
+
+export const HeroSection: React.FC<HeroSectionProps> = ({
+  onRequestService,
+  onTrackService,
+}) => {
   const { t, language } = useTranslation();
 
   const heroTexts = {

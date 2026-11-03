@@ -99,7 +99,9 @@ export type AdminModule =
   | 'service_parts'
   | 'service_warranty'
   | 'service_invoices'
-  | 'service_reports';
+  | 'service_reports'
+  // CUSTOMER SERVICE REQUESTS
+  | 'service_requests';
 
 interface AdminLayoutProps {
   currentModule: AdminModule;
@@ -137,8 +139,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     services,
     serviceParts,
     warrantyClaims,
+    serviceRequests,
     fullBackups,
   } = useAdminStore();
+
+  const newServiceRequestsCount = (serviceRequests || []).filter(
+    (r) => r.status === 'REQUEST RECEIVED' || r.status === 'PENDING'
+  ).length;
 
   const formatSeconds = (sec: number) => {
     const m = Math.floor(sec / 60);
@@ -208,6 +215,19 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         { id: 'testing_zone', label: 'Testing Tools', icon: Wrench, permission: 'Blogger Posts' },
         { id: 'os_zone', label: 'Operating Systems', icon: Disc, permission: 'Blogger Posts' },
         { id: 'security_downloads', label: 'Download Intelligence', icon: ShieldAlert, permission: 'Settings' },
+      ],
+    },
+    {
+      group: 'SERVICE REQUESTS',
+      items: [
+        {
+          id: 'service_requests',
+          label: 'Service Requests',
+          icon: Wrench,
+          count: newServiceRequestsCount,
+          countColor: 'bg-rose-500',
+          permission: 'Products',
+        },
       ],
     },
     {
@@ -468,6 +488,28 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               <span>Sign Out</span>
             </button>
           </div>
+
+          {/* Software Development by Jahid Hasan (Owner) Hacker Cyber Marquee */}
+          <div className="mt-2 pt-2 border-t border-slate-800/80">
+            <div className="relative overflow-hidden rounded-lg bg-black/80 border border-emerald-500/30 p-1.5 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-black to-transparent z-10" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-4 bg-gradient-to-l from-black to-transparent z-10" />
+              <div className="overflow-hidden">
+                <div className="animate-sidebar-marquee flex items-center gap-6 whitespace-nowrap">
+                  {[1, 2, 3].map((num) => (
+                    <div key={num} className="flex flex-col items-center justify-center text-center gap-0.5">
+                      <span className="font-sans font-black uppercase tracking-wider text-[10px] text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.9)]">
+                        ⚡ Software Development by Jahid Hasan
+                      </span>
+                      <span className="font-serif italic font-bold text-[10px] text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
+                        ✦ (Owner of JHF Laptop Zone) ✦
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -662,6 +704,21 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         </div>
       )}
 
+      {/* Cyber Marquee Keyframes for Sidebar */}
+      <style>{`
+        @keyframes sidebarMarqueeSlide {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-sidebar-marquee {
+          display: flex;
+          width: max-content;
+          animation: sidebarMarqueeSlide 16s linear infinite;
+        }
+        .animate-sidebar-marquee:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
     </div>
   );
 };

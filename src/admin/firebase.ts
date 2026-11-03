@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getFirestore, Firestore, doc, getDocFromServer } from 'firebase/firestore';
+import rawFirebaseConfig from '../../firebase-applet-config.json';
 
 export enum OperationType {
   CREATE = 'create',
@@ -51,61 +52,37 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Config retrieval: checks localStorage or env variables
+export const firebaseConfig = rawFirebaseConfig;
+
 export function getFirebaseConfig() {
-  const storedConfig = localStorage.getItem('jhf_firebase_config');
-  if (storedConfig) {
-    try {
-      return JSON.parse(storedConfig);
-    } catch {
-      // ignore
-    }
-  }
-
-  // Check if Vite environment variables are present
-  const metaEnv = (import.meta as unknown as { env?: Record<string, string> }).env || {};
-  const envConfig = {
-    apiKey: metaEnv.VITE_FIREBASE_API_KEY,
-    authDomain: metaEnv.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: metaEnv.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: metaEnv.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: metaEnv.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: metaEnv.VITE_FIREBASE_APP_ID,
-  };
-
-  if (envConfig.apiKey && envConfig.projectId) {
-    return envConfig;
-  }
-
-  return null;
+  return rawFirebaseConfig;
 }
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
+let app: FirebaseApp;
+if (getApps().length === 0) {
+  app = initializeApp(rawFirebaseConfig);
+} else {
+  app = getApp();
+}
+
+export const auth: Auth = getAuth(app);
+export const db: Firestore = getFirestore(app, rawFirebaseConfig.firestoreDatabaseId);
+export { app };
+export const isFirebaseConfigured = true;
+
+// Validate Connection to Firestore on boot
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Please check your Firebase configuration.');
+    }
+  }
+}
+testConnection();
 
 export function initFirebase() {
-  const config = getFirebaseConfig();
-  if (!config) {
-    return { app: null, auth: null, db: null, isConfigured: false };
-  }
-
-  try {
-    if (getApps().length === 0) {
-      app = initializeApp(config);
-    } else {
-      app = getApp();
-    }
-    auth = getAuth(app);
-    db = getFirestore(app);
-    return { app, auth, db, isConfigured: true };
-  } catch (err) {
-    console.warn('Firebase initialization error:', err);
-    return { app: null, auth: null, db: null, isConfigured: false };
-  }
+  return { app, auth, db, isConfigured: true };
 }
 
-// Initialize on module load if config exists
-const initial = initFirebase();
-export { app, auth, db };
-export const isFirebaseConfigured = initial.isConfigured;

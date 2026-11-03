@@ -26,6 +26,7 @@ import { CustomerReviewsAndCommentsView } from './components/CustomerReviewsAndC
 import { DataCenterView } from './components/DataCenterView';
 import { ServiceZoneView } from './components/service/ServiceZoneView';
 import { SecurityCommandCenterView } from './components/SecurityCommandCenterView';
+import { ServiceRequestsView } from './components/ServiceRequestsView';
 
 interface AdminPanelProps {
   onSwitchToWebsite: () => void;
@@ -155,6 +156,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onSwitchToWebsite }) => 
         return <SecurityCommandCenterView initialSubTab="ip" />;
       case 'security_risk':
         return <SecurityCommandCenterView initialSubTab="risk" />;
+      case 'service_requests':
+        return <ServiceRequestsView />;
       case 'service_dashboard':
         return <ServiceZoneView initialTab="dashboard" />;
       case 'service_new':

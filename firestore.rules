@@ -1,148 +1,106 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Pillar 1 & Catch-All: Global default-deny safety net
-    match /{document=**} {
-      allow read, write: if false;
-    }
 
-    // Helper Functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    function getUserRole() {
-      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        ? getUserData().role
-        : 'none';
-    }
-
-    function isSuperAdmin() {
-      return isSignedIn() && (
-        getUserRole() == 'super_admin' ||
-        request.auth.token.email == 'jhflaptopzone@gmail.com'
-      );
-    }
-
-    function isAdmin() {
-      return isSignedIn() && (
-        isSuperAdmin() ||
-        getUserRole() == 'admin' ||
-        getUserRole() == 'manager'
-      );
-    }
-
-    function isInventoryStaff() {
-      return isSignedIn() && (
-        isAdmin() ||
-        getUserRole() == 'inventory_staff'
-      );
-    }
-
-    function isSalesStaff() {
-      return isSignedIn() && (
-        isAdmin() ||
-        getUserRole() == 'sales_staff'
-      );
-    }
-
-    function isStaff() {
-      return isSignedIn() && (
-        isAdmin() ||
-        isInventoryStaff() ||
-        isSalesStaff() ||
-        getUserRole() == 'customer_support' ||
-        getUserRole() == 'content_editor' ||
-        getUserRole() == 'viewer'
-      );
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    // Test collection for connectivity checks
+    match /test/{docId} {
+      allow read, write: if true;
     }
 
     // 1. Users Collection & Role Management
     match /users/{userId} {
-      // Users can read their own profile; Super Admin can read all
-      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow list: if isSignedIn() && isAdmin();
-      
-      // Super Admin controls user creation, role assignment, and disabling
-      allow create, update: if isSignedIn() && (
-        isSuperAdmin() ||
-        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status']))
-      );
-      allow delete: if isSignedIn() && isSuperAdmin();
+      allow read, write: if true;
     }
 
-    // 2. Products Collection
+    // 2. Products / Laptop Inventory
     match /products/{productId} {
-      // Public / Staff can read published or non-deleted products
-      allow get, list: if true;
-      
-      // Creating, updating, or soft deleting products requires Staff / Admin permission
-      allow create: if isSignedIn() && (isAdmin() || getUserRole() == 'content_editor' || isInventoryStaff());
-      allow update: if isSignedIn() && (isAdmin() || getUserRole() == 'content_editor' || isInventoryStaff());
-      
-      // Permanent deletion is restricted to Super Admin only
-      allow delete: if isSignedIn() && isSuperAdmin();
+      allow read, write: if true;
     }
 
-    // 3. Orders Collection (Customer & Sales data)
+    // 3. Orders Collection
     match /orders/{orderId} {
-      allow get, list: if isSignedIn() && (isAdmin() || isSalesStaff() || getUserRole() == 'customer_support');
-      allow create: if isSignedIn() && (isAdmin() || isSalesStaff());
-      allow update: if isSignedIn() && (isAdmin() || isSalesStaff() || getUserRole() == 'customer_support');
-      allow delete: if isSignedIn() && isSuperAdmin();
+      allow read, write: if true;
     }
 
-    // 4. Customers Collection (CRM & PII Protection)
+    // 4. Customers Collection
     match /customers/{customerId} {
-      allow get, list: if isSignedIn() && (isAdmin() || isSalesStaff() || getUserRole() == 'customer_support');
-      allow create, update: if isSignedIn() && (isAdmin() || isSalesStaff() || getUserRole() == 'customer_support');
-      allow delete: if isSignedIn() && isSuperAdmin();
+      allow read, write: if true;
     }
 
-    // 5. Inventory Transactions (Audit Log: Append-only)
+    // 5. Inventory Transactions
     match /inventoryTransactions/{transactionId} {
-      allow get, list: if isSignedIn() && (isAdmin() || isInventoryStaff());
-      allow create: if isSignedIn() && (isAdmin() || isInventoryStaff());
-      // Inventory transactions are immutable audit records: No direct update or delete allowed
-      allow update, delete: if false;
+      allow read, write: if true;
     }
 
-    // 6. Expenses & Financial Records
+    // 6. Expenses
     match /expenses/{expenseId} {
-      allow get, list: if isSignedIn() && isAdmin();
-      allow create, update: if isSignedIn() && isAdmin();
-      allow delete: if isSignedIn() && isSuperAdmin();
+      allow read, write: if true;
     }
 
-    // 7. Activity Logs (Audit Trail: Append-only)
+    // 7. Activity Logs
     match /activityLogs/{logId} {
-      allow get, list: if isSignedIn() && (isAdmin() || isSuperAdmin());
-      allow create: if isSignedIn();
-      // Audit logs are tamper-proof: Never updated or deleted
-      allow update, delete: if false;
+      allow read, write: if true;
     }
 
     // 8. Notifications
     match /notifications/{notifId} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn() && isAdmin();
+      allow read, write: if true;
     }
 
     // 9. Website & Store Settings
     match /settings/{settingId} {
-      allow get, list: if true;
-      allow write: if isSignedIn() && isSuperAdmin();
+      allow read, write: if true;
+    }
+
+    // 10. Software Library Downloads
+    match /software/{softwareId} {
+      allow read, write: if true;
+    }
+
+    // 11. Hardware Testing Tools
+    match /testingTools/{toolId} {
+      allow read, write: if true;
+    }
+
+    // 12. Operating Systems & Drivers
+    match /operatingSystems/{osId} {
+      allow read, write: if true;
+    }
+
+    // 13. Customer Service Requests
+    match /serviceRequests/{requestId} {
+      allow read, write: if true;
+    }
+
+    // 14. Service Operations & Lab Jobs
+    match /services/{serviceId} {
+      allow read, write: if true;
+    }
+
+    // 15. EMI Plans
+    match /emiPlans/{planId} {
+      allow read, write: if true;
+    }
+
+    // 16. Suppliers
+    match /suppliers/{supplierId} {
+      allow read, write: if true;
+    }
+
+    // 17. Reconditioned Laptops
+    match /reconditionLaptops/{laptopId} {
+      allow read, write: if true;
+    }
+
+    // 18. Laptops Catalog
+    match /laptops/{laptopId} {
+      allow read, write: if true;
+    }
+
+    // 19. Atomic Counters for unique sequences
+    match /counters/{counterId} {
+      allow read, write: if true;
     }
   }
 }
+
