@@ -110,10 +110,9 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     if (!files || files.length === 0) return;
     setPhotoError(null);
 
-    const newPhotos: string[] = [];
     const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
-    Array.from(files).forEach((file) => {
+    Array.from(files).forEach((file: File) => {
       if (file.size > MAX_SIZE_BYTES) {
         setPhotoError(`File "${file.name}" exceeds 5MB limit.`);
         return;
@@ -173,7 +172,7 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         address: detailedLocation.trim(),
         laptopBrand,
         laptopModel: laptopModel.trim(),
-        serialNumber: serialNumber.trim() || undefined,
+        serialNumber: serialNumber.trim() || '',
         problemCategory,
         problemDescription: problemDescription.trim(),
         preferredContactMethod: preferredContact,

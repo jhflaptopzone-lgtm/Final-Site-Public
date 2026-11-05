@@ -1,9 +1,17 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
 import { useTranslation } from '../context/LanguageContext';
-import { ShieldCheck, CheckCircle2, Award } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Award, Wrench, Search } from 'lucide-react';
 
-export const WarrantyZone: React.FC = () => {
+interface WarrantyZoneProps {
+  onRequestService?: () => void;
+  onTrackService?: () => void;
+}
+
+export const WarrantyZone: React.FC<WarrantyZoneProps> = ({
+  onRequestService,
+  onTrackService,
+}) => {
   const { warrantyTiers } = useStore();
   const { language } = useTranslation();
 
@@ -159,14 +167,30 @@ export const WarrantyZone: React.FC = () => {
             </div>
           </div>
 
-          <a
-            href={`https://wa.me/8801935693071?text=${encodeURIComponent(texts.waMsg)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm transition"
-          >
-            {texts.contactBtn}
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={onRequestService}
+              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-1.5"
+            >
+              <Wrench className="w-3.5 h-3.5" />
+              <span>🔧 REQUEST SERVICE</span>
+            </button>
+            <button
+              onClick={onTrackService}
+              className="bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold text-xs px-3.5 py-2.5 rounded-xl border border-slate-700 transition flex items-center gap-1.5"
+            >
+              <Search className="w-3.5 h-3.5 text-cyan-400" />
+              <span>🔎 TRACK SR</span>
+            </button>
+            <a
+              href={`https://wa.me/8801935693071?text=${encodeURIComponent(texts.waMsg)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition"
+            >
+              {texts.contactBtn}
+            </a>
+          </div>
         </div>
 
       </div>

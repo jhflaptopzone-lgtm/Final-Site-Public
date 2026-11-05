@@ -159,9 +159,30 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
+              {/* Premium Animated Request Service Button (Section 1) */}
+              <button
+                type="button"
+                onClick={onRequestService}
+                className="relative group overflow-hidden px-5 sm:px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2 shadow-xl shadow-orange-500/30 transform hover:-translate-y-0.5 transition cursor-pointer"
+              >
+                <span className="absolute inset-0 w-full h-full bg-white/25 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none"></span>
+                <Wrench className="w-4 h-4 text-slate-950 animate-bounce" />
+                <span>🔧 REQUEST LAPTOP SERVICE</span>
+              </button>
+
+              {/* Track SR Button (Section 11) */}
+              <button
+                type="button"
+                onClick={onTrackService}
+                className="px-4 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-cyan-300 hover:text-white border border-cyan-500/40 font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer shadow-md shadow-cyan-950/50"
+              >
+                <Search className="w-4 h-4 text-cyan-400" />
+                <span>🔎 TRACK SR</span>
+              </button>
+
               <a
                 href="#laptops-catalog"
-                className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-xl transition shadow-lg shadow-blue-600/30 flex items-center gap-2 group"
+                className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm px-5 py-3.5 rounded-xl transition shadow-lg shadow-blue-600/30 flex items-center gap-2 group"
               >
                 <span>{t?.hero?.ctaShop || 'SHOP LAPTOPS'}</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

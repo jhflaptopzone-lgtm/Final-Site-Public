@@ -465,8 +465,6 @@ export const INITIAL_SERVICES: ServiceJob[] = [
       },
     ],
     serviceWarrantyDays: 60,
-    serviceWarrantyStart: undefined,
-    serviceWarrantyEnd: undefined,
     warrantyStatus: 'ACTIVE',
     logs: [
       {

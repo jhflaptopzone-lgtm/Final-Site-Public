@@ -64,7 +64,7 @@ import {
   writeBatch,
   runTransaction
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from './firebase';
+import { db, handleFirestoreError, OperationType, sanitizeForFirestore } from './firebase';
 import { ServiceRequest, ServiceRequestStatus, ServiceRequestAuditLog } from '../types/serviceRequest';
 import { INITIAL_SERVICE_REQUESTS } from './data/serviceRequestInitialData';
 
@@ -1853,7 +1853,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             // Seed initial products to Firestore
             const batch = writeBatch(db);
             INITIAL_PRODUCTS.forEach((p) => {
-              batch.set(doc(db, 'products', p.id), p);
+              batch.set(doc(db, 'products', p.id), sanitizeForFirestore(p));
             });
             batch.commit().catch((err) => console.warn('Product Firestore seed:', err));
           }
@@ -1881,7 +1881,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             // Seed initial service requests to Firestore
             const batch = writeBatch(db);
             INITIAL_SERVICE_REQUESTS.forEach((sr) => {
-              batch.set(doc(db, 'serviceRequests', sr.id), sr);
+              batch.set(doc(db, 'serviceRequests', sr.id), sanitizeForFirestore(sr));
             });
             batch.commit().catch((err) => console.warn('ServiceRequests Firestore seed:', err));
           }
@@ -1908,7 +1908,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           } else {
             const batch = writeBatch(db);
             INITIAL_SERVICES.forEach((s) => {
-              batch.set(doc(db, 'services', s.id), s);
+              batch.set(doc(db, 'services', s.id), sanitizeForFirestore(s));
             });
             batch.commit().catch((err) => console.warn('Services Firestore seed:', err));
           }
@@ -1935,7 +1935,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           } else {
             const batch = writeBatch(db);
             INITIAL_ORDERS.forEach((o) => {
-              batch.set(doc(db, 'orders', o.id), o);
+              batch.set(doc(db, 'orders', o.id), sanitizeForFirestore(o));
             });
             batch.commit().catch((err) => console.warn('Orders Firestore seed:', err));
           }
@@ -1962,7 +1962,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           } else {
             const batch = writeBatch(db);
             INITIAL_CUSTOMERS.forEach((c) => {
-              batch.set(doc(db, 'customers', c.id), c);
+              batch.set(doc(db, 'customers', c.id), sanitizeForFirestore(c));
             });
             batch.commit().catch((err) => console.warn('Customers Firestore seed:', err));
           }
@@ -1989,7 +1989,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           } else {
             const batch = writeBatch(db);
             INITIAL_EXPENSES.forEach((ex) => {
-              batch.set(doc(db, 'expenses', ex.id), ex);
+              batch.set(doc(db, 'expenses', ex.id), sanitizeForFirestore(ex));
             });
             batch.commit().catch((err) => console.warn('Expenses Firestore seed:', err));
           }
@@ -2015,7 +2015,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setProducts((prev) => [newProduct, ...prev]);
 
     // Persist to Cloud Firestore in real time
-    setDoc(doc(db, 'products', newId), newProduct).catch((err) => {
+    setDoc(doc(db, 'products', newId), sanitizeForFirestore(newProduct)).catch((err) => {
       console.warn('Failed to persist product to Firestore:', err);
       handleFirestoreError(err, OperationType.CREATE, `products/${newId}`);
     });
@@ -2064,7 +2064,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       })
     );
     // Persist to Cloud Firestore in real time
-    setDoc(doc(db, 'products', id), updatedPayload, { merge: true }).catch((err) => {
+    setDoc(doc(db, 'products', id), sanitizeForFirestore(updatedPayload), { merge: true }).catch((err) => {
       console.warn('Failed to update product in Firestore:', err);
       handleFirestoreError(err, OperationType.UPDATE, `products/${id}`);
     });
@@ -2089,7 +2089,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           : p
       )
     );
-    setDoc(doc(db, 'products', id), deletedInfo, { merge: true }).catch((err) => {
+    setDoc(doc(db, 'products', id), sanitizeForFirestore(deletedInfo), { merge: true }).catch((err) => {
       console.warn('Failed to soft delete product in Firestore:', err);
     });
     logActivity('Soft Delete Product', 'Products', id, `Moved to Trash. Reason: ${reason}`);
@@ -2112,7 +2112,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           : p
       )
     );
-    setDoc(doc(db, 'products', id), restoredInfo, { merge: true }).catch((err) => {
+    setDoc(doc(db, 'products', id), sanitizeForFirestore(restoredInfo), { merge: true }).catch((err) => {
       console.warn('Failed to restore product in Firestore:', err);
     });
     logActivity('Restore Product', 'Products', id, `Restored product from Trash to Catalog`);
@@ -3718,7 +3718,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setServiceRequests((prev) => [newRequest, ...prev]);
 
     try {
-      await setDoc(doc(db, 'serviceRequests', newId), newRequest);
+      await setDoc(doc(db, 'serviceRequests', newId), sanitizeForFirestore(newRequest));
     } catch (err) {
       console.error('Failed to save service request to Firestore:', err);
       handleFirestoreError(err, OperationType.CREATE, `serviceRequests/${newId}`);
@@ -3748,17 +3748,19 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       prev.map((r) => {
         if (r.id === id) {
           const prevStatus = r.status;
+          const historyEntry: any = {
+            id: `sh-${Date.now()}`,
+            newStatus,
+            changedBy: performer,
+            changedAt: now,
+            customerNote: customerNote || `Status updated to ${newStatus}`,
+          };
+          if (prevStatus) historyEntry.previousStatus = prevStatus;
+          if (internalNote) historyEntry.internalNote = internalNote;
+
           const newHistory = [
             ...(r.statusHistory || []),
-            {
-              id: `sh-${Date.now()}`,
-              previousStatus: prevStatus,
-              newStatus,
-              changedBy: performer,
-              changedAt: now,
-              customerNote: customerNote || `Status updated to ${newStatus}`,
-              internalNote: internalNote || undefined,
-            },
+            historyEntry,
           ];
           const updated: ServiceRequest = {
             ...r,
@@ -3778,7 +3780,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     if (updatedObj) {
       try {
-        await setDoc(doc(db, 'serviceRequests', id), updatedObj, { merge: true });
+        await setDoc(doc(db, 'serviceRequests', id), sanitizeForFirestore(updatedObj), { merge: true });
       } catch (err) {
         console.error('Failed to update service request status in Firestore:', err);
         handleFirestoreError(err, OperationType.UPDATE, `serviceRequests/${id}`);
@@ -3811,7 +3813,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     if (updatedObj) {
       try {
-        await setDoc(doc(db, 'serviceRequests', id), updatedObj, { merge: true });
+        await setDoc(doc(db, 'serviceRequests', id), sanitizeForFirestore(updatedObj), { merge: true });
       } catch (err) {
         console.error('Failed to update service request in Firestore:', err);
         handleFirestoreError(err, OperationType.UPDATE, `serviceRequests/${id}`);
@@ -3845,13 +3847,14 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const newJobId = `JHF-SRV-${yyyy}${mm}${dd}${rand}`;
     const now = today.toISOString();
     const engineer = serviceEngineers.find((e) => e.id === assignedEngineerId) || serviceEngineers[0];
+    const engName = engineer?.name || 'Chief Hardware Engineer';
 
     const newJob: ServiceJob = {
       id: newJobId,
       srNumber: req.srNumber,
       createdAt: now,
       updatedAt: now,
-      status: 'Diagnosing',
+      status: 'DIAGNOSING',
       isDummy: false,
       customerName: req.customerName,
       customerPhone: req.mobile,
@@ -3860,30 +3863,34 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       laptopModel: req.laptopModel,
       serialNumber: req.serialNumber || 'N/A',
       physicalCondition: 'Customer Service Request Dropoff',
-      includedAccessories: ['Laptop Unit'],
-      problemCategory: req.problemCategory || 'Hardware Diagnosis',
-      customerReportedIssues: `${req.problemCategory}: ${req.problemDescription || ''}`,
-      assignedEngineerId: engineer?.id || 'eng-01',
-      assignedEngineerName: engineer?.name || 'Chief Hardware Engineer',
-      priority: 'High',
+      accessoriesReceived: ['Laptop Unit'],
+      receivedBy: currentUser?.name || 'Admin Staff',
+      complaintCategories: [req.problemCategory || 'Hardware Diagnosis'],
+      customerComplaintText: `${req.problemCategory}: ${req.problemDescription || ''}`,
+      engineerId: engineer?.id || 'eng-01',
+      engineerName: engName,
       estimatedDeliveryDate: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
       diagnosticFee: 300,
-      estimatedCost: 1500,
+      laborCost: 500,
+      partsCost: 700,
+      internalPartsCost: 350,
+      otherCost: 0,
+      discount: 0,
       totalCost: 1500,
       paidAmount: 0,
       dueAmount: 1500,
-      profit: 800,
+      profit: 850,
       partsUsed: [],
       paymentHistory: [],
-      warrantyStatus: 'STANDARD',
-      warrantyPeriodDays: 30,
+      serviceWarrantyDays: 30,
+      warrantyStatus: 'ACTIVE',
       logs: [
         {
           id: `log-${Date.now()}`,
           timestamp: now,
           action: 'Service Job Converted',
           user: currentUser?.name || 'Admin',
-          details: `Converted from Customer Service Request ${req.srNumber}. Assigned to ${engineer?.name || 'Engineer'}.`,
+          details: `Converted from Customer Service Request ${req.srNumber}. Assigned to ${engName}.`,
         },
       ],
     };
@@ -3891,7 +3898,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setServices((prev) => [newJob, ...prev]);
 
     try {
-      await setDoc(doc(db, 'services', newJobId), newJob);
+      await setDoc(doc(db, 'services', newJobId), sanitizeForFirestore(newJob));
     } catch (e) {
       console.warn('Failed to save service job to Firestore:', e);
     }
@@ -3900,12 +3907,12 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     await updateServiceRequestStatus(
       srId,
       'RUNNING',
-      `Service job ${newJobId} created and assigned to ${newJob.assignedEngineerName}. Diagnostics in progress.`,
+      `Service job ${newJobId} created and assigned to ${engName}. Diagnostics in progress.`,
       `Linked Service Job: ${newJobId}`
     );
     await updateServiceRequest(srId, {
       serviceJobId: newJobId,
-      assignedStaff: newJob.assignedEngineerName,
+      assignedStaff: engName,
     });
 
     logActivity('Convert SR to Job', 'ServiceRequests', req.srNumber, `Created Service Job ${newJobId}`);

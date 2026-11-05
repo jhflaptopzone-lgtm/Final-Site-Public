@@ -141,8 +141,8 @@ export const ServiceRequestsView: React.FC = () => {
       await updateServiceRequestStatus(
         selectedRequest.id,
         statusToUpdate,
-        customerNoteInput.trim() || undefined,
-        internalNoteInput.trim() || undefined
+        customerNoteInput.trim() || '',
+        internalNoteInput.trim() || ''
       );
       setActionFeedback(`Status of ${selectedRequest.srNumber} updated to ${statusToUpdate}`);
       setIsStatusModalOpen(false);

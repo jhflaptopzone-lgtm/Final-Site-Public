@@ -23,6 +23,8 @@ import { PrivacyCenterModal } from './components/PrivacyCenterModal';
 import { ToastNotificationStack } from './components/ToastNotificationStack';
 import { LaptopDetailModal } from './components/LaptopDetailModal';
 import { CustomerOrderModal, OrderItemData } from './components/CustomerOrderModal';
+import { ServiceRequestModal } from './components/ServiceRequestModal';
+import { TrackServiceRequestModal } from './components/TrackServiceRequestModal';
 import { MessageSquare, PhoneCall, Copy, Check, ArrowUp, Sparkles, FolderGit2, Settings } from 'lucide-react';
 
 function AppContent() {
@@ -39,6 +41,11 @@ function AppContent() {
   const [activePromoCode, setActivePromoCode] = useState<string>('');
   const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
   const [privacyTab, setPrivacyTab] = useState<'privacy' | 'cookies' | 'data' | 'terms'>('privacy');
+  
+  // Service Request & Tracking Modals
+  const [isServiceRequestModalOpen, setIsServiceRequestModalOpen] = useState(false);
+  const [isTrackSrModalOpen, setIsTrackSrModalOpen] = useState(false);
+  const [trackSrNumber, setTrackSrNumber] = useState('');
 
   const handleOrderWithPromo = (laptop: any, promoCode: string) => {
     setActivePromoCode(promoCode);
@@ -97,6 +104,11 @@ function AppContent() {
             onCopyXml={handleCopyXml}
             copied={copied}
             onOpenAdminLogin={handleOpenAdminLogin}
+            onRequestService={() => setIsServiceRequestModalOpen(true)}
+            onTrackService={(sr) => {
+              if (sr) setTrackSrNumber(sr);
+              setIsTrackSrModalOpen(true);
+            }}
           />
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-10">
@@ -107,7 +119,10 @@ function AppContent() {
               /* Live Interactive Website Preview */
               <>
                 {/* Hero & Trust Badges */}
-                <HeroSection />
+                <HeroSection
+                  onRequestService={() => setIsServiceRequestModalOpen(true)}
+                  onTrackService={() => setIsTrackSrModalOpen(true)}
+                />
 
                 {/* 1. Laptop Catalog with Specs Modal & Ordering */}
                 <LaptopCatalog />
@@ -131,7 +146,10 @@ function AppContent() {
                 <CustomerReviewsSection />
 
                 {/* 6. JHF Warranty Policies (3-Tiers) */}
-                <WarrantyZone />
+                <WarrantyZone
+                  onRequestService={() => setIsServiceRequestModalOpen(true)}
+                  onTrackService={() => setIsTrackSrModalOpen(true)}
+                />
 
                 {/* 7. Payment & Visiting Card */}
                 <PaymentAndVisitingCardZone />
@@ -344,6 +362,28 @@ function AppContent() {
             isOpen={privacyModalOpen}
             onClose={() => setPrivacyModalOpen(false)}
             initialTab={privacyTab}
+          />
+
+          {/* Customer Service Request Modal (Section 1-10) */}
+          <ServiceRequestModal
+            isOpen={isServiceRequestModalOpen}
+            onClose={() => setIsServiceRequestModalOpen(false)}
+            onOpenTrackSr={(sr) => {
+              setIsServiceRequestModalOpen(false);
+              setTrackSrNumber(sr || '');
+              setIsTrackSrModalOpen(true);
+            }}
+          />
+
+          {/* Customer Service Request Tracking Modal (Section 11-14) */}
+          <TrackServiceRequestModal
+            isOpen={isTrackSrModalOpen}
+            onClose={() => setIsTrackSrModalOpen(false)}
+            initialSrNumber={trackSrNumber}
+            onOpenNewRequest={() => {
+              setIsTrackSrModalOpen(false);
+              setIsServiceRequestModalOpen(true);
+            }}
           />
         </>
       )}

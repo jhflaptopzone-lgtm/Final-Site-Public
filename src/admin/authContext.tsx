@@ -35,6 +35,7 @@ interface AuthContextType {
   logActivity: (action: string, module: ActivityLog['module'], target: string, details: string) => void;
   hasPermission: (module: string, action?: 'read' | 'write' | 'delete') => boolean;
   reloadFirebaseConfig: () => void;
+  clearRateLimit: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,8 +57,8 @@ export interface MasterAccountConfig {
 
 export const DEFAULT_MASTER_USERS: MasterAccountConfig[] = [
   {
-    usernames: ['jhfboss', 'jhflaptopzone@gmail.com', 'jhf', 'jahid', '01935693071', '01935-693071', '+8801935693071'],
-    passwords: ['J@hf693071', 'admin123', 'jhfboss123', '01935693071', 'jhf693071'],
+    usernames: ['jhfboss', 'jhflaptopzone@gmail.com', 'jhf', 'jahid', '01935693071', '01935-693071', '+8801935693071', 'admin'],
+    passwords: ['J@hf693071', 'j@hf693071', 'admin123', 'Admin123', 'jhfboss123', '01935693071', 'jhf693071', 'jhf123'],
     profile: {
       uid: 'user-superadmin-root',
       name: 'MD. Jahid Hasan (Super Admin)',
@@ -69,7 +70,7 @@ export const DEFAULT_MASTER_USERS: MasterAccountConfig[] = [
   },
   {
     usernames: ['admin', 'admin@jhflaptopzone.com', 'administrator', 'root'],
-    passwords: ['admin123', 'J@hf693071', 'jhf123'],
+    passwords: ['admin123', 'Admin123', 'J@hf693071', 'j@hf693071', 'jhf123'],
     profile: {
       uid: 'user-superadmin-admin',
       name: 'System Administrator',
@@ -390,6 +391,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem(LOCAL_STORAGE_USERS_KEY, JSON.stringify(currentUsersDb));
       setCurrentUser(fullProfile);
       localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(fullProfile));
+      localStorage.setItem('jhf_admin_auth', 'true');
+      localStorage.setItem('jhf_admin_email', fullProfile.email);
       resetInactivityTimer();
       setSessionTerminationReason(null);
       setSessionTerminatedNotice(false);
@@ -693,6 +696,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logActivity,
         hasPermission,
         reloadFirebaseConfig,
+        clearRateLimit: () => {
+          securityEngine.clearRateLimit();
+          setRateLimitStatus(securityEngine.checkRateLimit());
+        },
       }}
     >
       {children}

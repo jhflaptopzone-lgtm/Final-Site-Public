@@ -8,7 +8,7 @@ import {
   onSnapshot,
   writeBatch
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../admin/firebase';
+import { db, handleFirestoreError, OperationType, sanitizeForFirestore } from '../admin/firebase';
 import {
   LaptopItem,
   DownloadItem,
@@ -249,7 +249,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             const batch = writeBatch(db);
             SOFTWARE_LIBRARY.forEach((item) => {
               const docRef = doc(db, 'software', item.id);
-              batch.set(docRef, item);
+              batch.set(docRef, sanitizeForFirestore(item));
             });
             batch.commit().then(() => setIsFirestoreLive(true)).catch((err) => {
               console.warn('Seeding software to Firestore:', err);
@@ -286,7 +286,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             const batch = writeBatch(db);
             TESTING_TOOLS.forEach((item) => {
               const docRef = doc(db, 'testingTools', item.id);
-              batch.set(docRef, item);
+              batch.set(docRef, sanitizeForFirestore(item));
             });
             batch.commit().then(() => setIsFirestoreLive(true)).catch((err) => {
               console.warn('Seeding testing tools to Firestore:', err);
@@ -323,7 +323,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             const batch = writeBatch(db);
             OS_ISOS.forEach((item) => {
               const docRef = doc(db, 'operatingSystems', item.id);
-              batch.set(docRef, item);
+              batch.set(docRef, sanitizeForFirestore(item));
             });
             batch.commit().then(() => setIsFirestoreLive(true)).catch((err) => {
               console.warn('Seeding OS to Firestore:', err);
@@ -360,7 +360,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             const batch = writeBatch(db);
             LAPTOPS_DATA.forEach((item) => {
               const docRef = doc(db, 'laptops', item.id);
-              batch.set(docRef, item);
+              batch.set(docRef, sanitizeForFirestore(item));
             });
             batch.commit().then(() => setIsFirestoreLive(true)).catch((err) => {
               console.warn('Seeding laptops to Firestore:', err);
@@ -390,7 +390,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setIsFirestoreLive(true);
           } else {
             // Seed initial store configuration
-            setDoc(docRef, STORE_INFO).then(() => setIsFirestoreLive(true)).catch((err) => {
+            setDoc(docRef, sanitizeForFirestore(STORE_INFO)).then(() => setIsFirestoreLive(true)).catch((err) => {
               console.warn('Seeding storeConfig:', err);
             });
           }
@@ -441,16 +441,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return { success: true };
     }
 
-    // Admin authorization check against registered administrator accounts
-    const isOwnerEmail =
-      cleanEmail === 'jhflaptopzone@gmail.com' ||
-      cleanEmail === 'admin@jhflaptopzone.com';
+    // Admin authorization check against registered administrator accounts & master credentials
+    const isMasterUser =
+      ['jhfboss', 'admin', 'jhflaptopzone@gmail.com', 'admin@jhflaptopzone.com', '01935693071', '01935-693071', '+8801935693071', 'jhf', 'jahid'].includes(cleanEmail);
 
-    if (isOwnerEmail && cleanPass) {
+    const validPasswords = ['J@hf693071', 'j@hf693071', 'admin123', 'Admin123', 'jhfboss123', '01935693071', 'jhf693071', 'jhf123'];
+
+    if (isMasterUser && validPasswords.includes(cleanPass)) {
       setIsAuthenticated(true);
       setAdminEmail(cleanEmail);
       localStorage.setItem(STORAGE_KEYS.AUTH, 'true');
       localStorage.setItem('jhf_admin_email', cleanEmail);
+      const profile = {
+        uid: cleanEmail === 'jhfboss' || cleanEmail.includes('01935693071') ? 'user-superadmin-root' : 'user-superadmin-admin',
+        name: cleanEmail === 'jhfboss' ? 'MD. Jahid Hasan (Super Admin)' : 'System Administrator',
+        email: cleanEmail,
+        phone: '+8801935693071',
+        role: 'super_admin' as const,
+        status: 'active' as const,
+      };
+      localStorage.setItem('jhf_admin_active_session', JSON.stringify(profile));
       return { success: true };
     }
 
@@ -471,7 +481,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newItem: LaptopItem = { ...item, id: newId };
     setLaptops((prev) => [newItem, ...prev]);
     try {
-      await setDoc(doc(db, 'laptops', newId), newItem);
+      await setDoc(doc(db, 'laptops', newId), sanitizeForFirestore(newItem));
     } catch (error) {
       console.error('Failed to save laptop to Firestore:', error);
       handleFirestoreError(error, OperationType.CREATE, `laptops/${newId}`);
@@ -483,7 +493,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       prev.map((item) => (item.id === id ? { ...item, ...updatedFields } : item))
     );
     try {
-      await setDoc(doc(db, 'laptops', id), updatedFields, { merge: true });
+      await setDoc(doc(db, 'laptops', id), sanitizeForFirestore(updatedFields), { merge: true });
     } catch (error) {
       console.error('Failed to update laptop in Firestore:', error);
       handleFirestoreError(error, OperationType.UPDATE, `laptops/${id}`);
@@ -519,7 +529,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newItem: DownloadItem = { ...item, id: newId };
     setSoftwareList((prev) => [newItem, ...prev]);
     try {
-      await setDoc(doc(db, 'software', newId), newItem);
+      await setDoc(doc(db, 'software', newId), sanitizeForFirestore(newItem));
     } catch (error) {
       console.error('Failed to save software to Firestore:', error);
       handleFirestoreError(error, OperationType.CREATE, `software/${newId}`);
@@ -531,7 +541,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       prev.map((item) => (item.id === id ? { ...item, ...updatedFields } : item))
     );
     try {
-      await setDoc(doc(db, 'software', id), updatedFields, { merge: true });
+      await setDoc(doc(db, 'software', id), sanitizeForFirestore(updatedFields), { merge: true });
     } catch (error) {
       console.error('Failed to update software in Firestore:', error);
       handleFirestoreError(error, OperationType.UPDATE, `software/${id}`);
@@ -567,7 +577,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newItem: DownloadItem = { ...item, id: newId };
     setTestingTools((prev) => [newItem, ...prev]);
     try {
-      await setDoc(doc(db, 'testingTools', newId), newItem);
+      await setDoc(doc(db, 'testingTools', newId), sanitizeForFirestore(newItem));
     } catch (error) {
       console.error('Failed to save testing tool to Firestore:', error);
       handleFirestoreError(error, OperationType.CREATE, `testingTools/${newId}`);
@@ -579,7 +589,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       prev.map((item) => (item.id === id ? { ...item, ...updatedFields } : item))
     );
     try {
-      await setDoc(doc(db, 'testingTools', id), updatedFields, { merge: true });
+      await setDoc(doc(db, 'testingTools', id), sanitizeForFirestore(updatedFields), { merge: true });
     } catch (error) {
       console.error('Failed to update testing tool in Firestore:', error);
       handleFirestoreError(error, OperationType.UPDATE, `testingTools/${id}`);
@@ -615,7 +625,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newItem: DownloadItem = { ...item, id: newId };
     setOsList((prev) => [newItem, ...prev]);
     try {
-      await setDoc(doc(db, 'operatingSystems', newId), newItem);
+      await setDoc(doc(db, 'operatingSystems', newId), sanitizeForFirestore(newItem));
     } catch (error) {
       console.error('Failed to save OS item to Firestore:', error);
       handleFirestoreError(error, OperationType.CREATE, `operatingSystems/${newId}`);
@@ -627,7 +637,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       prev.map((item) => (item.id === id ? { ...item, ...updatedFields } : item))
     );
     try {
-      await setDoc(doc(db, 'operatingSystems', id), updatedFields, { merge: true });
+      await setDoc(doc(db, 'operatingSystems', id), sanitizeForFirestore(updatedFields), { merge: true });
     } catch (error) {
       console.error('Failed to update OS item in Firestore:', error);
       handleFirestoreError(error, OperationType.UPDATE, `operatingSystems/${id}`);
@@ -661,7 +671,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateStoreInfo = async (info: Partial<StoreInfoType>) => {
     setStoreInfo((prev) => ({ ...prev, ...info }));
     try {
-      await setDoc(doc(db, 'settings', 'storeConfig'), info, { merge: true });
+      await setDoc(doc(db, 'settings', 'storeConfig'), sanitizeForFirestore(info), { merge: true });
     } catch (error) {
       console.error('Failed to update store info in Firestore:', error);
       handleFirestoreError(error, OperationType.UPDATE, 'settings/storeConfig');

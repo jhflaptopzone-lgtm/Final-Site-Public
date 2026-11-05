@@ -30,7 +30,6 @@ export const INITIAL_SERVICE_REQUESTS: ServiceRequest[] = [
     statusHistory: [
       {
         id: 'sh-001-1',
-        previousStatus: undefined,
         newStatus: 'REQUEST RECEIVED',
         changedBy: 'System Online Form',
         changedAt: '2026-09-14T09:15:00Z',
@@ -84,7 +83,6 @@ export const INITIAL_SERVICE_REQUESTS: ServiceRequest[] = [
     statusHistory: [
       {
         id: 'sh-002-1',
-        previousStatus: undefined,
         newStatus: 'REQUEST RECEIVED',
         changedBy: 'System Online Form',
         changedAt: '2026-09-14T10:45:00Z',
@@ -127,7 +125,6 @@ export const INITIAL_SERVICE_REQUESTS: ServiceRequest[] = [
     statusHistory: [
       {
         id: 'sh-003-1',
-        previousStatus: undefined,
         newStatus: 'REQUEST RECEIVED',
         changedBy: 'System Online Form',
         changedAt: '2026-09-14T12:05:00Z',

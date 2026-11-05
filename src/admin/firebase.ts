@@ -58,6 +58,14 @@ export function getFirebaseConfig() {
   return rawFirebaseConfig;
 }
 
+/**
+ * Removes all undefined properties recursively from an object/array so Firestore WriteBatch/setDoc doesn't reject it.
+ */
+export function sanitizeForFirestore<T>(data: T): T {
+  if (data === null || data === undefined) return data;
+  return JSON.parse(JSON.stringify(data));
+}
+
 let app: FirebaseApp;
 if (getApps().length === 0) {
   app = initializeApp(rawFirebaseConfig);

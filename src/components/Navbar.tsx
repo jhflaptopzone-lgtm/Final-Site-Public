@@ -20,6 +20,8 @@ import {
   Globe,
   Coins,
   Star,
+  Wrench,
+  Search,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -30,6 +32,8 @@ interface NavbarProps {
   onCopyXml: () => void;
   copied: boolean;
   onOpenAdminLogin: () => void;
+  onRequestService?: () => void;
+  onTrackService?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -38,6 +42,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeView,
   setActiveView,
   onOpenAdminLogin,
+  onRequestService,
+  onTrackService,
 }) => {
   const { storeInfo, isAuthenticated } = useStore();
   const {
@@ -251,8 +257,28 @@ export const Navbar: React.FC<NavbarProps> = ({
           ))}
         </nav>
 
-        {/* Right Action Tools: Track Order, Compare, Wishlist, Admin, Theme Toggle */}
+        {/* Right Action Tools: Service Request, Track SR, Track Order, Compare, Wishlist, Admin, Theme Toggle */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Service Request Button (Section 1) */}
+          <button
+            onClick={onRequestService}
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-sm shadow-orange-500/20 transition transform hover:-translate-y-0.5 cursor-pointer"
+            title="Request Laptop Service Directly"
+          >
+            <Wrench className="w-3.5 h-3.5 text-slate-950" />
+            <span>🔧 Request Service</span>
+          </button>
+
+          {/* Track SR Button (Section 11) */}
+          <button
+            onClick={onTrackService}
+            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-750 transition cursor-pointer"
+            title="Track Service Request Number"
+          >
+            <Search className="w-3.5 h-3.5 text-cyan-500" />
+            <span>🔎 Track SR</span>
+          </button>
+
           {/* Track Order Button */}
           <button
             onClick={() => setIsTrackingModalOpen(true)}
@@ -370,6 +396,29 @@ export const Navbar: React.FC<NavbarProps> = ({
           ))}
 
           <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2">
+            {/* Mobile Service Request & Track Buttons (Section 1: Mobile quick-action area) */}
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (onRequestService) onRequestService();
+              }}
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 text-center py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-orange-500/20"
+            >
+              <Wrench className="w-4 h-4 text-slate-950" />
+              <span>🔧 REQUEST LAPTOP SERVICE</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (onTrackService) onTrackService();
+              }}
+              className="w-full bg-slate-800 border border-cyan-500/30 text-cyan-400 text-center py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+            >
+              <Search className="w-4 h-4 text-cyan-400" />
+              <span>🔎 TRACK SERVICE REQUEST</span>
+            </button>
+
             <button
               onClick={() => {
                 setMobileMenuOpen(false);

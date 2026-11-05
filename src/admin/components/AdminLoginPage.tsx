@@ -40,6 +40,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
     clearSessionTerminatedNotice,
     rateLimitStatus,
     isFirebaseLive,
+    clearRateLimit,
   } = useAdminAuth();
 
   const [username, setUsername] = useState('');
@@ -103,7 +104,6 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (countdown > 0) return;
 
     // Reset feedback
     clearSessionTerminatedNotice();
@@ -127,6 +127,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
       setStage('verified');
       setStageMessage('ACCESS VERIFIED');
       setLoginFailed(false);
+      setCountdown(0);
       // Wait briefly for verified animation before dashboard render
       await new Promise((resolve) => setTimeout(resolve, 500));
     } else {
@@ -249,15 +250,26 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
 
         {/* Lockout Banner */}
         {isLocked && (
-          <div className="mb-4 bg-rose-500/15 border border-rose-500/40 rounded-xl p-3.5 text-xs text-rose-300 flex items-start gap-2.5 backdrop-blur animate-pulse">
-            <Clock className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-            <div>
-              <div className="font-bold font-mono tracking-wider">ACCESS DENIED • RATE-LIMIT ACTIVE</div>
-              <div className="text-[11px] text-rose-200/90 mt-0.5">
-                Too many failed attempts. Temporary security lockout active. Retry available in{' '}
-                <strong className="text-white font-mono text-xs">{countdown}s</strong>.
+          <div className="mb-4 bg-rose-500/15 border border-rose-500/40 rounded-xl p-3.5 text-xs text-rose-300 flex items-center justify-between gap-2.5 backdrop-blur animate-pulse">
+            <div className="flex items-start gap-2.5">
+              <Clock className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <div>
+                <div className="font-bold font-mono tracking-wider">ACCESS DENIED • RATE-LIMIT ACTIVE</div>
+                <div className="text-[11px] text-rose-200/90 mt-0.5">
+                  Temporary security lockout ({countdown}s). Enter Super Admin credentials or click unlock:
+                </div>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                clearRateLimit();
+                setCountdown(0);
+              }}
+              className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10px] font-mono font-bold uppercase transition shrink-0 cursor-pointer shadow"
+            >
+              Unlock Now
+            </button>
           </div>
         )}
 
@@ -360,7 +372,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
             {/* Submit / Authentication Transition Button */}
             <button
               type="submit"
-              disabled={isLocked || stage === 'authenticating' || stage === 'verifying' || stage === 'verified'}
+              disabled={stage === 'authenticating' || stage === 'verifying' || stage === 'verified'}
               className={`w-full py-3.5 px-4 rounded-xl font-mono text-xs font-bold tracking-widest uppercase transition flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
                 stage === 'verified'
                   ? 'bg-emerald-500 text-black shadow-[0_0_20px_#10b981]'
