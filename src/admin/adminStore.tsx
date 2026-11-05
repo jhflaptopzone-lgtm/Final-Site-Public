@@ -1858,7 +1858,13 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             batch.commit().catch((err) => console.warn('Product Firestore seed:', err));
           }
         },
-        (error) => handleFirestoreError(error, OperationType.GET, 'products')
+        (error) => {
+          try {
+            handleFirestoreError(error, OperationType.GET, 'products');
+          } catch (e) {
+            console.warn('Products Firestore snapshot notice:', e);
+          }
+        }
       );
       return () => unsubscribe();
     } catch (e) {
@@ -1886,7 +1892,13 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             batch.commit().catch((err) => console.warn('ServiceRequests Firestore seed:', err));
           }
         },
-        (error) => handleFirestoreError(error, OperationType.GET, 'serviceRequests')
+        (error) => {
+          try {
+            handleFirestoreError(error, OperationType.GET, 'serviceRequests');
+          } catch (e) {
+            console.warn('ServiceRequests Firestore snapshot notice:', e);
+          }
+        }
       );
       return () => unsubscribe();
     } catch (e) {
@@ -1913,7 +1925,13 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             batch.commit().catch((err) => console.warn('Services Firestore seed:', err));
           }
         },
-        (error) => handleFirestoreError(error, OperationType.GET, 'services')
+        (error) => {
+          try {
+            handleFirestoreError(error, OperationType.GET, 'services');
+          } catch (e) {
+            console.warn('Services Firestore snapshot notice:', e);
+          }
+        }
       );
       return () => unsubscribe();
     } catch (e) {
@@ -1940,7 +1958,13 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             batch.commit().catch((err) => console.warn('Orders Firestore seed:', err));
           }
         },
-        (error) => handleFirestoreError(error, OperationType.GET, 'orders')
+        (error) => {
+          try {
+            handleFirestoreError(error, OperationType.GET, 'orders');
+          } catch (e) {
+            console.warn('Orders Firestore snapshot notice:', e);
+          }
+        }
       );
       return () => unsubscribe();
     } catch (e) {
@@ -1967,7 +1991,13 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             batch.commit().catch((err) => console.warn('Customers Firestore seed:', err));
           }
         },
-        (error) => handleFirestoreError(error, OperationType.GET, 'customers')
+        (error) => {
+          try {
+            handleFirestoreError(error, OperationType.GET, 'customers');
+          } catch (e) {
+            console.warn('Customers Firestore snapshot notice:', e);
+          }
+        }
       );
       return () => unsubscribe();
     } catch (e) {
@@ -1994,11 +2024,169 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             batch.commit().catch((err) => console.warn('Expenses Firestore seed:', err));
           }
         },
-        (error) => handleFirestoreError(error, OperationType.GET, 'expenses')
+        (error) => {
+          try {
+            handleFirestoreError(error, OperationType.GET, 'expenses');
+          } catch (e) {
+            console.warn('Expenses Firestore snapshot notice:', e);
+          }
+        }
       );
       return () => unsubscribe();
     } catch (e) {
       console.warn('Expenses Firestore snapshot subscription error:', e);
+    }
+  }, []);
+
+  // 7. Recondition Laptops Collection Listener
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'reconditionLaptops');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: ReconditionLaptop[] = [];
+            snapshot.forEach((d) => list.push({ ...(d.data() as ReconditionLaptop), id: d.id }));
+            setReconditionLaptops(list);
+          } else {
+            const batch = writeBatch(db);
+            INITIAL_RECONDITION_LAPTOPS.forEach((r) => {
+              batch.set(doc(db, 'reconditionLaptops', r.id), sanitizeForFirestore(r));
+            });
+            batch.commit().catch((err) => console.warn('Recondition laptops Firestore seed:', err));
+          }
+        },
+        (error) => {
+          try {
+            handleFirestoreError(error, OperationType.GET, 'reconditionLaptops');
+          } catch (e) {
+            console.warn('Recondition laptops Firestore snapshot notice:', e);
+          }
+        }
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Recondition laptops Firestore snapshot subscription error:', e);
+    }
+  }, []);
+
+  // 8. Suppliers Collection Listener
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'suppliers');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: Supplier[] = [];
+            snapshot.forEach((d) => list.push({ ...(d.data() as Supplier), id: d.id }));
+            setSuppliers(list);
+          } else {
+            const batch = writeBatch(db);
+            INITIAL_SUPPLIERS.forEach((s) => {
+              batch.set(doc(db, 'suppliers', s.id), sanitizeForFirestore(s));
+            });
+            batch.commit().catch((err) => console.warn('Suppliers Firestore seed:', err));
+          }
+        },
+        (error) => {
+          try {
+            handleFirestoreError(error, OperationType.GET, 'suppliers');
+          } catch (e) {
+            console.warn('Suppliers Firestore snapshot notice:', e);
+          }
+        }
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Suppliers Firestore snapshot subscription error:', e);
+    }
+  }, []);
+
+  // 9. EMI Plans Collection Listener
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'emiPlans');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: EmiPlan[] = [];
+            snapshot.forEach((d) => list.push({ ...(d.data() as EmiPlan), id: d.id }));
+            setEmiPlans(list);
+          } else {
+            const batch = writeBatch(db);
+            INITIAL_EMI_PLANS.forEach((ep) => {
+              batch.set(doc(db, 'emiPlans', ep.id), sanitizeForFirestore(ep));
+            });
+            batch.commit().catch((err) => console.warn('EMI plans Firestore seed:', err));
+          }
+        },
+        (error) => {
+          try {
+            handleFirestoreError(error, OperationType.GET, 'emiPlans');
+          } catch (e) {
+            console.warn('EMI plans Firestore snapshot notice:', e);
+          }
+        }
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('EMI plans Firestore snapshot subscription error:', e);
+    }
+  }, []);
+
+  // 10. Inventory Transactions Collection Listener
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'inventoryTransactions');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: InventoryTransaction[] = [];
+            snapshot.forEach((d) => list.push({ ...(d.data() as InventoryTransaction), id: d.id }));
+            setInventoryTransactions(list);
+          }
+        },
+        (error) => {
+          try {
+            handleFirestoreError(error, OperationType.GET, 'inventoryTransactions');
+          } catch (e) {
+            console.warn('Inventory transactions Firestore snapshot notice:', e);
+          }
+        }
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Inventory transactions Firestore snapshot subscription error:', e);
+    }
+  }, []);
+
+  // 11. Website Settings Listener
+  useEffect(() => {
+    try {
+      const docRef = doc(db, 'settings', 'websiteSettings');
+      const unsubscribe = onSnapshot(
+        docRef,
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data() as WebsiteSettings;
+            setSettings((prev) => ({ ...prev, ...data }));
+          }
+        },
+        (error) => {
+          try {
+            handleFirestoreError(error, OperationType.GET, 'settings/websiteSettings');
+          } catch (e) {
+            console.warn('Website settings Firestore snapshot notice:', e);
+          }
+        }
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Website settings Firestore snapshot subscription error:', e);
     }
   }, []);
 
@@ -2136,9 +2324,10 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Order Actions
   const createOrder = (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt' | 'updatedAt' | 'timeline' | 'createdBy'>): Order => {
     const orderNumber = 'JHF-ORD-' + (1000 + orders.length + 1);
+    const newId = 'ord-' + Date.now();
     const newOrder: Order = {
       ...orderData,
-      id: 'ord-' + Date.now(),
+      id: newId,
       orderNumber,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -2155,7 +2344,12 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     setOrders((prev) => [newOrder, ...prev]);
 
-    // Automatically deduct inventory stock
+    // Persist new order directly to Cloud Firestore in real time
+    setDoc(doc(db, 'orders', newId), sanitizeForFirestore(newOrder)).catch((err) => {
+      console.warn('Failed to save order to Firestore:', err);
+    });
+
+    // Automatically deduct inventory stock & persist inventory transactions
     orderData.items.forEach((item) => {
       const targetProd = products.find((p) => p.id === item.productId);
       if (targetProd) {
@@ -2177,24 +2371,27 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           timestamp: new Date().toISOString(),
         };
         setInventoryTransactions((prevTx) => [tx, ...prevTx]);
+        setDoc(doc(db, 'inventoryTransactions', tx.id), sanitizeForFirestore(tx)).catch((err) => {
+          console.warn('Failed to persist transaction to Firestore:', err);
+        });
       }
     });
 
-    // Update or create Customer CRM profile
+    // Update or create Customer CRM profile and persist to Firestore
     setCustomers((prevCustomers) => {
       const existing = prevCustomers.find((c) => c.phoneNumber === orderData.customerPhone);
       if (existing) {
-        return prevCustomers.map((c) =>
-          c.id === existing.id
-            ? {
-                ...c,
-                totalOrders: c.totalOrders + 1,
-                totalSpending: c.totalSpending + orderData.totalAmount,
-                lastOrderDate: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              }
-            : c
-        );
+        const updatedCust = {
+          ...existing,
+          totalOrders: existing.totalOrders + 1,
+          totalSpending: existing.totalSpending + orderData.totalAmount,
+          lastOrderDate: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        setDoc(doc(db, 'customers', existing.id), sanitizeForFirestore(updatedCust), { merge: true }).catch((err) => {
+          console.warn('Failed to update customer in Firestore:', err);
+        });
+        return prevCustomers.map((c) => (c.id === existing.id ? updatedCust : c));
       } else {
         const newCustomer: Customer = {
           id: 'cust-' + Date.now(),
@@ -2212,6 +2409,9 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
+        setDoc(doc(db, 'customers', newCustomer.id), sanitizeForFirestore(newCustomer)).catch((err) => {
+          console.warn('Failed to save customer to Firestore:', err);
+        });
         return [newCustomer, ...prevCustomers];
       }
     });
@@ -2223,6 +2423,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const updateOrderStatus = (orderId: string, newStatus: OrderStatus, note: string) => {
     triggerAutoBackup(`Order ${orderId} Status: ${newStatus}`);
+    let updatedPayload: Partial<Order> | null = null;
     setOrders((prev) =>
       prev.map((ord) => {
         if (ord.id === orderId) {
@@ -2232,16 +2433,23 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             note: note || `Status updated to ${newStatus}`,
             performedBy: currentUser?.name || 'Admin',
           };
-          return {
+          const updated = {
             ...ord,
             orderStatus: newStatus,
             updatedAt: new Date().toISOString(),
             timeline: [...ord.timeline, newEvent],
           };
+          updatedPayload = updated;
+          return updated;
         }
         return ord;
       })
     );
+    if (updatedPayload) {
+      setDoc(doc(db, 'orders', orderId), sanitizeForFirestore(updatedPayload), { merge: true }).catch((err) => {
+        console.warn('Failed to update order in Firestore:', err);
+      });
+    }
     logActivity('Update Order Status', 'Orders', orderId, `Changed status to: ${newStatus}`);
   };
 

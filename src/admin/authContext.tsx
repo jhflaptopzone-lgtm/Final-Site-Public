@@ -96,7 +96,15 @@ export const DEFAULT_MASTER_USERS: MasterAccountConfig[] = [
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<AdminUser | null>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {}
+    return null;
+  });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isFirebaseLive, setIsFirebaseLive] = useState<boolean>(false);
@@ -311,6 +319,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setError(err.message || 'Failed to verify admin role');
           }
         } else {
+          // If no Firebase Auth user, preserve or restore active local master session!
+          const savedSession = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
+          if (savedSession) {
+            try {
+              const parsed = JSON.parse(savedSession);
+              if (parsed && (parsed.role === 'super_admin' || parsed.role === 'admin' || parsed.role === 'sales_staff')) {
+                setCurrentUser(parsed);
+                setLoading(false);
+                return;
+              }
+            } catch {}
+          }
           setCurrentUser(null);
         }
         setLoading(false);
@@ -348,11 +368,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check Master Pre-configured Administrative Credentials first
     const masterAccount = DEFAULT_MASTER_USERS.find(
       (m) =>
-        m.usernames.map((u) => u.toLowerCase()).includes(cleanInput) ||
+        m.usernames.some((u) => u.toLowerCase() === cleanInput) ||
         m.profile.email.toLowerCase() === cleanInput
     );
 
-    if (masterAccount && masterAccount.passwords.includes(cleanPass)) {
+    const isPasswordMatch = masterAccount
+      ? masterAccount.passwords.some(
+          (p) => p === cleanPass || p.toLowerCase() === cleanPass.toLowerCase()
+        )
+      : false;
+
+    if (masterAccount && isPasswordMatch) {
       securityEngine.clearRateLimit();
       setRateLimitStatus(securityEngine.checkRateLimit());
 

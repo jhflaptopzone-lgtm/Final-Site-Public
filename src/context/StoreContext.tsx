@@ -257,7 +257,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
         },
         (error) => {
-          handleFirestoreError(error, OperationType.GET, 'software');
+          try {
+            handleFirestoreError(error, OperationType.GET, 'software');
+          } catch (e) {
+            console.warn('Software snapshot notice:', e);
+          }
         }
       );
       return () => unsubscribe();
@@ -294,7 +298,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
         },
         (error) => {
-          handleFirestoreError(error, OperationType.GET, 'testingTools');
+          try {
+            handleFirestoreError(error, OperationType.GET, 'testingTools');
+          } catch (e) {
+            console.warn('TestingTools snapshot notice:', e);
+          }
         }
       );
       return () => unsubscribe();
@@ -331,7 +339,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
         },
         (error) => {
-          handleFirestoreError(error, OperationType.GET, 'operatingSystems');
+          try {
+            handleFirestoreError(error, OperationType.GET, 'operatingSystems');
+          } catch (e) {
+            console.warn('OperatingSystems snapshot notice:', e);
+          }
         }
       );
       return () => unsubscribe();
@@ -368,7 +380,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
         },
         (error) => {
-          handleFirestoreError(error, OperationType.GET, 'laptops');
+          try {
+            handleFirestoreError(error, OperationType.GET, 'laptops');
+          } catch (e) {
+            console.warn('Laptops snapshot notice:', e);
+          }
         }
       );
       return () => unsubscribe();
@@ -396,7 +412,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
         },
         (error) => {
-          handleFirestoreError(error, OperationType.GET, 'settings/storeConfig');
+          try {
+            handleFirestoreError(error, OperationType.GET, 'settings/storeConfig');
+          } catch (e) {
+            console.warn('StoreConfig snapshot notice:', e);
+          }
         }
       );
       return () => unsubscribe();

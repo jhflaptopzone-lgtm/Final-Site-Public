@@ -280,6 +280,26 @@
     "/settings/{settingId}": {
       "schema": "StoreConfig",
       "description": "Store configuration and media assets"
+    },
+    "/reconditionLaptops/{laptopId}": {
+      "schema": "Product",
+      "description": "Reconditioned laptops pre-owned inventory"
+    },
+    "/suppliers/{supplierId}": {
+      "schema": "Customer",
+      "description": "Wholesale laptop suppliers and vendor accounts"
+    },
+    "/emiPlans/{planId}": {
+      "schema": "Order",
+      "description": "Customer EMI installment plans and installment logs"
+    },
+    "/services/{serviceId}": {
+      "schema": "ServiceRequest",
+      "description": "Hardware repair lab service jobs and maintenance orders"
+    },
+    "/laptops/{laptopId}": {
+      "schema": "Product",
+      "description": "Catalog laptop units and public display laptops"
     }
   }
 }
