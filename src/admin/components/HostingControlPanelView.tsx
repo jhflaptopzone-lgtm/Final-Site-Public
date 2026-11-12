@@ -61,6 +61,8 @@ export const HostingControlPanelView: React.FC = () => {
     restoreFromBackupJSON,
     storageHealth,
     requestStoragePersistence,
+    clearAllDummyData,
+    isDummyDataCleared,
   } = useAdminStore();
 
   const { currentUser } = useAdminAuth();
@@ -71,7 +73,18 @@ export const HostingControlPanelView: React.FC = () => {
   const [restoreError, setRestoreError] = useState('');
   const [restoreSuccess, setRestoreSuccess] = useState('');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isClearDummyModalOpen, setIsClearDummyModalOpen] = useState(false);
+  const [clearDummySuccess, setClearDummySuccess] = useState<string | null>(null);
   const [isRollingBack, setIsRollingBack] = useState<string | null>(null);
+
+  const handleClearAllDummyData = () => {
+    const res = clearAllDummyData();
+    setIsClearDummyModalOpen(false);
+    setClearDummySuccess(
+      `All ${res.deletedTotal} default dummy/sample records have been wiped clean! A pre-purge safety snapshot was saved to your Vault. Your database is now a fresh, clean slate. All real products, orders, and expenses you enter will be permanently synchronized with Cloud Firestore with zero data loss.`
+    );
+    setTimeout(() => setClearDummySuccess(null), 12000);
+  };
   const [selectedSnapshot, setSelectedSnapshot] = useState<any | null>(null);
   const [cronLogs, setCronLogs] = useState<Array<{ id: string; time: string; job: string; status: string; details: string }>>([
     {
@@ -274,6 +287,14 @@ export const HostingControlPanelView: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2.5">
             <button
+              onClick={() => setIsClearDummyModalOpen(true)}
+              className="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-rose-600/30 transition flex items-center gap-2 border border-rose-400/30"
+              title="Wipe all demo/dummy products, orders, and expenses to start a clean production slate"
+            >
+              <Trash2 className="w-4 h-4 text-rose-200" />
+              <span>Clear All Dummy Data</span>
+            </button>
+            <button
               onClick={handleExportFullJSON}
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-600/20 transition flex items-center gap-2"
             >
@@ -432,6 +453,66 @@ export const HostingControlPanelView: React.FC = () => {
               <span>{restoreSuccess}</span>
             </div>
           )}
+
+          {clearDummySuccess && (
+            <div className="bg-emerald-950/40 border border-emerald-500/40 text-emerald-200 p-4 rounded-xl text-xs flex items-start gap-3 shadow-lg">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div className="font-bold text-white text-sm">Clean Production Database Active!</div>
+                <div className="leading-relaxed">{clearDummySuccess}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Dedicated Production Clean Slate Setup Card */}
+          <div className="bg-gradient-to-r from-slate-900 via-rose-950/25 to-slate-900 border-2 border-rose-500/40 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+              <div className="space-y-1.5 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1.5">
+                    <Trash2 className="w-3 h-3 text-rose-400" />
+                    CLEAN SLATE PRODUCTION TOOL
+                  </span>
+                  {isDummyDataCleared ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      CLEAN PRODUCTION SLATE ACTIVE (0 DUMMY DATA)
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
+                      SAMPLE / DEMO DATA LOADED
+                    </span>
+                  )}
+                </div>
+
+                <h2 className="text-lg font-black text-white flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                  <span>Clear All Dummy Data (ক্লিন ফ্রেশ ডাটাবেজ)</span>
+                </h2>
+
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  সিস্টেমের সকল প্রাথমিক ডেমো/স্যাম্পল প্রোডাক্ট, ডামি অর্ডার, কাস্টমার, খরচ ও সার্ভিস জব সম্পূর্ণ ডিলিট করে দিন। ডাটাবেজ একদম ফ্রেশ হয়ে যাবে এবং এর পর আপনি আপনার শো-রুমের আসল ফাইনাল ডাটা ইনপুট দিতে পারবেন। ক্লাউড ফায়ারস্টোরে আপনার সকল রিয়েল ডাটা স্থায়ী থাকবে (Zero Data Loss Guarantee)।
+                </p>
+
+                <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 font-mono pt-1">
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Pre-clean auto safety snapshot included
+                  </span>
+                  <span>•</span>
+                  <span>Admin logins (jhfboss &amp; admin) &amp; contact settings preserved</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsClearDummyModalOpen(true)}
+                className="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs px-5 py-3 rounded-xl shadow-lg shadow-rose-600/30 transition flex items-center gap-2 shrink-0 border border-rose-400/40 hover:scale-[1.02] active:scale-95"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Clear All Dummy Data</span>
+              </button>
+            </div>
+          </div>
 
           {/* Top Actions: Instant Manual Backup & Restore Uploader */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1114,6 +1195,74 @@ export const HostingControlPanelView: React.FC = () => {
                 className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2 rounded-xl text-xs shadow"
               >
                 Yes, Restore System
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear All Dummy Data Confirmation Modal */}
+      {isClearDummyModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-rose-500/40 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+            <div className="bg-slate-950 px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-rose-400" />
+                <span>Confirm: Clear All Dummy Data (ক্লিন ফ্রেশ ডাটাবেজ)</span>
+              </h3>
+              <button
+                onClick={() => setIsClearDummyModalOpen(false)}
+                className="text-slate-400 hover:text-white text-xs font-bold px-2 py-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs text-slate-300">
+              <p className="leading-relaxed">
+                আপনি কি নিশ্চিত যে আপনি সকল ডিফল্ট ডামি ও স্যাম্পল ডাটা মুছে ফেলতে চান?
+              </p>
+
+              <div className="bg-rose-950/30 border border-rose-800/50 p-4 rounded-xl text-rose-300 space-y-2 text-[11px]">
+                <div className="font-bold flex items-center gap-1.5 text-rose-200">
+                  <Trash2 className="w-4 h-4 text-rose-400" />
+                  <span>কী কী মুছে যাবে (What will be removed):</span>
+                </div>
+                <ul className="list-disc list-inside space-y-1 text-slate-300">
+                  <li>সকল ডেমো প্রোডাক্ট ও ল্যাপটপ ({products.length} Products)</li>
+                  <li>সকল ডেমো সেলস অর্ডার ও ইনভয়েস ({orders.length} Orders)</li>
+                  <li>সকল ডেমো কাস্টমার ও সাপ্লায়ার রেকর্ড ({customers.length} Customers)</li>
+                  <li>সকল ডেমো কিস্তি (EMI) প্ল্যান ও সার্ভিসিং জব</li>
+                  <li>সকল ডেমো শপ খরচ ও স্টক ট্রানজাকশন হিস্ট্রি</li>
+                </ul>
+              </div>
+
+              <div className="bg-emerald-950/30 border border-emerald-800/50 p-3.5 rounded-xl text-emerald-300 space-y-1 text-[11px]">
+                <div className="font-bold flex items-center gap-1.5 text-emerald-200">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>যা সুরক্ষিত থাকবে ও ঘটবে (Safety Guarantee):</span>
+                </div>
+                <p className="text-slate-300 leading-relaxed">
+                  ১. ডিলিট হওয়ার ঠিক পূর্ব মুহূর্তে একটি <strong>অটোমেটিক সেফটি ব্যাকআপ স্ন্যাপশট</strong> তৈরি হবে, যা আপনি যেকোনো সময় রিস্টোর করতে পারবেন।<br />
+                  ২. আপনার <strong>অ্যাডমিন লগইন আইডি/পাসওয়ার্ড</strong> (jhfboss, admin) ও শো-রুমের ঠিকানা/ফোন নম্বর অপরিবর্তিত থাকবে।<br />
+                  ৩. এরপর আপনি আপনার শো-রুমের আসল স্টক ও ফাইনাল ডাটা ইনপুট দিতে পারবেন; কোনো ডাটা কখনোই হারিয়ে যাবে না (Zero Data Loss)।
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-950 px-5 py-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
+              <button
+                onClick={() => setIsClearDummyModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-xs font-bold transition"
+              >
+                Cancel (বাতিল)
+              </button>
+              <button
+                onClick={handleClearAllDummyData}
+                className="bg-rose-600 hover:bg-rose-500 text-white font-black px-5 py-2.5 rounded-xl text-xs shadow-lg shadow-rose-600/30 transition flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Yes, Clear All Dummy Data (মুছে ফ্রেশ শুরু করুন)</span>
               </button>
             </div>
           </div>

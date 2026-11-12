@@ -30,6 +30,7 @@ import {
   Check,
   X,
   CreditCard,
+  Trash2,
 } from 'lucide-react';
 
 interface ServiceZoneViewProps {
@@ -52,9 +53,24 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
     serviceParts,
     warrantyClaims,
     addServiceEngineer,
+    deleteServiceEngineer,
     addServicePart,
     deleteServicePart,
+    deleteWarrantyClaim,
+    clearAllServiceZoneDummyData,
   } = useAdminStore();
+
+  const [confirmClearServiceModalOpen, setConfirmClearServiceModalOpen] = useState(false);
+  const [clearServiceToast, setClearServiceToast] = useState<string | null>(null);
+
+  const handleClearAllServiceDummy = () => {
+    const res = clearAllServiceZoneDummyData();
+    setConfirmClearServiceModalOpen(false);
+    setClearServiceToast(
+      `Cleared all ${res.deletedCount} Service Zone demo/dummy records! Your service dashboard is now a clean production slate.`
+    );
+    setTimeout(() => setClearServiceToast(null), 8000);
+  };
 
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'new' | 'active' | 'estimates' | 'engineers' | 'parts' | 'warranty' | 'invoices' | 'reports'
@@ -170,7 +186,15 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => setConfirmClearServiceModalOpen(true)}
+            className="px-3.5 py-2 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-md border border-rose-400/30 transition"
+            title="Clear all demo/dummy service jobs, technicians, parts, and warranty claims"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Clear Service Dummy Data</span>
+          </button>
           <button
             onClick={() => setWarrantyModalOpen(true)}
             className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition"
@@ -187,6 +211,13 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
           </button>
         </div>
       </div>
+
+      {clearServiceToast && (
+        <div className="bg-emerald-950/40 border border-emerald-500/40 text-emerald-200 p-4 rounded-xl text-xs flex items-center gap-3 shadow-lg">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="font-semibold">{clearServiceToast}</span>
+        </div>
+      )}
 
       {/* Sub Navigation Tabs */}
       <div className="flex border-b border-slate-800 text-xs font-semibold overflow-x-auto gap-1">
@@ -556,39 +587,56 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {serviceEngineers.map((eng) => (
-              <div key={eng.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <div className="font-bold text-white text-sm">{eng.name}</div>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                    eng.engineerType === 'internal'
-                      ? 'bg-emerald-500/20 text-emerald-300'
-                      : 'bg-purple-500/20 text-purple-300'
-                  }`}>
-                    {eng.engineerType}
-                  </span>
-                </div>
-
-                <div className="text-slate-400 space-y-1">
-                  <div><strong>Phone:</strong> {eng.phone}</div>
-                  <div><strong>Specialty:</strong> {eng.specialization}</div>
-                  <div><strong>Lab:</strong> {eng.shopName}</div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 font-mono text-center">
-                  <div className="bg-slate-950/60 p-2 rounded">
-                    <div className="text-slate-500 text-[10px]">TOTAL JOBS</div>
-                    <div className="font-bold text-white text-sm">{eng.totalJobs || 0}</div>
+          {serviceEngineers.length === 0 ? (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">
+              <Users className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+              <p className="font-semibold text-white">No engineers registered yet.</p>
+              <p className="text-xs text-slate-500 mt-1">Click &quot;Add Engineer&quot; above to register your in-house technicians.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {serviceEngineers.map((eng) => (
+                <div key={eng.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-white text-sm">{eng.name}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        eng.engineerType === 'internal'
+                          ? 'bg-emerald-500/20 text-emerald-300'
+                          : 'bg-purple-500/20 text-purple-300'
+                      }`}>
+                        {eng.engineerType}
+                      </span>
+                      <button
+                        onClick={() => deleteServiceEngineer(eng.id)}
+                        className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition"
+                        title="Delete engineer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="bg-slate-950/60 p-2 rounded">
-                    <div className="text-slate-500 text-[10px]">COMPLETED</div>
-                    <div className="font-bold text-emerald-400 text-sm">{eng.completedJobs || 0}</div>
+
+                  <div className="text-slate-400 space-y-1">
+                    <div><strong>Phone:</strong> {eng.phone}</div>
+                    <div><strong>Specialty:</strong> {eng.specialization}</div>
+                    <div><strong>Lab:</strong> {eng.shopName}</div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 font-mono text-center">
+                    <div className="bg-slate-950/60 p-2 rounded">
+                      <div className="text-slate-500 text-[10px]">TOTAL JOBS</div>
+                      <div className="font-bold text-white text-sm">{eng.totalJobs || 0}</div>
+                    </div>
+                    <div className="bg-slate-950/60 p-2 rounded">
+                      <div className="text-slate-500 text-[10px]">COMPLETED</div>
+                      <div className="font-bold text-emerald-400 text-sm">{eng.completedJobs || 0}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -624,35 +672,44 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {serviceParts.map((part) => (
-                  <tr key={part.id} className="hover:bg-slate-800/30 transition">
-                    <td className="py-3 px-4 font-semibold text-white">{part.name}</td>
-                    <td className="py-3 px-4 font-mono text-slate-400">{part.code}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 text-[10px]">
-                        {part.category}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center font-mono">
-                      <span className={`px-2 py-0.5 rounded font-bold ${
-                        part.stock <= part.minStockAlert ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'
-                      }`}>
-                        {part.stock} pcs
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono text-slate-400">৳{part.purchaseCost.toLocaleString()}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-white">৳{part.sellingPrice.toLocaleString()}</td>
-                    <td className="py-3 px-4 text-center text-emerald-400 font-semibold">{part.warrantyDays || 30} Days</td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => deleteServicePart(part.id)}
-                        className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
+                {serviceParts.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-slate-500">
+                      কোনো সার্ভিস পার্টস পাওয়া যায়নি (No spare parts found in inventory).
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  serviceParts.map((part) => (
+                    <tr key={part.id} className="hover:bg-slate-800/30 transition">
+                      <td className="py-3 px-4 font-semibold text-white">{part.name}</td>
+                      <td className="py-3 px-4 font-mono text-slate-400">{part.code}</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 text-[10px]">
+                          {part.category}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center font-mono">
+                        <span className={`px-2 py-0.5 rounded font-bold ${
+                          part.stock <= part.minStockAlert ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'
+                        }`}>
+                          {part.stock} pcs
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-slate-400">৳{part.purchaseCost.toLocaleString()}</td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-white">৳{part.sellingPrice.toLocaleString()}</td>
+                      <td className="py-3 px-4 text-center text-emerald-400 font-semibold">{part.warrantyDays || 30} Days</td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => deleteServicePart(part.id)}
+                          className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition"
+                          title="Delete spare part"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -676,33 +733,50 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {warrantyClaims.map((claim) => (
-              <div key={claim.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-mono font-bold text-white text-sm">{claim.id}</div>
-                    <div className="text-slate-400 text-[11px]">Original Job: <strong className="text-white">{claim.originalServiceId}</strong></div>
+          {warrantyClaims.length === 0 ? (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">
+              <ShieldCheck className="w-10 h-10 mx-auto mb-2 text-slate-600" />
+              <div className="text-sm font-semibold text-white">No Warranty Claims Found</div>
+              <div className="text-xs text-slate-500 mt-1">কোনো সার্ভিস ওয়ারেন্টি ক্লেইম নেই। All services are performing smoothly.</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {warrantyClaims.map((claim) => (
+                <div key={claim.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-mono font-bold text-white text-sm">{claim.id}</div>
+                      <div className="text-slate-400 text-[11px]">Original Job: <strong className="text-white">{claim.originalServiceId}</strong></div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase">
+                        {claim.status}
+                      </span>
+                      <button
+                        onClick={() => deleteWarrantyClaim(claim.id)}
+                        className="p-1.5 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition"
+                        title="Delete warranty claim (ডিলিট করুন)"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <span className="px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase">
-                    {claim.status}
-                  </span>
-                </div>
 
-                <div className="bg-slate-950/60 p-3 rounded-lg border border-slate-800 space-y-1">
-                  <div><strong>Customer:</strong> {claim.customerName} ({claim.customerPhone})</div>
-                  <div><strong>Device:</strong> {claim.laptopModel}</div>
-                  <div><strong>Reported Problem:</strong> {claim.reportedProblem}</div>
-                  {claim.resolution && <div className="text-emerald-400"><strong>Resolution:</strong> {claim.resolution}</div>}
-                </div>
+                  <div className="bg-slate-950/60 p-3 rounded-lg border border-slate-800 space-y-1">
+                    <div><strong>Customer:</strong> {claim.customerName} ({claim.customerPhone})</div>
+                    <div><strong>Device:</strong> {claim.laptopModel}</div>
+                    <div><strong>Reported Problem:</strong> {claim.reportedProblem}</div>
+                    {claim.resolution && <div className="text-emerald-400"><strong>Resolution:</strong> {claim.resolution}</div>}
+                  </div>
 
-                <div className="text-[11px] text-slate-500 flex justify-between items-center">
-                  <span>Handled By: {claim.handledBy}</span>
-                  <span>Filed: {new Date(claim.claimDate).toLocaleDateString()}</span>
+                  <div className="text-[11px] text-slate-500 flex justify-between items-center">
+                    <span>Handled By: {claim.handledBy}</span>
+                    <span>Filed: {new Date(claim.claimDate).toLocaleDateString()}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -714,40 +788,48 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
             <p className="text-xs text-slate-400 mt-0.5">Printable and downloadable delivery sheets and service invoices.</p>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-950/80 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">
-                  <th className="py-3 px-4">Invoice / Job ID</th>
-                  <th className="py-3 px-4">Customer</th>
-                  <th className="py-3 px-4">Laptop Model</th>
-                  <th className="py-3 px-4 text-center">Service Warranty</th>
-                  <th className="py-3 px-4 text-right">Net Bill</th>
-                  <th className="py-3 px-4 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {services.map((job) => (
-                  <tr key={job.id} className="hover:bg-slate-800/30 transition">
-                    <td className="py-3 px-4 font-mono font-bold text-white">{job.id}</td>
-                    <td className="py-3 px-4">{job.customerName}</td>
-                    <td className="py-3 px-4">{job.laptopBrand} {job.laptopModel}</td>
-                    <td className="py-3 px-4 text-center text-emerald-400 font-semibold">{job.serviceWarrantyDays || 30} Days</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-white">৳{job.totalCost.toLocaleString()}</td>
-                    <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => setSelectedJobForInvoice(job)}
-                        className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-white font-semibold flex items-center gap-1 mx-auto transition"
-                      >
-                        <Printer className="w-3.5 h-3.5 text-emerald-400" />
-                        Print A4 Invoice
-                      </button>
-                    </td>
+          {services.length === 0 ? (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">
+              <Printer className="w-10 h-10 mx-auto mb-2 text-slate-600" />
+              <div className="text-sm font-semibold text-white">No Service Invoices</div>
+              <div className="text-xs text-slate-500 mt-1">কোনো সার্ভিস ইনভয়েস পাওয়া যায়নি। Active and completed service jobs will appear here.</div>
+            </div>
+          ) : (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-950/80 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                    <th className="py-3 px-4">Invoice / Job ID</th>
+                    <th className="py-3 px-4">Customer</th>
+                    <th className="py-3 px-4">Laptop Model</th>
+                    <th className="py-3 px-4 text-center">Service Warranty</th>
+                    <th className="py-3 px-4 text-right">Net Bill</th>
+                    <th className="py-3 px-4 text-center">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                  {services.map((job) => (
+                    <tr key={job.id} className="hover:bg-slate-800/30 transition">
+                      <td className="py-3 px-4 font-mono font-bold text-white">{job.id}</td>
+                      <td className="py-3 px-4">{job.customerName}</td>
+                      <td className="py-3 px-4">{job.laptopBrand} {job.laptopModel}</td>
+                      <td className="py-3 px-4 text-center text-emerald-400 font-semibold">{job.serviceWarrantyDays || 30} Days</td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-white">৳{job.totalCost.toLocaleString()}</td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => setSelectedJobForInvoice(job)}
+                          className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-white font-semibold flex items-center gap-1 mx-auto transition"
+                        >
+                          <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                          Print A4 Invoice
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -759,39 +841,47 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
             <p className="text-xs text-slate-400 mt-0.5">Comprehensive audit logs of repairs, micro-soldering, and burn-in tests.</p>
           </div>
 
-          <div className="space-y-3">
-            {services.map((job) => (
-              <div key={job.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 text-xs">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="font-mono font-bold text-white text-sm">{job.id}</span> &bull;{' '}
-                    <span className="font-semibold text-slate-200">{job.laptopBrand} {job.laptopModel}</span>
-                    <div className="text-[11px] text-slate-400">Customer: {job.customerName} &bull; Engineer: {job.engineerName}</div>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold uppercase text-[10px]">
-                    {job.status}
-                  </span>
-                </div>
-
-                {job.aiSummary && (
-                  <div className="bg-purple-950/30 border border-purple-500/30 rounded-lg p-3 text-purple-200 text-xs leading-relaxed">
-                    <div className="flex items-center gap-1.5 font-bold text-purple-300 mb-1">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Executive Service Report Summary</span>
+          {services.length === 0 ? (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">
+              <FileText className="w-10 h-10 mx-auto mb-2 text-slate-600" />
+              <div className="text-sm font-semibold text-white">No Service Reports</div>
+              <div className="text-xs text-slate-500 mt-1">কোনো সার্ভিস রিপোর্ট তৈরি হয়নি। Repair jobs will generate technical reports here.</div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {services.map((job) => (
+                <div key={job.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 text-xs">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="font-mono font-bold text-white text-sm">{job.id}</span> &bull;{' '}
+                      <span className="font-semibold text-slate-200">{job.laptopBrand} {job.laptopModel}</span>
+                      <div className="text-[11px] text-slate-400">Customer: {job.customerName} &bull; Engineer: {job.engineerName}</div>
                     </div>
-                    <p>{job.aiSummary}</p>
+                    <span className="px-2.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold uppercase text-[10px]">
+                      {job.status}
+                    </span>
                   </div>
-                )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-300 pt-1">
-                  <div><strong>Complaint:</strong> {job.customerComplaintText || 'General inspection'}</div>
-                  <div><strong>Diagnosis:</strong> {job.diagnosis || 'Pending inspection'}</div>
-                  <div><strong>Testing:</strong> {job.finalTestingResults || 'Not recorded'}</div>
-                  <div><strong>Parts Attached:</strong> {(job.partsUsed || []).map((p) => p.partName).join(', ') || 'None (Labor only)'}</div>
+                  {job.aiSummary && (
+                    <div className="bg-purple-950/30 border border-purple-500/30 rounded-lg p-3 text-purple-200 text-xs leading-relaxed">
+                      <div className="flex items-center gap-1.5 font-bold text-purple-300 mb-1">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Executive Service Report Summary</span>
+                      </div>
+                      <p>{job.aiSummary}</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-300 pt-1">
+                    <div><strong>Complaint:</strong> {job.customerComplaintText || 'General inspection'}</div>
+                    <div><strong>Diagnosis:</strong> {job.diagnosis || 'Pending inspection'}</div>
+                    <div><strong>Testing:</strong> {job.finalTestingResults || 'Not recorded'}</div>
+                    <div><strong>Parts Attached:</strong> {(job.partsUsed || []).map((p) => p.partName).join(', ') || 'None (Labor only)'}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -991,6 +1081,50 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Clearing Service Zone Dummy Data */}
+      {confirmClearServiceModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-rose-500/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-rose-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Clear Service Zone Dummy Data?</h3>
+                <p className="text-xs text-rose-300 font-medium">সার্ভিস জোনের সব ডামি ডাটা মুছে ফেলতে চান?</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-2 text-xs text-slate-300">
+              <p>
+                This will permanently delete all demo <strong>Active Services, Estimates, Demo Engineers (3), Spare Parts, Warranty Claims (1),</strong> and repair intake requests.
+              </p>
+              <p className="text-slate-400">
+                সার্ভিস ড্যাশবোর্ড সম্পূর্ণ ক্লিন (Clean/Zero) হয়ে যাবে এবং আপনি আপনার আসল গ্রাহক ও ইঞ্জিনিয়ারদের ডাটা নির্ভুলভাবে এন্ট্রি করতে পারবেন।
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmClearServiceModalOpen(false)}
+                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+              >
+                Cancel / বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={handleClearAllServiceDummy}
+                className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-rose-950/60 transition"
+              >
+                <Trash2 className="w-4 h-4" />
+                Yes, Clear All Service Dummy Data
+              </button>
+            </div>
           </div>
         </div>
       )}

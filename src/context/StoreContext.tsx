@@ -112,10 +112,14 @@ const STORAGE_KEYS = {
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [laptops, setLaptops] = useState<LaptopItem[]>(() => {
     try {
+      if (localStorage.getItem('jhf_dummy_data_cleared') === 'true') {
+        const saved = localStorage.getItem(STORAGE_KEYS.LAPTOPS);
+        return saved ? JSON.parse(saved) : [];
+      }
       const saved = localStorage.getItem(STORAGE_KEYS.LAPTOPS);
       return saved ? JSON.parse(saved) : LAPTOPS_DATA;
     } catch {
-      return LAPTOPS_DATA;
+      return [];
     }
   });
 
@@ -367,7 +371,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             });
             setLaptops(list);
             setIsFirestoreLive(true);
-          } else {
+          } else if (localStorage.getItem('jhf_dummy_data_cleared') !== 'true') {
             // Seed initial laptops into Firestore
             const batch = writeBatch(db);
             LAPTOPS_DATA.forEach((item) => {
@@ -377,6 +381,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             batch.commit().then(() => setIsFirestoreLive(true)).catch((err) => {
               console.warn('Seeding laptops to Firestore:', err);
             });
+          } else {
+            setLaptops([]);
+            setIsFirestoreLive(true);
           }
         },
         (error) => {
@@ -504,7 +511,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await setDoc(doc(db, 'laptops', newId), sanitizeForFirestore(newItem));
     } catch (error) {
       console.error('Failed to save laptop to Firestore:', error);
-      handleFirestoreError(error, OperationType.CREATE, `laptops/${newId}`);
+      try {
+        handleFirestoreError(error, OperationType.CREATE, `laptops/${newId}`);
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -516,7 +527,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await setDoc(doc(db, 'laptops', id), sanitizeForFirestore(updatedFields), { merge: true });
     } catch (error) {
       console.error('Failed to update laptop in Firestore:', error);
-      handleFirestoreError(error, OperationType.UPDATE, `laptops/${id}`);
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, `laptops/${id}`);
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -526,7 +541,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await deleteDoc(doc(db, 'laptops', id));
     } catch (error) {
       console.error('Failed to delete laptop from Firestore:', error);
-      handleFirestoreError(error, OperationType.DELETE, `laptops/${id}`);
+      try {
+        handleFirestoreError(error, OperationType.DELETE, `laptops/${id}`);
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -539,7 +558,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await batch.commit();
     } catch (error) {
       console.error('Failed to clear laptops in Firestore:', error);
-      handleFirestoreError(error, OperationType.DELETE, 'laptops');
+      try {
+        handleFirestoreError(error, OperationType.DELETE, 'laptops');
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -552,7 +575,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await setDoc(doc(db, 'software', newId), sanitizeForFirestore(newItem));
     } catch (error) {
       console.error('Failed to save software to Firestore:', error);
-      handleFirestoreError(error, OperationType.CREATE, `software/${newId}`);
+      try {
+        handleFirestoreError(error, OperationType.CREATE, `software/${newId}`);
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -564,7 +591,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await setDoc(doc(db, 'software', id), sanitizeForFirestore(updatedFields), { merge: true });
     } catch (error) {
       console.error('Failed to update software in Firestore:', error);
-      handleFirestoreError(error, OperationType.UPDATE, `software/${id}`);
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, `software/${id}`);
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -574,7 +605,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await deleteDoc(doc(db, 'software', id));
     } catch (error) {
       console.error('Failed to delete software from Firestore:', error);
-      handleFirestoreError(error, OperationType.DELETE, `software/${id}`);
+      try {
+        handleFirestoreError(error, OperationType.DELETE, `software/${id}`);
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -587,7 +622,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await batch.commit();
     } catch (error) {
       console.error('Failed to clear software in Firestore:', error);
-      handleFirestoreError(error, OperationType.DELETE, 'software');
+      try {
+        handleFirestoreError(error, OperationType.DELETE, 'software');
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -600,7 +639,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await setDoc(doc(db, 'testingTools', newId), sanitizeForFirestore(newItem));
     } catch (error) {
       console.error('Failed to save testing tool to Firestore:', error);
-      handleFirestoreError(error, OperationType.CREATE, `testingTools/${newId}`);
+      try {
+        handleFirestoreError(error, OperationType.CREATE, `testingTools/${newId}`);
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -612,7 +655,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await setDoc(doc(db, 'testingTools', id), sanitizeForFirestore(updatedFields), { merge: true });
     } catch (error) {
       console.error('Failed to update testing tool in Firestore:', error);
-      handleFirestoreError(error, OperationType.UPDATE, `testingTools/${id}`);
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, `testingTools/${id}`);
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -622,7 +669,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await deleteDoc(doc(db, 'testingTools', id));
     } catch (error) {
       console.error('Failed to delete testing tool from Firestore:', error);
-      handleFirestoreError(error, OperationType.DELETE, `testingTools/${id}`);
+      try {
+        handleFirestoreError(error, OperationType.DELETE, `testingTools/${id}`);
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -635,7 +686,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await batch.commit();
     } catch (error) {
       console.error('Failed to clear testing tools in Firestore:', error);
-      handleFirestoreError(error, OperationType.DELETE, 'testingTools');
+      try {
+        handleFirestoreError(error, OperationType.DELETE, 'testingTools');
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -648,7 +703,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await setDoc(doc(db, 'operatingSystems', newId), sanitizeForFirestore(newItem));
     } catch (error) {
       console.error('Failed to save OS item to Firestore:', error);
-      handleFirestoreError(error, OperationType.CREATE, `operatingSystems/${newId}`);
+      try {
+        handleFirestoreError(error, OperationType.CREATE, `operatingSystems/${newId}`);
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -660,7 +719,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await setDoc(doc(db, 'operatingSystems', id), sanitizeForFirestore(updatedFields), { merge: true });
     } catch (error) {
       console.error('Failed to update OS item in Firestore:', error);
-      handleFirestoreError(error, OperationType.UPDATE, `operatingSystems/${id}`);
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, `operatingSystems/${id}`);
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -670,7 +733,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await deleteDoc(doc(db, 'operatingSystems', id));
     } catch (error) {
       console.error('Failed to delete OS item from Firestore:', error);
-      handleFirestoreError(error, OperationType.DELETE, `operatingSystems/${id}`);
+      try {
+        handleFirestoreError(error, OperationType.DELETE, `operatingSystems/${id}`);
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -683,7 +750,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await batch.commit();
     } catch (error) {
       console.error('Failed to clear OS items in Firestore:', error);
-      handleFirestoreError(error, OperationType.DELETE, 'operatingSystems');
+      try {
+        handleFirestoreError(error, OperationType.DELETE, 'operatingSystems');
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 
@@ -694,7 +765,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await setDoc(doc(db, 'settings', 'storeConfig'), sanitizeForFirestore(info), { merge: true });
     } catch (error) {
       console.error('Failed to update store info in Firestore:', error);
-      handleFirestoreError(error, OperationType.UPDATE, 'settings/storeConfig');
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, 'settings/storeConfig');
+      } catch (e) {
+        console.warn('Firestore error handled:', e);
+      }
     }
   };
 

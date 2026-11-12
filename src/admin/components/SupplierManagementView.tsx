@@ -438,12 +438,12 @@ export const SupplierManagementView: React.FC = () => {
                     </div>
                     <span
                       className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                        supplier.outstandingBalance > 0
+                        (supplier.outstandingBalance || 0) > 0
                           ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
                           : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                       }`}
                     >
-                      {supplier.outstandingBalance > 0 ? 'Has Due' : 'Settled'}
+                      {(supplier.outstandingBalance || 0) > 0 ? 'Has Due' : 'Settled'}
                     </span>
                   </div>
 
@@ -476,7 +476,7 @@ export const SupplierManagementView: React.FC = () => {
                     </div>
                     <div className="flex justify-between text-slate-400 pt-1 border-t border-slate-800">
                       <span className="font-bold text-amber-400">Outstanding Due:</span>
-                      <span className="font-black text-amber-400 text-sm">৳{supplier.outstandingBalance.toLocaleString()}</span>
+                      <span className="font-black text-amber-400 text-sm">৳{((supplier.outstandingBalance ?? Math.max(0, (supplier.totalPurchases || 0) - (supplier.totalPaid || 0))) || 0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -584,7 +584,7 @@ export const SupplierManagementView: React.FC = () => {
                     Current Net Balance Due
                   </div>
                   <div className="text-xl font-black text-amber-400">
-                    ৳{targetSupplier.outstandingBalance.toLocaleString()}
+                    ৳{((targetSupplier?.outstandingBalance ?? Math.max(0, (targetSupplier?.totalPurchases || 0) - (targetSupplier?.totalPaid || 0))) || 0).toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -607,7 +607,7 @@ export const SupplierManagementView: React.FC = () => {
                     {ledgerWithBalance.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="text-center py-10 text-slate-500">
-                          No transactions recorded yet for {targetSupplier.name}.
+                          No transactions recorded yet for {targetSupplier?.name || 'this supplier'}.
                         </td>
                       </tr>
                     ) : (
@@ -628,13 +628,13 @@ export const SupplierManagementView: React.FC = () => {
                           <td className="px-4 py-3 font-mono font-bold text-slate-200">{row.ref}</td>
                           <td className="px-4 py-3 text-slate-300 max-w-[280px] truncate">{row.description}</td>
                           <td className="px-4 py-3 text-right font-semibold text-blue-400">
-                            {row.debit > 0 ? `৳${row.debit.toLocaleString()}` : '—'}
+                            {(row.debit || 0) > 0 ? `৳${(row.debit || 0).toLocaleString()}` : '—'}
                           </td>
                           <td className="px-4 py-3 text-right font-semibold text-emerald-400">
-                            {row.credit > 0 ? `৳${row.credit.toLocaleString()}` : '—'}
+                            {(row.credit || 0) > 0 ? `৳${(row.credit || 0).toLocaleString()}` : '—'}
                           </td>
                           <td className="px-4 py-3 text-right font-black text-amber-400">
-                            ৳{row.balance.toLocaleString()}
+                            ৳{(row.balance || 0).toLocaleString()}
                           </td>
                         </tr>
                       ))
@@ -674,11 +674,11 @@ export const SupplierManagementView: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 font-bold text-white">{p.supplierName}</td>
                     <td className="px-4 py-3 text-slate-300">{p.itemDescription}</td>
-                    <td className="px-4 py-3 text-right font-bold">{p.quantity}</td>
-                    <td className="px-4 py-3 text-right">৳{p.unitCost.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right font-bold text-white">৳{p.totalPurchase.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-emerald-400">৳{p.paidAmount.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right font-black text-amber-400">৳{p.dueAmount.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-bold">{p.quantity || 0}</td>
+                    <td className="px-4 py-3 text-right">৳{(p.unitCost || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-bold text-white">৳{(p.totalPurchase || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-emerald-400">৳{(p.paidAmount || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-black text-amber-400">৳{(p.dueAmount || 0).toLocaleString()}</td>
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => {
@@ -730,7 +730,7 @@ export const SupplierManagementView: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right font-black text-emerald-400 text-sm">
-                      ৳{pay.amount.toLocaleString()}
+                      ৳{(pay.amount || 0).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-slate-400">{pay.notes || '—'}</td>
                     <td className="px-4 py-3 text-slate-300">{pay.createdBy}</td>
@@ -953,13 +953,13 @@ export const SupplierManagementView: React.FC = () => {
                 <div>
                   <span className="text-slate-400">Total Purchase: </span>
                   <span className="font-bold text-white">
-                    ৳{(newPurchase.quantity * newPurchase.unitCost).toLocaleString()}
+                    ৳{(((newPurchase.quantity || 0) * (newPurchase.unitCost || 0)) || 0).toLocaleString()}
                   </span>
                 </div>
                 <div>
                   <span className="text-slate-400">Auto Supplier Due: </span>
                   <span className="font-black text-amber-400">
-                    ৳{Math.max(0, newPurchase.quantity * newPurchase.unitCost - newPurchase.paidAmount).toLocaleString()}
+                    ৳{(Math.max(0, (newPurchase.quantity || 0) * (newPurchase.unitCost || 0) - (newPurchase.paidAmount || 0)) || 0).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -1008,7 +1008,7 @@ export const SupplierManagementView: React.FC = () => {
                 >
                   {suppliers.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name} (Current Due: ৳{s.outstandingBalance.toLocaleString()})
+                      {s.name} (Current Due: ৳{((s.outstandingBalance ?? Math.max(0, (s.totalPurchases || 0) - (s.totalPaid || 0))) || 0).toLocaleString()})
                     </option>
                   ))}
                 </select>

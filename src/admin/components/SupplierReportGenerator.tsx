@@ -459,7 +459,7 @@ export const SupplierReportGenerator: React.FC<SupplierReportGeneratorProps> = (
             </div>
           </div>
           <div className="text-2xl font-black text-blue-400">
-            ৳{summary.totalPurchases.toLocaleString()}
+            ৳{(summary.totalPurchases || 0).toLocaleString()}
           </div>
           <div className="text-[11px] text-slate-400 mt-1">
             Total lot goods invoiced in selected period
@@ -475,7 +475,7 @@ export const SupplierReportGenerator: React.FC<SupplierReportGeneratorProps> = (
             </div>
           </div>
           <div className="text-2xl font-black text-emerald-400">
-            ৳{summary.totalPayments.toLocaleString()}
+            ৳{(summary.totalPayments || 0).toLocaleString()}
           </div>
           <div className="text-[11px] text-slate-400 mt-1">
             Transferred via Bank, bKash, Cash
@@ -491,7 +491,7 @@ export const SupplierReportGenerator: React.FC<SupplierReportGeneratorProps> = (
             </div>
           </div>
           <div className="text-2xl font-black text-purple-400">
-            ৳{summary.netDue.toLocaleString()}
+            ৳{(summary.netDue || 0).toLocaleString()}
           </div>
           <div className="text-[11px] text-slate-400 mt-1">
             Formula: Purchases − Total Payments
@@ -624,17 +624,17 @@ export const SupplierReportGenerator: React.FC<SupplierReportGeneratorProps> = (
 
                       {/* Debit (Purchase) */}
                       <td className="py-3 px-3 text-right font-mono font-bold text-blue-400 whitespace-nowrap">
-                        {r.debit > 0 ? `৳${r.debit.toLocaleString()}` : '—'}
+                        {(r.debit || 0) > 0 ? `৳${(r.debit || 0).toLocaleString()}` : '—'}
                       </td>
 
                       {/* Credit (Payment) */}
                       <td className="py-3 px-3 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">
-                        {r.credit > 0 ? `৳${r.credit.toLocaleString()}` : '—'}
+                        {(r.credit || 0) > 0 ? `৳${(r.credit || 0).toLocaleString()}` : '—'}
                       </td>
 
                       {/* Balance Due */}
                       <td className="py-3 px-3 text-right font-mono font-black text-purple-300 whitespace-nowrap">
-                        ৳{r.balance.toLocaleString()}
+                        ৳{(r.balance || 0).toLocaleString()}
                       </td>
                     </tr>
                   );
@@ -650,13 +650,13 @@ export const SupplierReportGenerator: React.FC<SupplierReportGeneratorProps> = (
                     Grand Period Total:
                   </td>
                   <td className="py-3.5 px-3 text-right font-mono font-black text-blue-400">
-                    ৳{summary.totalPurchases.toLocaleString()}
+                    ৳{(summary.totalPurchases || 0).toLocaleString()}
                   </td>
                   <td className="py-3.5 px-3 text-right font-mono font-black text-emerald-400">
-                    ৳{summary.totalPayments.toLocaleString()}
+                    ৳{(summary.totalPayments || 0).toLocaleString()}
                   </td>
                   <td className="py-3.5 px-3 text-right font-mono font-black text-purple-400 text-sm">
-                    ৳{summary.netDue.toLocaleString()}
+                    ৳{(summary.netDue || 0).toLocaleString()}
                   </td>
                 </tr>
               </tfoot>

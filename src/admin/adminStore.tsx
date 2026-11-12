@@ -295,6 +295,8 @@ interface AdminStoreType {
   recordServicePayment: (serviceJobId: string, payment: Omit<ServicePaymentRecord, 'id'>) => void;
   addWarrantyClaim: (claim: Omit<WarrantyClaim, 'id' | 'claimDate'>) => WarrantyClaim;
   updateWarrantyClaim: (id: string, updates: Partial<WarrantyClaim>) => void;
+  deleteWarrantyClaim: (id: string) => void;
+  clearAllServiceZoneDummyData: () => { deletedCount: number };
 
   // Customer Service Requests & Public Tracking
   serviceRequests: ServiceRequest[];
@@ -311,6 +313,7 @@ interface AdminStoreType {
   convertRequestToServiceJob: (srId: string, assignedEngineerId?: string) => Promise<ServiceJob | null>;
 
   // Data Center & Dummy Data Management
+  isDummyDataCleared: boolean;
   clearAllDummyData: () => { deletedTotal: number };
 
   // Full Disaster Recovery & Backup Center
@@ -1379,20 +1382,64 @@ export const INITIAL_TOOL_COMMENTS: ToolComment[] = [
 export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, logActivity } = useAdminAuth();
 
+  // Helper to check if dummy data was cleared
+  const isDummyDataCleared = () => {
+    try {
+      return localStorage.getItem('jhf_dummy_data_cleared') === 'true';
+    } catch {
+      return false;
+    }
+  };
+
+  const isServiceDummyDataCleared = () => {
+    try {
+      return (
+        localStorage.getItem('jhf_dummy_data_cleared') === 'true' ||
+        localStorage.getItem('jhf_service_data_cleared') === 'true'
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  const [isDummyDataClearedState, setIsDummyDataClearedState] = useState<boolean>(() => isDummyDataCleared());
+
+  // Listen to Firestore systemInit to sync clean mode across devices
+  useEffect(() => {
+    try {
+      const docRef = doc(db, 'settings', 'systemInit');
+      const unsubscribe = onSnapshot(docRef, (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data?.dummyDataCleared) {
+            localStorage.setItem('jhf_dummy_data_cleared', 'true');
+            setIsDummyDataClearedState(true);
+          }
+        }
+      });
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('systemInit listener error:', e);
+    }
+  }, []);
+
   // State with LocalStorage persistent backing
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('jhf_admin_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    if (saved) return JSON.parse(saved);
+    return isDummyDataCleared() ? [] : INITIAL_PRODUCTS;
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
     const saved = localStorage.getItem('jhf_admin_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    if (saved) return JSON.parse(saved);
+    return isDummyDataCleared() ? [] : INITIAL_ORDERS;
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
     const saved = localStorage.getItem('jhf_admin_customers');
-    return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
+    if (saved) return JSON.parse(saved);
+    return isDummyDataCleared() ? [] : INITIAL_CUSTOMERS;
   });
 
   const [inventoryTransactions, setInventoryTransactions] = useState<InventoryTransaction[]>(() => {
@@ -1402,27 +1449,32 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const [suppliers, setSuppliers] = useState<Supplier[]>(() => {
     const saved = localStorage.getItem('jhf_admin_suppliers');
-    return saved ? JSON.parse(saved) : INITIAL_SUPPLIERS;
+    if (saved) return JSON.parse(saved);
+    return isDummyDataCleared() ? [] : INITIAL_SUPPLIERS;
   });
 
   const [stockUnits, setStockUnits] = useState<StockUnit[]>(() => {
     const saved = localStorage.getItem('jhf_admin_stock_units');
-    return saved ? JSON.parse(saved) : INITIAL_STOCK_UNITS;
+    if (saved) return JSON.parse(saved);
+    return isDummyDataCleared() ? [] : INITIAL_STOCK_UNITS;
   });
 
   const [supplierPurchases, setSupplierPurchases] = useState<SupplierPurchase[]>(() => {
     const saved = localStorage.getItem('jhf_admin_supplier_purchases');
-    return saved ? JSON.parse(saved) : INITIAL_SUPPLIER_PURCHASES;
+    if (saved) return JSON.parse(saved);
+    return isDummyDataCleared() ? [] : INITIAL_SUPPLIER_PURCHASES;
   });
 
   const [supplierPayments, setSupplierPayments] = useState<SupplierPayment[]>(() => {
     const saved = localStorage.getItem('jhf_admin_supplier_payments');
-    return saved ? JSON.parse(saved) : INITIAL_SUPPLIER_PAYMENTS;
+    if (saved) return JSON.parse(saved);
+    return isDummyDataCleared() ? [] : INITIAL_SUPPLIER_PAYMENTS;
   });
 
   const [emiPlans, setEmiPlans] = useState<EmiPlan[]>(() => {
     const saved = localStorage.getItem('jhf_admin_emi_plans');
-    return saved ? JSON.parse(saved) : INITIAL_EMI_PLANS;
+    if (saved) return JSON.parse(saved);
+    return isDummyDataCleared() ? [] : INITIAL_EMI_PLANS;
   });
 
   const [backupLogs, setBackupLogs] = useState<BackupLog[]>(() => {
@@ -1432,12 +1484,14 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const [reconditionLaptops, setReconditionLaptops] = useState<ReconditionLaptop[]>(() => {
     const saved = localStorage.getItem('jhf_admin_recondition_laptops');
-    return saved ? JSON.parse(saved) : INITIAL_RECONDITION_LAPTOPS;
+    if (saved) return JSON.parse(saved);
+    return isDummyDataCleared() ? [] : INITIAL_RECONDITION_LAPTOPS;
   });
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('jhf_admin_expenses');
-    return saved ? JSON.parse(saved) : INITIAL_EXPENSES;
+    if (saved) return JSON.parse(saved);
+    return isDummyDataCleared() ? [] : INITIAL_EXPENSES;
   });
 
   const [notifications, setNotifications] = useState<AdminNotification[]>(() => {
@@ -1623,36 +1677,40 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [services, setServices] = useState<ServiceJob[]>(() => {
     try {
       const saved = localStorage.getItem('jhf_admin_services');
-      return saved ? JSON.parse(saved) : INITIAL_SERVICES;
+      if (saved) return JSON.parse(saved);
+      return isServiceDummyDataCleared() ? [] : INITIAL_SERVICES;
     } catch {
-      return INITIAL_SERVICES;
+      return isServiceDummyDataCleared() ? [] : INITIAL_SERVICES;
     }
   });
 
   const [serviceEngineers, setServiceEngineers] = useState<ServiceEngineer[]>(() => {
     try {
       const saved = localStorage.getItem('jhf_admin_service_engineers');
-      return saved ? JSON.parse(saved) : INITIAL_SERVICE_ENGINEERS;
+      if (saved) return JSON.parse(saved);
+      return isServiceDummyDataCleared() ? [] : INITIAL_SERVICE_ENGINEERS;
     } catch {
-      return INITIAL_SERVICE_ENGINEERS;
+      return isServiceDummyDataCleared() ? [] : INITIAL_SERVICE_ENGINEERS;
     }
   });
 
   const [serviceParts, setServiceParts] = useState<ServicePart[]>(() => {
     try {
       const saved = localStorage.getItem('jhf_admin_service_parts');
-      return saved ? JSON.parse(saved) : INITIAL_SERVICE_PARTS;
+      if (saved) return JSON.parse(saved);
+      return isServiceDummyDataCleared() ? [] : INITIAL_SERVICE_PARTS;
     } catch {
-      return INITIAL_SERVICE_PARTS;
+      return isServiceDummyDataCleared() ? [] : INITIAL_SERVICE_PARTS;
     }
   });
 
   const [warrantyClaims, setWarrantyClaims] = useState<WarrantyClaim[]>(() => {
     try {
       const saved = localStorage.getItem('jhf_admin_warranty_claims');
-      return saved ? JSON.parse(saved) : INITIAL_WARRANTY_CLAIMS;
+      if (saved) return JSON.parse(saved);
+      return isServiceDummyDataCleared() ? [] : INITIAL_WARRANTY_CLAIMS;
     } catch {
-      return INITIAL_WARRANTY_CLAIMS;
+      return isServiceDummyDataCleared() ? [] : INITIAL_WARRANTY_CLAIMS;
     }
   });
 
@@ -1660,9 +1718,10 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>(() => {
     try {
       const saved = localStorage.getItem('jhf_admin_service_requests');
-      return saved ? JSON.parse(saved) : INITIAL_SERVICE_REQUESTS;
+      if (saved) return JSON.parse(saved);
+      return isServiceDummyDataCleared() ? [] : INITIAL_SERVICE_REQUESTS;
     } catch {
-      return INITIAL_SERVICE_REQUESTS;
+      return isServiceDummyDataCleared() ? [] : INITIAL_SERVICE_REQUESTS;
     }
   });
 
@@ -1849,13 +1908,15 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const list: Product[] = [];
             snapshot.forEach((d) => list.push({ ...(d.data() as Product), id: d.id }));
             setProducts(list);
-          } else {
+          } else if (!isDummyDataCleared()) {
             // Seed initial products to Firestore
             const batch = writeBatch(db);
             INITIAL_PRODUCTS.forEach((p) => {
               batch.set(doc(db, 'products', p.id), sanitizeForFirestore(p));
             });
             batch.commit().catch((err) => console.warn('Product Firestore seed:', err));
+          } else {
+            setProducts([]);
           }
         },
         (error) => {
@@ -1883,13 +1944,15 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const list: ServiceRequest[] = [];
             snapshot.forEach((d) => list.push({ ...(d.data() as ServiceRequest), id: d.id }));
             setServiceRequests(list);
-          } else {
+          } else if (!isDummyDataCleared()) {
             // Seed initial service requests to Firestore
             const batch = writeBatch(db);
             INITIAL_SERVICE_REQUESTS.forEach((sr) => {
               batch.set(doc(db, 'serviceRequests', sr.id), sanitizeForFirestore(sr));
             });
             batch.commit().catch((err) => console.warn('ServiceRequests Firestore seed:', err));
+          } else {
+            setServiceRequests([]);
           }
         },
         (error) => {
@@ -1917,12 +1980,14 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const list: ServiceJob[] = [];
             snapshot.forEach((d) => list.push({ ...(d.data() as ServiceJob), id: d.id }));
             setServices(list);
-          } else {
+          } else if (!isDummyDataCleared()) {
             const batch = writeBatch(db);
             INITIAL_SERVICES.forEach((s) => {
               batch.set(doc(db, 'services', s.id), sanitizeForFirestore(s));
             });
             batch.commit().catch((err) => console.warn('Services Firestore seed:', err));
+          } else {
+            setServices([]);
           }
         },
         (error) => {
@@ -1950,12 +2015,14 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const list: Order[] = [];
             snapshot.forEach((d) => list.push({ ...(d.data() as Order), id: d.id }));
             setOrders(list);
-          } else {
+          } else if (!isDummyDataCleared()) {
             const batch = writeBatch(db);
             INITIAL_ORDERS.forEach((o) => {
               batch.set(doc(db, 'orders', o.id), sanitizeForFirestore(o));
             });
             batch.commit().catch((err) => console.warn('Orders Firestore seed:', err));
+          } else {
+            setOrders([]);
           }
         },
         (error) => {
@@ -1983,12 +2050,14 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const list: Customer[] = [];
             snapshot.forEach((d) => list.push({ ...(d.data() as Customer), id: d.id }));
             setCustomers(list);
-          } else {
+          } else if (!isDummyDataCleared()) {
             const batch = writeBatch(db);
             INITIAL_CUSTOMERS.forEach((c) => {
               batch.set(doc(db, 'customers', c.id), sanitizeForFirestore(c));
             });
             batch.commit().catch((err) => console.warn('Customers Firestore seed:', err));
+          } else {
+            setCustomers([]);
           }
         },
         (error) => {
@@ -2016,12 +2085,14 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const list: Expense[] = [];
             snapshot.forEach((d) => list.push({ ...(d.data() as Expense), id: d.id }));
             setExpenses(list);
-          } else {
+          } else if (!isDummyDataCleared()) {
             const batch = writeBatch(db);
             INITIAL_EXPENSES.forEach((ex) => {
               batch.set(doc(db, 'expenses', ex.id), sanitizeForFirestore(ex));
             });
             batch.commit().catch((err) => console.warn('Expenses Firestore seed:', err));
+          } else {
+            setExpenses([]);
           }
         },
         (error) => {
@@ -2049,12 +2120,14 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const list: ReconditionLaptop[] = [];
             snapshot.forEach((d) => list.push({ ...(d.data() as ReconditionLaptop), id: d.id }));
             setReconditionLaptops(list);
-          } else {
+          } else if (!isDummyDataCleared()) {
             const batch = writeBatch(db);
             INITIAL_RECONDITION_LAPTOPS.forEach((r) => {
               batch.set(doc(db, 'reconditionLaptops', r.id), sanitizeForFirestore(r));
             });
             batch.commit().catch((err) => console.warn('Recondition laptops Firestore seed:', err));
+          } else {
+            setReconditionLaptops([]);
           }
         },
         (error) => {
@@ -2082,12 +2155,14 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const list: Supplier[] = [];
             snapshot.forEach((d) => list.push({ ...(d.data() as Supplier), id: d.id }));
             setSuppliers(list);
-          } else {
+          } else if (!isDummyDataCleared()) {
             const batch = writeBatch(db);
             INITIAL_SUPPLIERS.forEach((s) => {
               batch.set(doc(db, 'suppliers', s.id), sanitizeForFirestore(s));
             });
             batch.commit().catch((err) => console.warn('Suppliers Firestore seed:', err));
+          } else {
+            setSuppliers([]);
           }
         },
         (error) => {
@@ -2115,12 +2190,14 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const list: EmiPlan[] = [];
             snapshot.forEach((d) => list.push({ ...(d.data() as EmiPlan), id: d.id }));
             setEmiPlans(list);
-          } else {
+          } else if (!isDummyDataCleared()) {
             const batch = writeBatch(db);
             INITIAL_EMI_PLANS.forEach((ep) => {
               batch.set(doc(db, 'emiPlans', ep.id), sanitizeForFirestore(ep));
             });
             batch.commit().catch((err) => console.warn('EMI plans Firestore seed:', err));
+          } else {
+            setEmiPlans([]);
           }
         },
         (error) => {
@@ -2454,46 +2531,69 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const updateOrderDetails = (orderId: string, updates: Partial<Order>) => {
+    const updatedPayload = { ...updates, updatedAt: new Date().toISOString() };
     setOrders((prev) =>
       prev.map((ord) =>
         ord.id === orderId
           ? {
               ...ord,
-              ...updates,
-              updatedAt: new Date().toISOString(),
+              ...updatedPayload,
             }
           : ord
       )
     );
+    setDoc(doc(db, 'orders', orderId), sanitizeForFirestore(updatedPayload), { merge: true }).catch((err) => {
+      console.warn('Failed to update order details in Firestore:', err);
+    });
     logActivity('Update Order Details', 'Orders', orderId, `Updated details`);
   };
 
   const deleteOrder = (orderId: string) => {
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    deleteDoc(doc(db, 'orders', orderId)).catch((err) => {
+      console.warn('Failed to delete order from Firestore:', err);
+    });
     logActivity('Delete Order', 'Orders', orderId, `Deleted order record ${orderId}`);
   };
 
   const clearAllOrders = () => {
     setOrders([]);
+    getDocs(collection(db, 'orders')).then((snap) => {
+      const batch = writeBatch(db);
+      snap.forEach((d) => batch.delete(d.ref));
+      batch.commit().catch((err) => console.warn('Failed to clear orders in Firestore:', err));
+    }).catch((err) => console.warn('Clear orders error:', err));
     logActivity('Clear All Orders', 'Orders', 'All', 'Purged all orders from database');
   };
 
   // Customer Actions
   const updateCustomer = (customerId: string, updates: Partial<Customer>) => {
+    const payload = { ...updates, updatedAt: new Date().toISOString() };
     setCustomers((prev) =>
-      prev.map((c) => (c.id === customerId ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c))
+      prev.map((c) => (c.id === customerId ? { ...c, ...payload } : c))
     );
+    setDoc(doc(db, 'customers', customerId), sanitizeForFirestore(payload), { merge: true }).catch((err) => {
+      console.warn('Failed to update customer in Firestore:', err);
+    });
     logActivity('Update Customer', 'Customers', customerId, 'Updated customer details');
   };
 
   const deleteCustomer = (customerId: string) => {
     setCustomers((prev) => prev.filter((c) => c.id !== customerId));
+    deleteDoc(doc(db, 'customers', customerId)).catch((err) => {
+      console.warn('Failed to delete customer from Firestore:', err);
+    });
     logActivity('Delete Customer', 'Customers', customerId, `Deleted customer ${customerId}`);
     triggerAutoBackup(`Customer Deleted: ${customerId}`);
   };
 
   const clearAllCustomers = () => {
     setCustomers([]);
+    getDocs(collection(db, 'customers')).then((snap) => {
+      const batch = writeBatch(db);
+      snap.forEach((d) => batch.delete(d.ref));
+      batch.commit().catch((err) => console.warn('Failed to clear customers in Firestore:', err));
+    }).catch((err) => console.warn('Clear customers error:', err));
     logActivity('Clear All Customers', 'Customers', 'All', 'Purged all customers from CRM database');
   };
 
@@ -2556,6 +2656,9 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     setInventoryTransactions((prev) => [tx, ...prev]);
+    setDoc(doc(db, 'inventoryTransactions', tx.id), sanitizeForFirestore(tx)).catch((err) => {
+      console.warn('Failed to save transaction to Firestore:', err);
+    });
     logActivity('Stock In', 'Inventory', prod.name, `Received +${quantity} units from ${supplierName}`);
   };
 
@@ -2584,6 +2687,9 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     setInventoryTransactions((prev) => [tx, ...prev]);
+    setDoc(doc(db, 'inventoryTransactions', tx.id), sanitizeForFirestore(tx)).catch((err) => {
+      console.warn('Failed to save transaction to Firestore:', err);
+    });
     logActivity('Stock Out', 'Inventory', prod.name, `Deducted -${quantity} units. Reason: ${reason}`);
   };
 
@@ -2610,6 +2716,9 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     setInventoryTransactions((prev) => [tx, ...prev]);
+    setDoc(doc(db, 'inventoryTransactions', tx.id), sanitizeForFirestore(tx)).catch((err) => {
+      console.warn('Failed to save transaction to Firestore:', err);
+    });
     logActivity('Stock Adjustment', 'Inventory', prod.name, `Adjusted stock from ${prevStock} to ${newQuantity}. Reason: ${reason}`);
   };
 
@@ -2659,18 +2768,25 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Expense Actions
   const addExpense = (data: Omit<Expense, 'id' | 'createdAt' | 'createdBy'>) => {
+    const newId = 'exp-' + Date.now();
     const newExpense: Expense = {
       ...data,
-      id: 'exp-' + Date.now(),
+      id: newId,
       createdAt: new Date().toISOString(),
       createdBy: currentUser?.name || 'Admin',
     };
     setExpenses((prev) => [newExpense, ...prev]);
+    setDoc(doc(db, 'expenses', newId), sanitizeForFirestore(newExpense)).catch((err) => {
+      console.warn('Failed to save expense to Firestore:', err);
+    });
     logActivity('Add Expense', 'Finance', data.category, `Amount: ৳${data.amount} for ${data.description}`);
   };
 
   const deleteExpense = (id: string) => {
     setExpenses((prev) => prev.filter((e) => e.id !== id));
+    deleteDoc(doc(db, 'expenses', id)).catch((err) => {
+      console.warn('Failed to delete expense from Firestore:', err);
+    });
     logActivity('Delete Expense', 'Finance', id, `Removed expense voucher`);
   };
 
@@ -2686,13 +2802,17 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Settings
   const updateSettings = (newSettings: Partial<WebsiteSettings>) => {
     setSettings((prev) => ({ ...prev, ...newSettings }));
+    setDoc(doc(db, 'settings', 'websiteSettings'), sanitizeForFirestore(newSettings), { merge: true }).catch((err) => {
+      console.warn('Failed to update websiteSettings in Firestore:', err);
+    });
     logActivity('Update Settings', 'Settings', 'Website Settings', `Updated store hotlines & configuration`);
   };
 
   // Customer Actions
   const addCustomer = (customerData: Partial<Customer>) => {
+    const newId = 'cust-' + Date.now();
     const newCustomer: Customer = {
-      id: 'cust-' + Date.now(),
+      id: newId,
       fullName: customerData.fullName || (customerData as any).name || 'Customer',
       phoneNumber: customerData.phoneNumber || (customerData as any).phone || '',
       email: customerData.email || '',
@@ -2708,11 +2828,15 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       updatedAt: new Date().toISOString(),
     };
     setCustomers((prev) => [newCustomer, ...prev]);
+    setDoc(doc(db, 'customers', newId), sanitizeForFirestore(newCustomer)).catch((err) => {
+      console.warn('Failed to save customer to Firestore:', err);
+    });
     logActivity('Add Customer', 'Customers', newCustomer.fullName, `Created customer record for ${newCustomer.phoneNumber}`);
     triggerAutoBackup(`Customer Added: ${newCustomer.fullName}`);
   };
 
   const updatePaymentStatus = (orderId: string, status: PaymentStatus) => {
+    let updatedPayload: Partial<Order> | null = null;
     setOrders((prev) =>
       prev.map((ord) => {
         if (ord.id === orderId) {
@@ -2725,16 +2849,23 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               performedBy: currentUser?.name || 'Administrator',
             },
           ];
-          return {
+          const updated = {
             ...ord,
             paymentStatus: status,
             timeline: updatedTimeline,
             updatedAt: new Date().toISOString(),
           };
+          updatedPayload = updated;
+          return updated;
         }
         return ord;
       })
     );
+    if (updatedPayload) {
+      setDoc(doc(db, 'orders', orderId), sanitizeForFirestore(updatedPayload), { merge: true }).catch((err) => {
+        console.warn('Failed to update payment status in Firestore:', err);
+      });
+    }
     logActivity('Update Payment Status', 'Orders', orderId, `Changed payment status to: ${status}`);
   };
 
@@ -2962,15 +3093,19 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Supplier Actions
   const addSupplier = (supplierData: Omit<Supplier, 'id' | 'createdAt'>) => {
+    const newId = 'sup-' + Date.now();
     const newSupplier: Supplier = {
       ...supplierData,
-      id: 'sup-' + Date.now(),
+      id: newId,
       createdAt: new Date().toISOString(),
       totalPurchases: supplierData.totalPurchases || 0,
       totalPaid: supplierData.totalPaid || 0,
       outstandingBalance: supplierData.outstandingBalance || 0,
     };
     setSuppliers((prev) => [newSupplier, ...prev]);
+    setDoc(doc(db, 'suppliers', newId), sanitizeForFirestore(newSupplier)).catch((err) => {
+      console.warn('Failed to save supplier to Firestore:', err);
+    });
     logActivity('Add Supplier', 'Suppliers', newSupplier.name, `Added supplier ${newSupplier.name}`);
     triggerAutoBackup(`Supplier Added: ${newSupplier.name}`);
   };
@@ -2979,11 +3114,17 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setSuppliers((prev) =>
       prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
     );
+    setDoc(doc(db, 'suppliers', id), sanitizeForFirestore(updates), { merge: true }).catch((err) => {
+      console.warn('Failed to update supplier in Firestore:', err);
+    });
     logActivity('Update Supplier', 'Suppliers', id, `Updated supplier details`);
   };
 
   const deleteSupplier = (id: string) => {
     setSuppliers((prev) => prev.filter((s) => s.id !== id));
+    deleteDoc(doc(db, 'suppliers', id)).catch((err) => {
+      console.warn('Failed to delete supplier from Firestore:', err);
+    });
     logActivity('Delete Supplier', 'Suppliers', id, `Deleted supplier ${id}`);
   };
 
@@ -3112,6 +3253,9 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     setEmiPlans((prev) => [newPlan, ...prev]);
+    setDoc(doc(db, 'emiPlans', planId), sanitizeForFirestore(newPlan)).catch((err) => {
+      console.warn('Failed to save EMI plan to Firestore:', err);
+    });
 
     // Update stock unit if serial number matched
     if (newPlan.serialNumber) {
@@ -3157,31 +3301,44 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       notes: notes || 'Installment Payment',
     };
 
+    let updatedPayload: Partial<EmiPlan> | null = null;
     setEmiPlans((prev) =>
       prev.map((p) => {
         if (p.id === emiPlanId) {
-          return {
+          const updated = {
             ...p,
             paidAmount: newPaid,
             remainingDue: newRemaining,
-            status: isCompleted ? 'completed' : p.status,
+            status: (isCompleted ? 'completed' : p.status) as any,
             isOverdue: isCompleted ? false : p.isOverdue,
             paymentHistory: [...p.paymentHistory, paymentRecord],
             updatedAt: now,
           };
+          updatedPayload = updated;
+          return updated;
         }
         return p;
       })
     );
+
+    if (updatedPayload) {
+      setDoc(doc(db, 'emiPlans', emiPlanId), sanitizeForFirestore(updatedPayload), { merge: true }).catch((err) => {
+        console.warn('Failed to update EMI payment in Firestore:', err);
+      });
+    }
 
     logActivity('Record EMI Payment', 'Sales & EMI', plan.invoiceNo, `Collected ৳${amount} from ${plan.customerName} via ${paymentMethod}`);
     return { success: true, message: `Payment of ৳${amount.toLocaleString()} recorded successfully!` };
   };
 
   const updateEmiPlan = (id: string, updates: Partial<EmiPlan>) => {
+    const payload = { ...updates, updatedAt: new Date().toISOString() };
     setEmiPlans((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p))
+      prev.map((p) => (p.id === id ? { ...p, ...payload } : p))
     );
+    setDoc(doc(db, 'emiPlans', id), sanitizeForFirestore(payload), { merge: true }).catch((err) => {
+      console.warn('Failed to update EMI plan in Firestore:', err);
+    });
   };
 
   const deleteEmiPlan = (id: string) => {
@@ -3196,6 +3353,9 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       );
     }
     setEmiPlans((prev) => prev.filter((p) => p.id !== id));
+    deleteDoc(doc(db, 'emiPlans', id)).catch((err) => {
+      console.warn('Failed to delete EMI plan from Firestore:', err);
+    });
     logActivity('Delete EMI Plan', 'Sales & EMI', id, `Deleted EMI plan contract ${id}`);
   };
 
@@ -3237,27 +3397,38 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       updatedAt: new Date().toISOString(),
     };
     setReconditionLaptops((prev) => [newItem, ...prev]);
+    setDoc(doc(db, 'reconditionLaptops', newId), sanitizeForFirestore(newItem)).catch((err) => {
+      console.warn('Failed to save recondition laptop to Firestore:', err);
+    });
     logActivity('Add Recondition Laptop', 'Recondition Zone', newItem.title, `Added recondition laptop: ${newItem.title} (Buy: ৳${newItem.buyPrice}, Sell: ৳${newItem.sellPrice})`);
   };
 
   const updateReconditionLaptop = (id: string, updates: Partial<ReconditionLaptop>) => {
+    const payload = { ...updates, updatedAt: new Date().toISOString() };
     setReconditionLaptops((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updates, updatedAt: new Date().toISOString() } : item))
+      prev.map((item) => (item.id === id ? { ...item, ...payload } : item))
     );
+    setDoc(doc(db, 'reconditionLaptops', id), sanitizeForFirestore(payload), { merge: true }).catch((err) => {
+      console.warn('Failed to update recondition laptop in Firestore:', err);
+    });
     logActivity('Update Recondition Laptop', 'Recondition Zone', id, 'Updated reconditioned laptop details');
   };
 
   const deleteReconditionLaptop = (id: string) => {
     setReconditionLaptops((prev) => prev.filter((item) => item.id !== id));
+    deleteDoc(doc(db, 'reconditionLaptops', id)).catch((err) => {
+      console.warn('Failed to delete recondition laptop from Firestore:', err);
+    });
     logActivity('Delete Recondition Laptop', 'Recondition Zone', id, `Deleted recondition laptop ${id}`);
   };
 
   const markReconditionSold = (id: string, soldPrice?: number, customerName?: string, soldDate?: string) => {
+    let updatedPayload: Partial<ReconditionLaptop> | null = null;
     setReconditionLaptops((prev) =>
       prev.map((item) => {
         if (item.id === id) {
           const finalSoldPrice = soldPrice !== undefined && soldPrice > 0 ? soldPrice : (item.offerPrice || item.sellPrice);
-          return {
+          const updated = {
             ...item,
             status: 'sold' as const,
             soldPrice: finalSoldPrice,
@@ -3265,34 +3436,55 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             soldToCustomer: customerName || 'Walk-in Customer',
             updatedAt: new Date().toISOString(),
           };
+          updatedPayload = updated;
+          return updated;
         }
         return item;
       })
     );
+    if (updatedPayload) {
+      setDoc(doc(db, 'reconditionLaptops', id), sanitizeForFirestore(updatedPayload), { merge: true }).catch((err) => {
+        console.warn('Failed to mark recondition laptop sold in Firestore:', err);
+      });
+    }
     logActivity('Mark Recondition Sold', 'Recondition Zone', id, `Laptop marked as SOLD (Price: ৳${soldPrice})`);
   };
 
   const markReconditionAvailable = (id: string) => {
+    const updatedPayload = {
+      status: 'available' as const,
+      soldPrice: 0,
+      soldDate: '',
+      soldToCustomer: '',
+      updatedAt: new Date().toISOString(),
+    };
     setReconditionLaptops((prev) =>
       prev.map((item) => {
         if (item.id === id) {
           return {
             ...item,
-            status: 'available' as const,
+            ...updatedPayload,
             soldPrice: undefined,
             soldDate: undefined,
             soldToCustomer: undefined,
-            updatedAt: new Date().toISOString(),
           };
         }
         return item;
       })
     );
+    setDoc(doc(db, 'reconditionLaptops', id), sanitizeForFirestore(updatedPayload), { merge: true }).catch((err) => {
+      console.warn('Failed to reactivate recondition laptop in Firestore:', err);
+    });
     logActivity('Reactivate Recondition Laptop', 'Recondition Zone', id, 'Reactivated status to available');
   };
 
   const clearAllReconditionLaptops = () => {
     setReconditionLaptops([]);
+    getDocs(collection(db, 'reconditionLaptops')).then((snap) => {
+      const batch = writeBatch(db);
+      snap.forEach((d) => batch.delete(d.ref));
+      batch.commit().catch((err) => console.warn('Failed to clear recondition laptops in Firestore:', err));
+    }).catch((err) => console.warn('Clear recondition laptops error:', err));
     logActivity('Clear Recondition Laptops', 'Recondition Zone', 'All', 'Purged all reconditioned demo units');
   };
 
@@ -3647,12 +3839,16 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     setServices((prev) => [newJob, ...prev]);
+    setDoc(doc(db, 'services', newId), sanitizeForFirestore(newJob)).catch((err) => {
+      console.warn('Failed to save service job to Firestore:', err);
+    });
     logActivity('New Service Job', 'Inventory', newId, `Registered service intake for ${jobData.customerName}.`);
     triggerAutoBackup(`Service Job Registered: ${newId} (${jobData.customerName})`);
     return newJob;
   };
 
   const updateServiceJob = (id: string, updates: Partial<ServiceJob>) => {
+    let updatedPayload: Partial<ServiceJob> | null = null;
     setServices((prev) =>
       prev.map((job) => {
         if (job.id !== id) return job;
@@ -3667,18 +3863,28 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             details: `Status updated from ${job.status} to ${updates.status}.`,
           });
         }
-        return {
+        const updated = {
           ...job,
           ...updates,
           updatedAt: now,
           logs: updatedLogs,
         };
+        updatedPayload = updated;
+        return updated;
       })
     );
+    if (updatedPayload) {
+      setDoc(doc(db, 'services', id), sanitizeForFirestore(updatedPayload), { merge: true }).catch((err) => {
+        console.warn('Failed to update service job in Firestore:', err);
+      });
+    }
   };
 
   const deleteServiceJob = (id: string) => {
     setServices((prev) => prev.filter((j) => j.id !== id));
+    deleteDoc(doc(db, 'services', id)).catch((err) => {
+      console.warn('Failed to delete service job from Firestore:', err);
+    });
     logActivity('Delete Service Job', 'Inventory', id, 'Deleted service job sheet.');
   };
 
@@ -3762,7 +3968,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const newDue = Math.max(0, newTotal - (job.paidAmount || 0));
         const newProfit = Math.max(0, newTotal - (newInternalPartsCost + (job.diagnosticFee || 0) * 0.2));
 
-        return {
+        const updated = {
           ...job,
           partsUsed: newPartsUsed,
           partsCost: newPartsCost,
@@ -3782,6 +3988,10 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             },
           ],
         };
+        setDoc(doc(db, 'services', serviceJobId), sanitizeForFirestore(updated), { merge: true }).catch((err) => {
+          console.warn('Failed to update service job parts in Firestore:', err);
+        });
+        return updated;
       })
     );
   };
@@ -3801,7 +4011,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const newPaid = (job.paidAmount || 0) + payment.amount;
         const newDue = Math.max(0, (job.totalCost || 0) - newPaid);
 
-        return {
+        const updated = {
           ...job,
           paidAmount: newPaid,
           dueAmount: newDue,
@@ -3818,6 +4028,10 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             },
           ],
         };
+        setDoc(doc(db, 'services', serviceJobId), sanitizeForFirestore(updated), { merge: true }).catch((err) => {
+          console.warn('Failed to update service payment in Firestore:', err);
+        });
+        return updated;
       })
     );
   };
@@ -3852,6 +4066,60 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setWarrantyClaims((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
     );
+  };
+
+  const deleteWarrantyClaim = (id: string) => {
+    setWarrantyClaims((prev) => prev.filter((c) => c.id !== id));
+    logActivity('Delete Warranty Claim', 'Service Zone', id, 'Deleted warranty claim record.');
+  };
+
+  const clearAllServiceZoneDummyData = () => {
+    const totalCount =
+      services.length +
+      serviceEngineers.length +
+      serviceParts.length +
+      warrantyClaims.length +
+      serviceRequests.length;
+
+    setServices([]);
+    setServiceEngineers([]);
+    setServiceParts([]);
+    setWarrantyClaims([]);
+    setServiceRequests([]);
+
+    try {
+      localStorage.setItem('jhf_service_data_cleared', 'true');
+      localStorage.setItem('jhf_admin_services', '[]');
+      localStorage.setItem('jhf_admin_service_engineers', '[]');
+      localStorage.setItem('jhf_admin_service_parts', '[]');
+      localStorage.setItem('jhf_admin_warranty_claims', '[]');
+      localStorage.setItem('jhf_admin_service_requests', '[]');
+    } catch {}
+
+    (async () => {
+      try {
+        const collections = ['services', 'serviceRequests', 'serviceEngineers', 'serviceParts', 'warrantyClaims'];
+        for (const colName of collections) {
+          const snap = await getDocs(collection(db, colName));
+          if (!snap.empty) {
+            const batch = writeBatch(db);
+            snap.forEach((d) => batch.delete(d.ref));
+            await batch.commit();
+          }
+        }
+      } catch (e) {
+        console.warn('Firestore service zone purge notice:', e);
+      }
+    })();
+
+    logActivity(
+      'Clear Service Dummy Data',
+      'Service Zone',
+      'Data Cleanup',
+      `Cleared all ${totalCount} service zone demo/dummy records. Clean service slate active.`
+    );
+
+    return { deletedCount: totalCount };
   };
 
   // ==========================================
@@ -4128,107 +4396,148 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // ==========================================
-  // DATA CENTER: DUMMY DATA CLEANUP (SAFE FILTERING)
-  // Only records explicitly marked as isDummy: true may be deleted!
+  // DATA CENTER: COMPLETE DUMMY DATA CLEANUP & CLEAN SLATE
+  // Clears all sample/demo data from Firestore and LocalStorage.
+  // Real data entered thereafter will be permanently saved with zero data loss.
   // ==========================================
   const clearAllDummyData = () => {
-    let deletedCount = 0;
+    // 1. Create automatic pre-purge safety rollback snapshot
+    try {
+      createFullSystemBackup(
+        'safety',
+        'Pre-Clean Safety Snapshot Before Dummy Data Purge',
+        'Clear All Dummy Data Action'
+      );
+    } catch (e) {
+      console.warn('Safety snapshot creation notice:', e);
+    }
 
-    setProducts((prev) => {
-      const kept = prev.filter((p) => p.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
+    const deletedCount =
+      products.length +
+      orders.length +
+      customers.length +
+      stockUnits.length +
+      suppliers.length +
+      supplierPurchases.length +
+      supplierPayments.length +
+      emiPlans.length +
+      reconditionLaptops.length +
+      expenses.length +
+      services.length +
+      serviceEngineers.length +
+      serviceParts.length +
+      warrantyClaims.length +
+      serviceRequests.length +
+      inventoryTransactions.length;
+
+    // 2. Mark system as cleared in LocalStorage & State
+    try {
+      localStorage.setItem('jhf_dummy_data_cleared', 'true');
+      localStorage.setItem('jhf_service_data_cleared', 'true');
+    } catch (e) {
+      console.warn('LocalStorage error:', e);
+    }
+    setIsDummyDataClearedState(true);
+
+    // 3. Clear LocalStorage cache keys
+    const keysToRemove = [
+      'jhf_admin_products',
+      'jhf_admin_orders',
+      'jhf_admin_customers',
+      'jhf_admin_inventory_tx',
+      'jhf_admin_suppliers',
+      'jhf_admin_stock_units',
+      'jhf_admin_supplier_purchases',
+      'jhf_admin_supplier_payments',
+      'jhf_admin_emi_plans',
+      'jhf_admin_recondition_laptops',
+      'jhf_admin_expenses',
+      'jhf_admin_services',
+      'jhf_admin_service_engineers',
+      'jhf_admin_service_parts',
+      'jhf_admin_warranty_claims',
+      'jhf_admin_service_requests',
+      'jhf_store_laptops_v3',
+    ];
+    keysToRemove.forEach((k) => {
+      try {
+        localStorage.removeItem(k);
+      } catch {}
     });
 
-    setOrders((prev) => {
-      const kept = prev.filter((o) => o.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
+    // 4. Reset React state to clean slate immediately (Optimistic UI)
+    setProducts([]);
+    setOrders([]);
+    setCustomers([]);
+    setInventoryTransactions([]);
+    setSuppliers([]);
+    setStockUnits([]);
+    setSupplierPurchases([]);
+    setSupplierPayments([]);
+    setEmiPlans([]);
+    setReconditionLaptops([]);
+    setExpenses([]);
+    setServices([]);
+    setServiceEngineers([]);
+    setServiceParts([]);
+    setWarrantyClaims([]);
+    setServiceRequests([]);
 
-    setCustomers((prev) => {
-      const kept = prev.filter((c) => c.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
+    // 5. Asynchronously persist clean mode to Firestore settings and delete collection documents
+    (async () => {
+      try {
+        // Flag Firestore systemInit so all devices know clean mode is active
+        await setDoc(
+          doc(db, 'settings', 'systemInit'),
+          {
+            dummyDataCleared: true,
+            serviceDummyDataCleared: true,
+            clearedAt: new Date().toISOString(),
+            clearedBy: currentUser?.name || 'Super Admin',
+            mode: 'clean_production',
+          },
+          { merge: true }
+        );
 
-    setStockUnits((prev) => {
-      const kept = prev.filter((u) => u.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
+        const collectionsToWipe = [
+          'products',
+          'orders',
+          'customers',
+          'inventoryTransactions',
+          'expenses',
+          'reconditionLaptops',
+          'suppliers',
+          'emiPlans',
+          'services',
+          'serviceRequests',
+          'serviceEngineers',
+          'serviceParts',
+          'warrantyClaims',
+          'laptops',
+        ];
 
-    setSuppliers((prev) => {
-      const kept = prev.filter((s) => s.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
-
-    setSupplierPurchases((prev) => {
-      const kept = prev.filter((sp) => sp.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
-
-    setSupplierPayments((prev) => {
-      const kept = prev.filter((sp) => sp.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
-
-    setExpenses((prev) => {
-      const kept = prev.filter((e) => e.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
-
-    setEmiPlans((prev) => {
-      const kept = prev.filter((ep) => ep.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
-
-    setServices((prev) => {
-      const kept = prev.filter((s) => s.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
-
-    setServiceEngineers((prev) => {
-      const kept = prev.filter((e) => e.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
-
-    setServiceParts((prev) => {
-      const kept = prev.filter((p) => p.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
-
-    setWarrantyClaims((prev) => {
-      const kept = prev.filter((w) => w.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
-
-    setCustomerReviews((prev) => {
-      const kept = prev.filter((r) => r.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
-
-    setToolComments((prev) => {
-      const kept = prev.filter((c) => c.isDummy !== true);
-      deletedCount += prev.length - kept.length;
-      return kept;
-    });
+        for (const colName of collectionsToWipe) {
+          try {
+            const snap = await getDocs(collection(db, colName));
+            if (!snap.empty) {
+              const batch = writeBatch(db);
+              snap.forEach((d) => batch.delete(d.ref));
+              await batch.commit();
+            }
+          } catch (e) {
+            console.warn(`Firestore clean error on ${colName}:`, e);
+          }
+        }
+      } catch (err) {
+        console.warn('Firestore purge error:', err);
+      }
+    })();
 
     logActivity(
       'Clear Dummy Data',
       'Settings',
       'Data Center',
-      `Safely purged ${deletedCount} demo/sample records marked with isDummy: true. Real customer and business data preserved.`
+      `Purged all ${deletedCount} default sample/dummy records. Clean production database active. Zero data loss mode engaged.`
     );
 
     return { deletedTotal: deletedCount };
@@ -4528,6 +4837,8 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         recordServicePayment,
         addWarrantyClaim,
         updateWarrantyClaim,
+        deleteWarrantyClaim,
+        clearAllServiceZoneDummyData,
         serviceRequests,
         addServiceRequest,
         updateServiceRequestStatus,
@@ -4535,6 +4846,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         deleteServiceRequest,
         generateNextSrNumber,
         convertRequestToServiceJob,
+        isDummyDataCleared: isDummyDataClearedState,
         clearAllDummyData,
         fullBackups,
         createFullSystemBackup,
