@@ -27,6 +27,8 @@ import { DataCenterView } from './components/DataCenterView';
 import { ServiceZoneView } from './components/service/ServiceZoneView';
 import { SecurityCommandCenterView } from './components/SecurityCommandCenterView';
 import { ServiceRequestsView } from './components/ServiceRequestsView';
+import { LatitudeInventoryView } from './components/LatitudeInventoryView';
+import { ProductImageManagerView } from './components/ProductImageManagerView';
 
 interface AdminPanelProps {
   onSwitchToWebsite: () => void;
@@ -37,8 +39,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onSwitchToWebsite }) => 
   const { createFullSystemBackup } = useAdminStore();
 
   const [currentModule, setCurrentModule] = useState<AdminModule>('dashboard');
+  const [moduleNavTick, setModuleNavTick] = useState(0);
   const [setupGuideOpen, setSetupGuideOpen] = useState(false);
   const [firebaseConfigOpen, setFirebaseConfigOpen] = useState(false);
+
+  const handleSelectModule = (module: AdminModule) => {
+    setCurrentModule(module);
+    setModuleNavTick((t) => t + 1);
+  };
 
   // Auto Session-Entry Backup when Admin enters Admin Panel
   useEffect(() => {
@@ -98,9 +106,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onSwitchToWebsite }) => 
         return <ReconditionManagementView />;
       case 'products':
       case 'add_product':
-        return <ProductsView initialTrashMode={false} />;
+        return (
+          <ProductsView
+            initialTrashMode={false}
+            navigationTick={moduleNavTick}
+            onOpenLatitudeImport={() => handleSelectModule('latitude_inventory')}
+            onOpenImageManager={() => handleSelectModule('image_manager')}
+          />
+        );
+      case 'image_manager':
+        return <ProductImageManagerView />;
+      case 'latitude_inventory':
+        return <LatitudeInventoryView />;
       case 'trash_products':
-        return <ProductsView initialTrashMode={true} />;
+        return <ProductsView initialTrashMode={true} navigationTick={moduleNavTick} />;
       case 'orders':
       case 'sales':
         return <OrdersView />;
@@ -128,11 +147,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onSwitchToWebsite }) => 
       case 'customers':
         return <CustomersView />;
       case 'inventory':
-        return <InventoryView initialAction="none" />;
+        return <InventoryView initialAction="none" navigationTick={moduleNavTick} />;
       case 'stock_in':
-        return <InventoryView initialAction="stock_in" />;
+        return <InventoryView initialAction="stock_in" navigationTick={moduleNavTick} />;
       case 'stock_out':
-        return <InventoryView initialAction="stock_out" />;
+        return <InventoryView initialAction="stock_out" navigationTick={moduleNavTick} />;
       case 'security_downloads':
         return <SecurityAndDownloadIntelligenceView />;
       case 'comments':
@@ -151,33 +170,87 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onSwitchToWebsite }) => 
       case 'data_center':
         return <DataCenterView />;
       case 'security_center':
-        return <SecurityCommandCenterView initialSubTab="center" />;
+        return <SecurityCommandCenterView initialSubTab="center" navigationTick={moduleNavTick} />;
       case 'security_ip':
-        return <SecurityCommandCenterView initialSubTab="ip" />;
+        return <SecurityCommandCenterView initialSubTab="ip" navigationTick={moduleNavTick} />;
       case 'security_risk':
-        return <SecurityCommandCenterView initialSubTab="risk" />;
+        return <SecurityCommandCenterView initialSubTab="risk" navigationTick={moduleNavTick} />;
       case 'service_requests':
         return <ServiceRequestsView />;
       case 'service_dashboard':
-        return <ServiceZoneView initialTab="dashboard" />;
+        return (
+          <ServiceZoneView
+            initialTab="dashboard"
+            navigationTick={moduleNavTick}
+            onTabChange={(tab) => setCurrentModule(`service_${tab}` as AdminModule)}
+          />
+        );
       case 'service_new':
-        return <ServiceZoneView initialTab="new" />;
+        return (
+          <ServiceZoneView
+            initialTab="new"
+            navigationTick={moduleNavTick}
+            onTabChange={(tab) => setCurrentModule(`service_${tab}` as AdminModule)}
+          />
+        );
       case 'service_active':
-        return <ServiceZoneView initialTab="active" />;
+        return (
+          <ServiceZoneView
+            initialTab="active"
+            navigationTick={moduleNavTick}
+            onTabChange={(tab) => setCurrentModule(`service_${tab}` as AdminModule)}
+          />
+        );
       case 'service_estimates':
-        return <ServiceZoneView initialTab="estimates" />;
+        return (
+          <ServiceZoneView
+            initialTab="estimates"
+            navigationTick={moduleNavTick}
+            onTabChange={(tab) => setCurrentModule(`service_${tab}` as AdminModule)}
+          />
+        );
       case 'service_engineers':
-        return <ServiceZoneView initialTab="engineers" />;
+        return (
+          <ServiceZoneView
+            initialTab="engineers"
+            navigationTick={moduleNavTick}
+            onTabChange={(tab) => setCurrentModule(`service_${tab}` as AdminModule)}
+          />
+        );
       case 'service_parts':
-        return <ServiceZoneView initialTab="parts" />;
+        return (
+          <ServiceZoneView
+            initialTab="parts"
+            navigationTick={moduleNavTick}
+            onTabChange={(tab) => setCurrentModule(`service_${tab}` as AdminModule)}
+          />
+        );
       case 'service_warranty':
-        return <ServiceZoneView initialTab="warranty" />;
+        return (
+          <ServiceZoneView
+            initialTab="warranty"
+            navigationTick={moduleNavTick}
+            onTabChange={(tab) => setCurrentModule(`service_${tab}` as AdminModule)}
+          />
+        );
       case 'service_invoices':
-        return <ServiceZoneView initialTab="invoices" />;
+        return (
+          <ServiceZoneView
+            initialTab="invoices"
+            navigationTick={moduleNavTick}
+            onTabChange={(tab) => setCurrentModule(`service_${tab}` as AdminModule)}
+          />
+        );
       case 'service_reports':
-        return <ServiceZoneView initialTab="reports" />;
+        return (
+          <ServiceZoneView
+            initialTab="reports"
+            navigationTick={moduleNavTick}
+            onTabChange={(tab) => setCurrentModule(`service_${tab}` as AdminModule)}
+          />
+        );
       default:
-        return <DashboardView onNavigate={setCurrentModule} />;
+        return <DashboardView onNavigate={handleSelectModule} />;
     }
   };
 
@@ -185,7 +258,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onSwitchToWebsite }) => 
     <>
       <AdminLayout
         currentModule={currentModule}
-        setCurrentModule={setCurrentModule}
+        setCurrentModule={handleSelectModule}
         onOpenSetupGuide={() => setSetupGuideOpen(true)}
         onOpenFirebaseConfig={() => setFirebaseConfigOpen(true)}
         onSwitchToWebsite={onSwitchToWebsite}

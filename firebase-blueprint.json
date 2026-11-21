@@ -37,10 +37,39 @@
         "storage": { "type": "string" },
         "graphics": { "type": "string" },
         "display": { "type": "string" },
+        "ssd": { "type": "string" },
+        "hdd": { "type": "string" },
+        "resolution": { "type": "string" },
+        "touchscreen": { "type": "string" },
         "purchasePrice": { "type": "number" },
+        "marketPrice": { "type": "number" },
+        "marketPriceMin": { "type": "number" },
+        "marketPriceMax": { "type": "number" },
         "sellingPrice": { "type": "number" },
         "stockQuantity": { "type": "number" },
         "minimumStockAlert": { "type": "number" },
+        "sellerCount": { "type": "number" },
+        "sourceUrl": { "type": "string" },
+        "lastUpdated": { "type": "string" },
+        "stockStatus": { "type": "string" },
+        "configKey": { "type": "string" },
+        "exactModel": { "type": "string" },
+        "mainImageUrl": { "type": "string" },
+        "imageStoragePath": { "type": "string" },
+        "imageThumbnailPath": { "type": "string" },
+        "imageSourceUrl": { "type": "string" },
+        "imageSourceName": { "type": "string" },
+        "imageLicense": { "type": "string" },
+        "imageAttribution": { "type": "string" },
+        "imageResolution": { "type": "string" },
+        "imageVerificationStatus": {
+          "type": "string",
+          "enum": ["Image Found", "Verification Pending", "Verified", "Rejected", "No Exact Match", "Image Imported", "Image Missing"]
+        },
+        "imageConfidence": { "type": "number" },
+        "verificationNotes": { "type": "string" },
+        "imageUpdatedAt": { "type": "string" },
+        "previousImageUrl": { "type": "string" },
         "warranty": { "type": "string" },
         "status": { "type": "string", "enum": ["published", "draft", "out_of_stock", "archived"] },
         "isFeatured": { "type": "boolean" },
@@ -230,6 +259,53 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["id"]
+    },
+    "BdstallImportBatch": {
+      "title": "BdstallImportBatch",
+      "description": "Audit log of approved BDStall Dell Latitude price sync and import batches",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sourceUrl": { "type": "string" },
+        "fetchedAt": { "type": "string" },
+        "approvedAt": { "type": "string" },
+        "approvedBy": { "type": "string" },
+        "totalExtracted": { "type": "number" },
+        "approvedNewCount": { "type": "number" },
+        "approvedUpdatedCount": { "type": "number" },
+        "skippedCount": { "type": "number" },
+        "importMethod": { "type": "string", "enum": ["live_fetch", "html_snapshot", "csv_excel"] }
+      },
+      "required": ["id", "sourceUrl", "approvedAt", "approvedBy"]
+    },
+    "ImageHistoryRecord": {
+      "title": "ImageHistoryRecord",
+      "description": "Audit log and rollback history for verified product images per laptop model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "productId": { "type": "string" },
+        "brand": { "type": "string" },
+        "series": { "type": "string" },
+        "exactModel": { "type": "string" },
+        "generation": { "type": "string" },
+        "action": { "type": "string", "enum": ["imported", "approved", "rejected", "replaced", "rolled_back", "removed", "verified"] },
+        "imageUrl": { "type": "string" },
+        "previousImageUrl": { "type": "string" },
+        "imageStoragePath": { "type": "string" },
+        "imageThumbnailPath": { "type": "string" },
+        "imageSourceUrl": { "type": "string" },
+        "imageSourceName": { "type": "string" },
+        "imageLicense": { "type": "string" },
+        "imageAttribution": { "type": "string" },
+        "imageResolution": { "type": "string" },
+        "imageVerificationStatus": { "type": "string" },
+        "imageConfidence": { "type": "number" },
+        "verificationNotes": { "type": "string" },
+        "performedBy": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "productId", "exactModel", "action", "imageVerificationStatus", "performedBy", "timestamp"]
     }
   },
   "firestore": {
@@ -300,6 +376,14 @@
     "/laptops/{laptopId}": {
       "schema": "Product",
       "description": "Catalog laptop units and public display laptops"
+    },
+    "/bdstallImports/{importId}": {
+      "schema": "BdstallImportBatch",
+      "description": "Approved BDStall Dell Latitude price import history"
+    },
+    "/imageHistory/{historyId}": {
+      "schema": "ImageHistoryRecord",
+      "description": "Audit trail and rollback history for exact-model laptop product images"
     }
   }
 }

@@ -399,7 +399,7 @@ export const CustomerOrderModal: React.FC<CustomerOrderModalProps> = ({
   const numericPrice =
     typeof laptop.price === 'number'
       ? laptop.price
-      : parseInt(String(laptop.price).replace(/[^0-9]/g, ''), 10) || 35000;
+      : parseInt(String(laptop.price).replace(/[^0-9]/g, ''), 10) || 0;
 
   // Calculate discount based on promo
   let discountAmount = 0;
@@ -686,8 +686,8 @@ export const CustomerOrderModal: React.FC<CustomerOrderModalProps> = ({
                     {laptop.title}
                   </h4>
                   <div className="text-[11px] font-mono font-black text-emerald-600 dark:text-emerald-400 flex flex-wrap items-center gap-2">
-                    <span>{formatPrice(numericPrice)}</span>
-                    {currency !== 'BDT' && (
+                    <span>{numericPrice > 0 ? formatPrice(numericPrice) : 'Call / Confirm Price'}</span>
+                    {numericPrice > 0 && currency !== 'BDT' && (
                       <span className="text-[10px] text-slate-400 font-normal">
                         (৳{numericPrice.toLocaleString()} BDT)
                       </span>
@@ -1139,7 +1139,10 @@ export const CustomerOrderModal: React.FC<CustomerOrderModalProps> = ({
                   ) : (
                     <>
                       <Send className="w-3.5 h-3.5" />
-                      <span>{texts.confirmOrderBtn} ({formatPrice(totalAmount)})</span>
+                      <span>
+                        {texts.confirmOrderBtn}
+                        {totalAmount > 0 ? ` (${formatPrice(totalAmount)})` : ''}
+                      </span>
                     </>
                   )}
                 </button>

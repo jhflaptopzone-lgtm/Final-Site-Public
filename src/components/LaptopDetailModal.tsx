@@ -1,19 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { LaptopItem, STORE_INFO } from '../data/jhfData';
 import { getDetailedSpecsForLaptop } from '../data/specsHelper';
 import { useTranslation } from '../context/LanguageContext';
-import { X, ShieldCheck, MessageSquare, PhoneCall, Check, ExternalLink, Sparkles, Cpu, HardDrive, Battery, Monitor, Shield, Layers } from 'lucide-react';
+import { buildShareUrl, copyTextToClipboard, ShareItemType } from '../utils/shareLinks';
+import { X, ShieldCheck, MessageSquare, PhoneCall, Check, ExternalLink, Sparkles, Cpu, HardDrive, Battery, Monitor, Shield, Layers, Copy, Link2, Share2 } from 'lucide-react';
 
 interface LaptopDetailModalProps {
   laptop: LaptopItem | null;
   onClose: () => void;
   onOrderNow?: (laptop: LaptopItem) => void;
+  shareType?: 'laptop' | 'recondition';
 }
 
-export const LaptopDetailModal: React.FC<LaptopDetailModalProps> = ({ laptop, onClose, onOrderNow }) => {
+export const LaptopDetailModal: React.FC<LaptopDetailModalProps> = ({ laptop, onClose, onOrderNow, shareType = 'laptop' }) => {
   const { formatPrice, currency, language } = useTranslation();
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  useEffect(() => {
+    setLinkCopied(false);
+  }, [laptop?.id]);
 
   if (!laptop) return null;
+
+  const effectiveShareType: ShareItemType = shareType === 'recondition' ? 'recondition' : 'laptop';
+  const shareUrl = buildShareUrl(effectiveShareType, laptop);
+  const handleCopyShareLink = async () => {
+    const ok = await copyTextToClipboard(shareUrl);
+    if (ok) {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2500);
+    }
+  };
 
   const modalTexts = {
     en: {
@@ -165,14 +182,23 @@ export const LaptopDetailModal: React.FC<LaptopDetailModalProps> = ({ laptop, on
   const numericVal =
     typeof (laptop as any).numericPrice === 'number'
       ? (laptop as any).numericPrice
-      : parseInt(laptop.price.replace(/[^0-9]/g, ''), 10) || 35000;
+      : parseInt(laptop.price.replace(/[^0-9]/g, ''), 10) || 0;
+
+  const callForPriceText =
+    language === 'bn'
+      ? 'দাম জানতে কল / WhatsApp'
+      : language === 'hi'
+      ? 'कीमत के लिए कॉल करें'
+      : 'Call for Price';
+
+  const displayPriceText = numericVal > 0 ? formatPrice(numericVal) : callForPriceText;
 
   const whatsappMessage = encodeURIComponent(
     language === 'bn'
-      ? `আসসালামু আলাইকুম JHF LAPTOP ZONE! আমি এই ল্যাপটপটি অর্ডার করতে চাই:\n\n*${laptop.title}*\nমূল্য: ${formatPrice(numericVal)}\nর‍্যাম: ${specs.ram}\nএসএসডি: ${specs.hardDisk}\nস্ক্রিন: ${specs.screenSize}\n\nদয়া করে স্টক ও ক্যাশ অন ডেলিভারি বিস্তারিত জানান।`
+      ? `আসসালামু আলাইকুম JHF LAPTOP ZONE! আমি এই ল্যাপটপটি অর্ডার করতে চাই:\n\n*${laptop.title}*\nমূল্য: ${displayPriceText}\nর‍্যাম: ${specs.ram}\nএসএসডি: ${specs.hardDisk}\nস্ক্রিন: ${specs.screenSize}\n\nদয়া করে স্টক ও ক্যাশ অন ডেলিভারি বিস্তারিত জানান।`
       : language === 'hi'
-      ? `नमस्ते JHF LAPTOP ZONE! मैं यह लैपटॉप ऑर्डर करना चाहता हूँ:\n\n*${laptop.title}*\nमूल्य: ${formatPrice(numericVal)}\nरैम: ${specs.ram}\nएसएसडी: ${specs.hardDisk}\nस्क्रीन: ${specs.screenSize}\n\nकृपया उपलब्धता और डिलीवरी विवरण बताएं।`
-      : `Hello JHF LAPTOP ZONE! I want to ORDER this laptop:\n\n*${laptop.title}*\nPrice: ${formatPrice(numericVal)}\nRAM: ${specs.ram}\nSSD: ${specs.hardDisk}\nScreen: ${specs.screenSize}\n\nPlease confirm availability, payment method (bKash/Nagad), and courier delivery details.`
+      ? `नमस्ते JHF LAPTOP ZONE! मैं यह लैपटॉप ऑर्डर करना चाहता हूँ:\n\n*${laptop.title}*\nमूल्य: ${displayPriceText}\nरैम: ${specs.ram}\nएसएसडी: ${specs.hardDisk}\nस्क्रीन: ${specs.screenSize}\n\nकृपया उपलब्धता और डिलीवरी विवरण बताएं।`
+      : `Hello JHF LAPTOP ZONE! I want to ORDER this laptop:\n\n*${laptop.title}*\nPrice: ${displayPriceText}\nRAM: ${specs.ram}\nSSD: ${specs.hardDisk}\nScreen: ${specs.screenSize}\n\nPlease confirm availability, payment method (bKash/Nagad), and courier delivery details.`
   );
 
   const whatsappUrl = `https://wa.me/${STORE_INFO.whatsapp}?text=${whatsappMessage}`;
@@ -191,13 +217,28 @@ export const LaptopDetailModal: React.FC<LaptopDetailModalProps> = ({ laptop, on
               {laptop.title}
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition"
-            aria-label="Close dialog"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopyShareLink}
+              className={`text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+                linkCopied
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+              }`}
+              title="Copy unique shareable link for Facebook groups & WhatsApp"
+            >
+              {linkCopied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{linkCopied ? 'Link Copied!' : 'Copy Share Link'}</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition"
+              aria-label="Close dialog"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Scrollable Body */}
@@ -205,11 +246,11 @@ export const LaptopDetailModal: React.FC<LaptopDetailModalProps> = ({ laptop, on
           
           {/* Top Overview Bar */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/60">
-            <div className="md:col-span-4 aspect-[16/11] rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 relative flex items-center justify-center">
+            <div className="md:col-span-4 aspect-[16/11] rounded-lg overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 relative flex items-center justify-center p-2">
               <img
                 src={laptop.image}
                 alt={laptop.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
               <span className="absolute top-2 left-2 bg-slate-900/90 text-white text-[10px] font-bold px-2 py-0.5 rounded">
                 {laptop.tag}
@@ -243,13 +284,33 @@ export const LaptopDetailModal: React.FC<LaptopDetailModalProps> = ({ laptop, on
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">
                     {modalTexts.offerPrice} {currency !== 'BDT' && `(${currency})`}
                   </span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight">
-                      {formatPrice(numericVal)}
-                    </span>
-                    {currency !== 'BDT' && (
-                      <span className="text-xs text-slate-400 font-mono">
-                        (৳{numericVal.toLocaleString()} BDT)
+                  <div className="flex items-baseline gap-2.5 flex-wrap">
+                    {numericVal > 0 ? (
+                      <>
+                        <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight">
+                          {formatPrice(numericVal)}
+                        </span>
+                        {(() => {
+                          const mrpVal =
+                            typeof (laptop as any).mrpPrice === 'number'
+                              ? (laptop as any).mrpPrice
+                              : laptop.numericMrp;
+                          return mrpVal && mrpVal > numericVal ? (
+                            <span className="text-xs text-slate-400 font-medium">
+                              MRP:{' '}
+                              <span className="line-through">{formatPrice(mrpVal)}</span>
+                            </span>
+                          ) : null;
+                        })()}
+                        {currency !== 'BDT' && (
+                          <span className="text-xs text-slate-400 font-mono">
+                            (৳{numericVal.toLocaleString()} BDT)
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
+                        {callForPriceText}
                       </span>
                     )}
                   </div>
@@ -283,6 +344,43 @@ export const LaptopDetailModal: React.FC<LaptopDetailModalProps> = ({ laptop, on
                   </a>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Unique Direct Share Link Box (Auto-adapts to current domain) */}
+          <div className="bg-blue-50/70 dark:bg-slate-800/70 border border-blue-200 dark:border-slate-700 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <a
+              href={shareUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline shrink-0"
+              title={shareUrl}
+            >
+              <Link2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>Direct Spec Link</span>
+              <ExternalLink className="w-3 h-3 opacity-75" />
+            </a>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <a
+                href={shareUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 min-w-0 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-blue-700 dark:text-blue-300 hover:underline truncate"
+              >
+                {shareUrl}
+              </a>
+              <button
+                type="button"
+                onClick={handleCopyShareLink}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shrink-0 ${
+                  linkCopied
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {linkCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{linkCopied ? 'Copied!' : 'Copy'}</span>
+              </button>
             </div>
           </div>
 

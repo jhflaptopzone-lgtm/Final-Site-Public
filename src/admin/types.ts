@@ -82,6 +82,9 @@ export interface Product {
   totalCost?: number;
   ramType?: string;
   storageType?: string;
+  ssd?: string;
+  hdd?: string;
+  touchscreen?: 'Touchscreen' | 'Non-Touch' | boolean;
   refreshRate?: string;
   vram?: string;
   ports?: string;
@@ -90,7 +93,48 @@ export interface Product {
   wifi?: string;
   bluetooth?: string;
   barcode?: string;
-  specificationSource?: 'Model Catalog' | 'Admin Edited' | 'Bulk Imported';
+  specificationSource?: 'Model Catalog' | 'Admin Edited' | 'Bulk Imported' | 'BDStall Sync';
+
+  // BDStall Market Price Comparison & Import Metadata (Never overwrites purchasePrice or sellingPrice)
+  marketPrice?: number | null;
+  marketPriceMin?: number | null;
+  marketPriceMax?: number | null;
+  sellerCount?: number;
+  sellerListings?: {
+    sellerName: string;
+    price: number;
+    url?: string;
+    condition?: string;
+    stockText?: string;
+  }[];
+  sourceUrl?: string;
+  lastUpdated?: string;
+  stockStatus?: 'In Stock' | 'Out of Stock' | 'Unavailable on BDStall' | 'Pending Fetch';
+  configKey?: string;
+
+  // Universal Exact Model Image Finder & Verification Metadata
+  exactModel?: string;
+  mainImageUrl?: string;
+  imageStoragePath?: string;
+  imageThumbnailPath?: string;
+  imageSourceUrl?: string;
+  imageSourceName?: string;
+  imageLicense?: string;
+  imageAttribution?: string;
+  imageResolution?: string;
+  imageVerificationStatus?:
+    | 'Image Found'
+    | 'Verification Pending'
+    | 'Verified'
+    | 'Rejected'
+    | 'No Exact Match'
+    | 'Image Imported'
+    | 'Image Missing';
+  imageConfidence?: number;
+  verificationNotes?: string;
+  imageUpdatedAt?: string;
+  previousImageUrl?: string;
+  rejectedImageUrls?: string[];
   
   // Soft Delete
   isDeleted?: boolean;
@@ -104,6 +148,45 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   createdBy: string;
+}
+
+export type ImageVerificationStatus = NonNullable<Product['imageVerificationStatus']>;
+
+export interface ImageHistoryRecord {
+  id: string;
+  productId: string;
+  brand: string;
+  series?: string;
+  exactModel: string;
+  generation?: string;
+  action: 'imported' | 'approved' | 'rejected' | 'replaced' | 'rolled_back' | 'removed' | 'verified';
+  imageUrl: string;
+  previousImageUrl?: string;
+  imageStoragePath?: string;
+  imageThumbnailPath?: string;
+  imageSourceUrl?: string;
+  imageSourceName?: string;
+  imageLicense?: string;
+  imageAttribution?: string;
+  imageResolution?: string;
+  imageVerificationStatus: ImageVerificationStatus;
+  imageConfidence?: number;
+  verificationNotes?: string;
+  performedBy: string;
+  timestamp: string;
+}
+
+export interface BdstallImportBatch {
+  id: string;
+  sourceUrl: string;
+  fetchedAt: string;
+  approvedAt: string;
+  approvedBy: string;
+  totalExtracted: number;
+  approvedNewCount: number;
+  approvedUpdatedCount: number;
+  skippedCount: number;
+  importMethod: 'live_fetch' | 'html_snapshot' | 'csv_excel';
 }
 
 export type OrderStatus =
@@ -602,12 +685,14 @@ export interface ServicePartUsage {
   partName: string;
   partCode: string;
   quantity: number;
-  purchaseCost: number; // Internal unit cost
-  customerCharge: number; // Charged to customer
+  purchaseCost: number; // Internal cost (total for quantity)
+  customerCharge: number; // Charged to customer (total for quantity)
   warrantyDays: number;
   warrantyStart?: string;
   warrantyEnd?: string;
   serialNumber?: string;
+  isCustomPart?: boolean;
+  deductedStock?: number;
 }
 
 export interface ServicePaymentRecord {

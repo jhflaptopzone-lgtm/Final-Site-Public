@@ -49,6 +49,7 @@ import {
   HardDrive,
   Server,
   Star,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { SalesInvoiceModal } from './SalesInvoiceModal';
 import { CommandPaletteModal } from './CommandPaletteModal';
@@ -57,6 +58,8 @@ export type AdminModule =
   | 'dashboard'
   | 'recondition'
   | 'products'
+  | 'image_manager'
+  | 'latitude_inventory'
   | 'add_product'
   | 'trash_products'
   | 'orders'
@@ -202,6 +205,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       items: [
         { id: 'orders', label: 'Orders', icon: ShoppingCart, count: pendingOrdersCount, countColor: 'bg-rose-500', permission: 'Orders' },
         { id: 'products', label: 'Products', icon: Laptop, permission: 'Products' },
+        { id: 'image_manager', label: 'AI Image Finder', icon: ImageIcon, permission: 'Products' },
+        { id: 'latitude_inventory', label: 'Dell Latitude Import', icon: Sparkles, permission: 'Products' },
         { id: 'inventory', label: 'Inventory', icon: Boxes, count: lowStockCount, countColor: 'bg-amber-500', permission: 'Inventory' },
         { id: 'customers', label: 'Customers', icon: Users, permission: 'Customers' },
         { id: 'reviews', label: 'Reviews', icon: Star, permission: 'Comments' },

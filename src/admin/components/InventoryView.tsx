@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdminStore } from '../adminStore';
 import { useAdminAuth } from '../authContext';
 import {
@@ -20,9 +20,10 @@ import {
 
 interface InventoryViewProps {
   initialAction?: 'none' | 'stock_in' | 'stock_out';
+  navigationTick?: number;
 }
 
-export const InventoryView: React.FC<InventoryViewProps> = ({ initialAction = 'none' }) => {
+export const InventoryView: React.FC<InventoryViewProps> = ({ initialAction = 'none', navigationTick = 0 }) => {
   const {
     products,
     inventoryTransactions,
@@ -35,6 +36,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ initialAction = 'n
   const { currentUser } = useAdminAuth();
 
   const [activeModal, setActiveModal] = useState<'none' | 'stock_in' | 'stock_out' | 'adjust'>(initialAction);
+
+  useEffect(() => {
+    setActiveModal(initialAction);
+  }, [initialAction, navigationTick]);
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || '');
   const [quantity, setQuantity] = useState(1);
   const [unitCost, setUnitCost] = useState(0);

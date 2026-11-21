@@ -126,7 +126,7 @@ export const CompareModal: React.FC<CompareModalProps> = ({ onOpenOrder, onOpenS
     if (numeric > 0) {
       return formatPrice(numeric);
     }
-    return item.price;
+    return item.price || 'Call for Price';
   };
 
   if (!isCompareModalOpen) return null;

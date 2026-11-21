@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { LaptopItem } from '../data/jhfData';
 import { useStore } from '../context/StoreContext';
 import { useAdminStore } from '../admin/adminStore';
@@ -8,6 +8,12 @@ import { LaptopDetailModal } from './LaptopDetailModal';
 import { CustomerOrderModal, OrderItemData } from './CustomerOrderModal';
 import { CompareModal } from './CompareModal';
 import { ReviewsAndRatingModal } from './ReviewsAndRatingModal';
+import {
+  buildShareUrl,
+  handleShareAnchorClick,
+  matchesShareSlug,
+  syncClientDocumentMeta,
+} from '../utils/shareLinks';
 import {
   Search,
   MessageSquare,
@@ -21,10 +27,19 @@ import {
   Star,
   ArrowUpDown,
   Check,
+  Link2,
 } from 'lucide-react';
 import { OWNER_WHATSAPP } from '../utils/aiOrderAutomation';
 
-export const LaptopCatalog: React.FC = () => {
+interface LaptopCatalogProps {
+  deepLinkSlug?: string | null;
+  onClearDeepLink?: () => void;
+}
+
+export const LaptopCatalog: React.FC<LaptopCatalogProps> = ({
+  deepLinkSlug,
+  onClearDeepLink,
+}) => {
   const { laptops: storeLaptops } = useStore();
   const { products } = useAdminStore();
   const { language, formatPrice, currency, usdRate } = useTranslation();
@@ -58,11 +73,14 @@ export const LaptopCatalog: React.FC = () => {
       sortHigh: 'Price: High to Low',
       saved: 'Saved',
       offerPrice: 'Offer Price',
+      callForPrice: 'Call for Price',
+      bdstallMrp: 'MRP:',
       tested: '100% Tested',
       fullSpecs: 'Full Specs',
       orderNow: 'Order Now',
       quickInquiry: 'WhatsApp Quick Inquiry',
       stockLabel: (n: number) => `Stock: ${n} units`,
+      checkStockLabel: 'Check Stock / Booking',
       emptyTitle: 'No laptops currently found in stock matching your filter.',
       emptyDesc: 'Items removed from admin inventory or not matching filter will not appear here.',
       inCompare: 'Already in Compare',
@@ -92,11 +110,14 @@ export const LaptopCatalog: React.FC = () => {
       sortHigh: 'দাম: বেশি থেকে কম',
       saved: 'সংরক্ষিত',
       offerPrice: 'অফার মূল্য',
+      callForPrice: 'দাম জানতে কল / WhatsApp',
+      bdstallMrp: 'এমআরপি:',
       tested: '১০০% টেস্টেড',
       fullSpecs: 'ফুল স্পেসিফিকেশন',
       orderNow: 'অর্ডার করুন',
       quickInquiry: 'হোয়াটসঅ্যাপে দ্রুত তথ্য জানুন',
       stockLabel: (n: number) => `স্টক: ${n} টি`,
+      checkStockLabel: 'স্টক যাচাই / বুকিং',
       emptyTitle: 'কোনো ল্যাপটপ এই মুহূর্তে স্টকে পাওয়া যায়নি।',
       emptyDesc: 'অ্যাডমিন প্যানেল থেকে স্টক রিমুভ করা হলে বা ফিল্টারের সাথে না মিললে এখানে প্রদর্শিত হবে না।',
       inCompare: 'তুলনায় যুক্ত আছে',
@@ -126,11 +147,14 @@ export const LaptopCatalog: React.FC = () => {
       sortHigh: 'कीमत: अधिक से कम',
       saved: 'सहेजे गए',
       offerPrice: 'विशेष मूल्य',
+      callForPrice: 'कीमत के लिए कॉल करें',
+      bdstallMrp: 'MRP:',
       tested: '१००% परीक्षित',
       fullSpecs: 'पूर्ण विवरण',
       orderNow: 'ऑर्डर करें',
       quickInquiry: 'व्हाट्सएप पर त्वरित पूछताछ',
       stockLabel: (n: number) => `स्टॉक: ${n} यूनिट`,
+      checkStockLabel: 'स्टॉक जांचें / बुकिंग',
       emptyTitle: 'वर्तमान में आपके फिल्टर से मेल खाता कोई लैपटॉप नहीं मिला।',
       emptyDesc: 'व्यवस्थापक द्वारा स्टॉक हटाए जाने या फिल्टर से मेल न खाने पर यहाँ प्रदर्शित नहीं होंगे।',
       inCompare: 'तुलना में शामिल है',
@@ -160,11 +184,14 @@ export const LaptopCatalog: React.FC = () => {
     sortHigh: 'Price: High to Low',
     saved: 'Saved',
     offerPrice: 'Offer Price',
+    callForPrice: 'Call for Price',
+    bdstallMrp: 'MRP:',
     tested: '100% Tested',
     fullSpecs: 'Full Specs',
     orderNow: 'Order Now',
     quickInquiry: 'WhatsApp Quick Inquiry',
     stockLabel: (n: number) => `Stock: ${n} units`,
+    checkStockLabel: 'Check Stock / Booking',
     emptyTitle: 'No laptops currently found in stock matching your filter.',
     emptyDesc: 'Items removed from admin inventory or not matching filter will not appear here.',
     inCompare: 'Already in Compare',
@@ -193,36 +220,88 @@ export const LaptopCatalog: React.FC = () => {
       return products
         .filter((prod) => {
           if (prod.isDeleted) return false;
-          if (prod.status === 'draft' || prod.status === 'archived') return false;
-          if (typeof prod.stockQuantity === 'number' && prod.stockQuantity <= 0) return false;
+          if (prod.status === 'draft' || prod.status === 'archived' || prod.status === 'out_of_stock') return false;
           return true;
         })
-        .map((p) => ({
-          id: p.id,
-          sku: p.sku || 'JHF-LP',
-          title: p.name,
-          brand: p.brand || 'Laptop',
-          series: p.model || p.category || 'Business Series',
-          specs: `${p.processor || ''} • ${p.ram || ''} • ${p.storage || ''} • ${p.display || ''} • ${p.graphics || ''}`,
-          price: `৳ ${(p.discountPrice || p.sellingPrice).toLocaleString()}`,
-          numericPrice: p.discountPrice || p.sellingPrice,
-          tag: p.condition || 'Dubai Grade A++',
-          image: p.images?.[0] || 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=700',
-          stock: p.stockQuantity,
-          warranty: p.warranty || '30 Days Replacement + 5 Years Free Service',
-        }));
+        .map((p) => {
+          const offerVal = p.discountPrice || p.sellingPrice || 0;
+          const mrpVal =
+            p.discountPrice && p.sellingPrice > p.discountPrice
+              ? p.sellingPrice
+              : p.marketPrice && p.marketPrice > offerVal
+              ? p.marketPrice
+              : undefined;
+          return {
+            id: p.id,
+            sku: p.sku || 'JHF-LP',
+            title: p.name,
+            brand: p.brand || 'Laptop',
+            series: p.model || p.category || 'Business Series',
+            specs: `${p.processor || ''} • ${p.ram || ''} • ${p.storage || ''} • ${p.display || ''} • ${p.graphics || ''}`,
+            price: offerVal > 0 ? `৳ ${offerVal.toLocaleString()}` : texts.callForPrice,
+            numericPrice: offerVal,
+            mrpPrice: mrpVal,
+            tag: p.condition || 'Dubai Grade A++',
+            image: p.images?.[0] || 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=700',
+            stock: typeof p.stockQuantity === 'number' ? p.stockQuantity : 0,
+            warranty: p.warranty || '30 Days Replacement + 5 Years Free Service',
+          };
+        });
     }
 
     return storeLaptops
-      .filter((item) => (item as any).stock !== 0 && !(item as any).isDeleted)
-      .map((l) => ({
-        ...l,
-        sku: (l as any).sku || 'JHF-LP',
-        numericPrice: parseInt(l.price.replace(/[^0-9]/g, ''), 10) || 35000,
-        stock: (l as any).stock || 5,
-        warranty: '30 Days Replacement + 5 Years Free Service',
-      }));
-  }, [products, storeLaptops]);
+      .filter((item) => !(item as any).isDeleted)
+      .map((l) => {
+        const offerVal = parseInt(l.price.replace(/[^0-9]/g, ''), 10) || 0;
+        const mrpVal =
+          l.numericMrp ||
+          (l.mrp ? parseInt(l.mrp.replace(/[^0-9]/g, ''), 10) : undefined);
+        return {
+          ...l,
+          sku: (l as any).sku || 'JHF-LP',
+          numericPrice: offerVal,
+          mrpPrice: mrpVal && mrpVal > offerVal ? mrpVal : undefined,
+          stock: typeof (l as any).stock === 'number' ? (l as any).stock : 0,
+          warranty: '30 Days Replacement + 5 Years Free Service',
+        };
+      });
+  }, [products, storeLaptops, texts.callForPrice]);
+
+  useEffect(() => {
+    if (!deepLinkSlug) return;
+    let matched: any = liveLaptops.find((l) => matchesShareSlug(l, deepLinkSlug));
+    if (!matched && storeLaptops.length > 0) {
+      const fallback = storeLaptops.find(
+        (l) => !(l as any).isDeleted && matchesShareSlug(l, deepLinkSlug)
+      );
+      if (fallback) {
+        const offerVal = parseInt(fallback.price.replace(/[^0-9]/g, ''), 10) || 0;
+        const mrpVal =
+          fallback.numericMrp ||
+          (fallback.mrp ? parseInt(fallback.mrp.replace(/[^0-9]/g, ''), 10) : undefined);
+        matched = {
+          ...fallback,
+          sku: (fallback as any).sku || 'JHF-LP',
+          numericPrice: offerVal,
+          mrpPrice: mrpVal && mrpVal > offerVal ? mrpVal : undefined,
+          stock: typeof (fallback as any).stock === 'number' ? (fallback as any).stock : 0,
+          warranty: '30 Days Replacement + 5 Years Free Service',
+        };
+      }
+    }
+    if (matched) {
+      setSelectedBrand('All');
+      setSearchQuery('');
+      setShowOnlyFavorites(false);
+      setActiveModalLaptop(matched as unknown as LaptopItem);
+      syncClientDocumentMeta({
+        title: `${matched.title} | JHF Laptop Zone`,
+        description: `${matched.price ? `${matched.price} • ` : ''}${matched.specs || ''}`,
+        image: matched.image,
+        url: buildShareUrl('laptop', matched),
+      });
+    }
+  }, [deepLinkSlug, liveLaptops, storeLaptops]);
 
   const filteredLaptops = useMemo(() => {
     return liveLaptops
@@ -239,9 +318,9 @@ export const LaptopCatalog: React.FC = () => {
         if (selectedBrand === 'Lenovo') matchesFilter = laptop.brand.toLowerCase() === 'lenovo';
         else if (selectedBrand === 'HP') matchesFilter = laptop.brand.toLowerCase() === 'hp';
         else if (selectedBrand === 'Dell') matchesFilter = laptop.brand.toLowerCase() === 'dell';
-        else if (selectedBrand === 'Core i5') matchesFilter = title.includes('i5');
-        else if (selectedBrand === 'Core i7') matchesFilter = title.includes('i7');
-        else if (selectedBrand === '16GB') matchesFilter = title.includes('16gb') || title.includes('32gb');
+        else if (selectedBrand === 'Core i5') matchesFilter = title.includes('i5') || specs.includes('i5');
+        else if (selectedBrand === 'Core i7') matchesFilter = title.includes('i7') || specs.includes('i7');
+        else if (selectedBrand === '16GB') matchesFilter = title.includes('16gb') || title.includes('32gb') || specs.includes('16gb') || specs.includes('32gb');
 
         const matchesSearch =
           title.includes(search) ||
@@ -252,7 +331,12 @@ export const LaptopCatalog: React.FC = () => {
         return matchesFilter && matchesSearch;
       })
       .sort((a, b) => {
-        if (sortBy === 'price_low') return a.numericPrice - b.numericPrice;
+        if (sortBy === 'price_low') {
+          if (a.numericPrice <= 0 && b.numericPrice <= 0) return 0;
+          if (a.numericPrice <= 0) return 1;
+          if (b.numericPrice <= 0) return -1;
+          return a.numericPrice - b.numericPrice;
+        }
         if (sortBy === 'price_high') return b.numericPrice - a.numericPrice;
         return 0;
       });
@@ -359,6 +443,7 @@ export const LaptopCatalog: React.FC = () => {
             const { rating, count } = getAverageRating(laptop.id);
             const inCompare = isComparing(laptop.id);
             const inWishlist = isFavorite(laptop.id);
+            const shareHref = buildShareUrl('laptop', laptop);
 
             return (
               <div
@@ -367,20 +452,37 @@ export const LaptopCatalog: React.FC = () => {
               >
                 {/* Image & Quick Action Badges */}
                 <div className="relative aspect-[16/10] bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                  <img
-                    src={laptop.image}
-                    alt={laptop.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                  />
+                  <a
+                    href={shareHref}
+                    onClick={(e) => handleShareAnchorClick(e, 'laptop', laptop)}
+                    className="block w-full h-full cursor-pointer"
+                    title={`${laptop.title} — Click for full specifications`}
+                  >
+                    <img
+                      src={laptop.image}
+                      alt={laptop.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                    />
+                  </a>
                   
                   {/* Top Left Tag */}
-                  <span className="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow">
+                  <span className="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow pointer-events-none">
                     {laptop.tag}
                   </span>
 
-                  {/* Top Right Buttons: Favorite + Compare */}
+                  {/* Top Right Buttons: Direct Permalink + Compare + Favorite */}
                   <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                    {/* Direct Permalink */}
+                    <a
+                      href={shareHref}
+                      onClick={(e) => handleShareAnchorClick(e, 'laptop', laptop)}
+                      className="w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-md shadow transition bg-slate-900/70 text-slate-200 hover:text-white hover:bg-blue-600"
+                      title={`Open full specs: ${shareHref}`}
+                    >
+                      <Link2 className="w-3.5 h-3.5" />
+                    </a>
+
                     {/* Compare Button */}
                     <button
                       onClick={() => addToCompare(laptop)}
@@ -410,8 +512,14 @@ export const LaptopCatalog: React.FC = () => {
 
                   {/* Stock Pill */}
                   {typeof laptop.stock === 'number' && (
-                    <span className="absolute bottom-3 right-3 bg-emerald-950/90 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded shadow">
-                      {texts.stockLabel(laptop.stock)}
+                    <span
+                      className={`absolute bottom-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded shadow border pointer-events-none ${
+                        laptop.stock > 0
+                          ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500/30'
+                          : 'bg-amber-950/90 text-amber-300 border-amber-500/30'
+                      }`}
+                    >
+                      {laptop.stock > 0 ? texts.stockLabel(laptop.stock) : texts.checkStockLabel}
                     </span>
                   )}
                 </div>
@@ -435,8 +543,14 @@ export const LaptopCatalog: React.FC = () => {
                     </button>
                   </div>
 
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white line-clamp-2 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
-                    {laptop.title}
+                  <h3 className="font-bold text-base text-slate-900 dark:text-white line-clamp-2 mb-2">
+                    <a
+                      href={shareHref}
+                      onClick={(e) => handleShareAnchorClick(e, 'laptop', laptop)}
+                      className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition cursor-pointer"
+                    >
+                      {laptop.title}
+                    </a>
                   </h3>
 
                   <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed mb-4">
@@ -451,12 +565,26 @@ export const LaptopCatalog: React.FC = () => {
                           {texts.offerPrice} {currency !== 'BDT' && <span className="text-amber-500 font-mono">({currency})</span>}
                         </span>
                         <div className="flex items-baseline gap-1.5 flex-wrap">
-                          <span className="text-xl font-extrabold text-blue-600 dark:text-blue-400">
-                            {formatPrice(laptop.numericPrice)}
-                          </span>
-                          {currency !== 'BDT' && (
-                            <span className="text-[10px] text-slate-400 font-mono">
-                              (৳{laptop.numericPrice.toLocaleString()} BDT)
+                          {laptop.numericPrice > 0 ? (
+                            <>
+                              <span className="text-xl font-extrabold text-blue-600 dark:text-blue-400">
+                                {formatPrice(laptop.numericPrice)}
+                              </span>
+                              {typeof (laptop as any).mrpPrice === 'number' && (laptop as any).mrpPrice > laptop.numericPrice && (
+                                <span className="text-[11px] text-slate-400 font-medium">
+                                  <span className="mr-1">{texts.bdstallMrp}</span>
+                                  <span className="line-through">{formatPrice((laptop as any).mrpPrice)}</span>
+                                </span>
+                              )}
+                              {currency !== 'BDT' && (
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  (৳{laptop.numericPrice.toLocaleString()} BDT)
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-base sm:text-lg font-extrabold text-amber-600 dark:text-amber-400">
+                              {texts.callForPrice}
                             </span>
                           )}
                         </div>
@@ -467,13 +595,14 @@ export const LaptopCatalog: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => setActiveModalLaptop(laptop as any)}
-                        className="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition"
+                      <a
+                        href={shareHref}
+                        onClick={(e) => handleShareAnchorClick(e, 'laptop', laptop)}
+                        className="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         <span>{texts.fullSpecs}</span>
-                      </button>
+                      </a>
 
                       <button
                         onClick={() => handleOpenOrder(laptop)}
@@ -485,14 +614,17 @@ export const LaptopCatalog: React.FC = () => {
                     </div>
 
                     {/* Quick WhatsApp direct query */}
-                    <div className="mt-2 text-center">
+                    <div className="mt-2.5 text-center text-[11px]">
                       <a
                         href={`https://wa.me/${OWNER_WHATSAPP}?text=${encodeURIComponent(
-                          texts.whatsappInquiryText(laptop.title, formatPrice(laptop.numericPrice))
+                          texts.whatsappInquiryText(
+                            laptop.title,
+                            laptop.numericPrice > 0 ? formatPrice(laptop.numericPrice) : texts.callForPrice
+                          )
                         )}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 font-medium transition"
+                        className="inline-flex items-center gap-1 text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 font-medium transition"
                       >
                         <MessageSquare className="w-3 h-3 text-emerald-500" />
                         <span>{texts.quickInquiry}</span>
@@ -520,9 +652,13 @@ export const LaptopCatalog: React.FC = () => {
       {/* Full Specs Modal */}
       <LaptopDetailModal
         laptop={activeModalLaptop}
-        onClose={() => setActiveModalLaptop(null)}
+        onClose={() => {
+          setActiveModalLaptop(null);
+          onClearDeepLink?.();
+        }}
         onOrderNow={(lp) => {
           setActiveModalLaptop(null);
+          onClearDeepLink?.();
           handleOpenOrder(lp);
         }}
       />

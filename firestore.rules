@@ -101,6 +101,16 @@ service cloud.firestore {
     match /counters/{counterId} {
       allow read, write: if true;
     }
+
+    // 20. BDStall Market Sync & Import Audit Batches
+    match /bdstallImports/{importId} {
+      allow read, write: if true;
+    }
+
+    // 21. Exact Model Image Verification & Rollback History
+    match /imageHistory/{historyId} {
+      allow read, write: if true;
+    }
   }
 }
 

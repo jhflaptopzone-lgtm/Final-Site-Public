@@ -933,7 +933,7 @@ export const ServiceRequestsView: React.FC = () => {
                 >
                   {serviceEngineers.map((eng) => (
                     <option key={eng.id} value={eng.id}>
-                      {eng.name} ({eng.specialty || 'Chip-Level'})
+                      {eng.name} ({eng.specialization || 'Chip-Level'})
                     </option>
                   ))}
                 </select>

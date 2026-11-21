@@ -1,11 +1,39 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { DownloadItem } from '../data/jhfData';
 import { useStore } from '../context/StoreContext';
 import { useTranslation } from '../context/LanguageContext';
-import { Disc, Download, ShieldCheck, Sparkles, ExternalLink, HardDrive, Key, AlertCircle } from 'lucide-react';
+import { ResourceShareModal } from './ResourceShareModal';
+import {
+  buildShareUrl,
+  handleShareAnchorClick,
+  matchesShareSlug,
+  syncClientDocumentMeta,
+} from '../utils/shareLinks';
+import { Disc, Download, ShieldCheck, Sparkles, ExternalLink, HardDrive, Key, AlertCircle, Eye } from 'lucide-react';
 
-export const OperatingSystemZone: React.FC = () => {
+interface OperatingSystemZoneProps {
+  deepLinkSlug?: string | null;
+  onClearDeepLink?: () => void;
+}
+
+export const OperatingSystemZone: React.FC<OperatingSystemZoneProps> = ({ deepLinkSlug, onClearDeepLink }) => {
   const { osList } = useStore();
   const { language } = useTranslation();
+  const [activeShareItem, setActiveShareItem] = useState<DownloadItem | null>(null);
+
+  useEffect(() => {
+    if (!deepLinkSlug || osList.length === 0) return;
+    const matched = osList.find((item) => matchesShareSlug(item, deepLinkSlug));
+    if (matched) {
+      setActiveShareItem(matched);
+      syncClientDocumentMeta({
+        title: `${matched.title} | JHF Operating System Zone`,
+        description: `${matched.category} • ${matched.source}${matched.size ? ` • ${matched.size}` : ''}${matched.description ? ` — ${matched.description}` : ''}`,
+        image: matched.image,
+        url: buildShareUrl('windows', matched),
+      });
+    }
+  }, [deepLinkSlug, osList]);
 
   const texts = {
     en: {
@@ -74,52 +102,82 @@ export const OperatingSystemZone: React.FC = () => {
 
         {/* Grid of OS Items */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {osList.map((item) => (
-            <div
-              key={item.id}
-              className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/70 rounded-xl p-5 flex flex-col justify-between hover:border-purple-500 hover:shadow-md transition group"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/80 px-2 py-0.5 rounded">
-                    {item.category}
-                  </span>
-                  <span className="text-[10px] font-medium text-slate-400">
-                    {item.source}
-                  </span>
+          {osList.map((item) => {
+            const shareHref = buildShareUrl('windows', item);
+            return (
+              <div
+                key={item.id}
+                className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/70 rounded-xl p-5 flex flex-col justify-between hover:border-purple-500 hover:shadow-md transition group"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/80 px-2 py-0.5 rounded">
+                      {item.category}
+                    </span>
+                    <span className="text-[10px] font-medium text-slate-400">
+                      {item.source}
+                    </span>
+                  </div>
+
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-2">
+                    <a
+                      href={shareHref}
+                      onClick={(e) => handleShareAnchorClick(e, 'windows', item)}
+                      className="hover:text-purple-600 dark:hover:text-purple-400 hover:underline transition cursor-pointer"
+                    >
+                      {item.title}
+                    </a>
+                  </h3>
+
+                  {item.description && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                      {item.description}
+                    </p>
+                  )}
                 </div>
 
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition mb-2">
-                  {item.title}
-                </h3>
+                <div className="pt-4 mt-4 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                    {texts.highSpeed}
+                  </span>
 
-                {item.description && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                    {item.description}
-                  </p>
-                )}
+                  <div className="flex items-center gap-1.5">
+                    <a
+                      href={shareHref}
+                      onClick={(e) => handleShareAnchorClick(e, 'windows', item)}
+                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-purple-600 hover:border-purple-500 transition cursor-pointer"
+                      title={shareHref}
+                    >
+                      <Eye className="w-3 h-3" />
+                      <span>Details</span>
+                    </a>
+
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{texts.downloadBtn}</span>
+                    </a>
+                  </div>
+                </div>
               </div>
-
-              <div className="pt-4 mt-4 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
-                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                  {texts.highSpeed}
-                </span>
-
-                <a
-                  href={item.link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>{texts.downloadBtn}</span>
-                </a>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
       </div>
+
+      <ResourceShareModal
+        item={activeShareItem}
+        type="windows"
+        onClose={() => {
+          setActiveShareItem(null);
+          onClearDeepLink?.();
+        }}
+      />
     </section>
   );
 };

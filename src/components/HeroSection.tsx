@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   SlidersHorizontal,
   Truck,
-  FolderGit2,
   Laptop,
   ArrowRight,
   Zap,
@@ -35,7 +34,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       origin: 'Dubai & Singapore Grade A+',
       courier: '64 Districts Courier',
       whatsappBtn: 'WhatsApp Us',
-      driveGallery: 'Drive Photo Gallery',
       hardwareCertified: 'Hardware Certified',
       enterpriseGrade: 'Enterprise Grade A+',
       modelsList: 'Lenovo ThinkPad • HP EliteBook • Dell Latitude',
@@ -53,7 +51,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       origin: 'দুবাই ও সিঙ্গাপুর গ্রেড এ+',
       courier: '৬৪ জেলায় কুরিয়ার ডেলিভারি',
       whatsappBtn: 'হোয়াটসঅ্যাপে যোগাযোগ',
-      driveGallery: 'ড্রাইভ ফটো গ্যালারি',
       hardwareCertified: 'হার্ডওয়্যার সার্টিফাইড',
       enterpriseGrade: 'এন্টারপ্রাইজ গ্রেড এ+',
       modelsList: 'লেনোভো থিংকপ্যাড • এইচপি এলিটবুক • ডেল ল্যাটিচিউড',
@@ -71,7 +68,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       origin: 'दुबई और सिंगापुर ग्रेड A+',
       courier: '६४ जिलों में कूरियर डिलीवरी',
       whatsappBtn: 'व्हाट्सएप पर संपर्क करें',
-      driveGallery: 'ड्राइव फोटो गैलरी',
       hardwareCertified: 'हार्डवेयर प्रमाणित',
       enterpriseGrade: 'एंटरप्राइज ग्रेड A+',
       modelsList: 'लेनोवो थिंकपैड • एचपी एलीटबुक • डेल लैटीट्यूड',
@@ -89,7 +85,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     origin: 'Dubai & Singapore Grade A+',
     courier: '64 Districts Courier',
     whatsappBtn: 'WhatsApp Us',
-    driveGallery: 'Drive Photo Gallery',
     hardwareCertified: 'Hardware Certified',
     enterpriseGrade: 'Enterprise Grade A+',
     modelsList: 'Lenovo ThinkPad • HP EliteBook • Dell Latitude',
@@ -162,7 +157,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               {/* Premium Animated Request Service Button (Section 1) */}
               <button
                 type="button"
-                onClick={onRequestService}
+                onClick={() => onRequestService?.()}
                 className="relative group overflow-hidden px-5 sm:px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2 shadow-xl shadow-orange-500/30 transform hover:-translate-y-0.5 transition cursor-pointer"
               >
                 <span className="absolute inset-0 w-full h-full bg-white/25 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none"></span>
@@ -173,7 +168,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               {/* Track SR Button (Section 11) */}
               <button
                 type="button"
-                onClick={onTrackService}
+                onClick={() => onTrackService?.()}
                 className="px-4 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-cyan-300 hover:text-white border border-cyan-500/40 font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer shadow-md shadow-cyan-950/50"
               >
                 <Search className="w-4 h-4 text-cyan-400" />
@@ -206,16 +201,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               >
                 <MessageSquare className="w-4 h-4 text-emerald-400" />
                 <span>{heroTexts.whatsappBtn}</span>
-              </a>
-
-              <a
-                href={STORE_INFO.galleryFolder}
-                target="_blank"
-                rel="noreferrer"
-                className="text-slate-400 hover:text-white font-semibold text-xs px-3 py-3 flex items-center gap-1.5 transition"
-              >
-                <FolderGit2 className="w-4 h-4 text-blue-400" />
-                <span>{heroTexts.driveGallery}</span>
               </a>
             </div>
           </div>

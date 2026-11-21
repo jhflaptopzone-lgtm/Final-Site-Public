@@ -37,8 +37,13 @@ import {
   ServicePaymentRecord,
   WarrantyClaim,
   FullSystemBackup,
+  BdstallImportBatch,
+  ImageHistoryRecord,
+  ImageVerificationStatus,
 } from './types';
 import { LaptopCatalogModel, LAPTOP_MODEL_CATALOG } from './data/laptopModelCatalog';
+import { BRAND_LAPTOP_IMAGES } from '../data/jhfData';
+import { DELL_LATITUDE_CATALOG_SEED } from '../utils/dellLatitudeCatalogSpec';
 import {
   INITIAL_SERVICES,
   INITIAL_SERVICE_ENGINEERS,
@@ -291,8 +296,29 @@ interface AdminStoreType {
   addServicePart: (part: Omit<ServicePart, 'id' | 'createdAt'>) => void;
   updateServicePart: (id: string, updates: Partial<ServicePart>) => void;
   deleteServicePart: (id: string) => void;
-  useServicePart: (serviceJobId: string, partId: string, quantity: number, customerCharge?: number) => void;
+  useServicePart: (
+    serviceJobId: string,
+    partId: string,
+    quantity: number,
+    customerCharge?: number,
+    overrideWarrantyDays?: number
+  ) => void;
+  addCustomServicePartToJob: (
+    serviceJobId: string,
+    customPart: {
+      name: string;
+      code?: string;
+      category?: ServicePart['category'];
+      quantity: number;
+      purchaseCost?: number;
+      customerCharge: number;
+      warrantyDays: number;
+      saveToInventory?: boolean;
+    }
+  ) => void;
+  removeServicePart: (serviceJobId: string, usageId: string) => void;
   recordServicePayment: (serviceJobId: string, payment: Omit<ServicePaymentRecord, 'id'>) => void;
+  removeServicePayment: (serviceJobId: string, paymentId: string) => void;
   addWarrantyClaim: (claim: Omit<WarrantyClaim, 'id' | 'claimDate'>) => WarrantyClaim;
   updateWarrantyClaim: (id: string, updates: Partial<WarrantyClaim>) => void;
   deleteWarrantyClaim: (id: string) => void;
@@ -333,163 +359,833 @@ interface AdminStoreType {
     statusText: string;
   };
   requestStoragePersistence: () => Promise<void>;
+
+  // BDStall Dell Latitude Inventory & Import System
+  bdstallImportHistory: BdstallImportBatch[];
+  approveBdstallImportBatch: (params: {
+    items: Array<{
+      existingProductId?: string;
+      brand: 'Dell';
+      series: string;
+      model: string;
+      generation: string;
+      processor: string;
+      ram: string;
+      ssd: string;
+      hdd: string;
+      display: string;
+      touchscreen: 'Touchscreen' | 'Non-Touch';
+      resolution: string;
+      condition: Product['condition'];
+      purchasePrice: number;
+      marketPrice: number | null;
+      marketPriceMin?: number | null;
+      marketPriceMax?: number | null;
+      sellingPrice: number;
+      stockQuantity: number;
+      sellerCount: number;
+      sellerListings: NonNullable<Product['sellerListings']>;
+      sourceUrl: string;
+      lastUpdated: string;
+      stockStatus: NonNullable<Product['stockStatus']>;
+      configKey: string;
+      publishToCatalog?: boolean;
+    }>;
+    importMethod: BdstallImportBatch['importMethod'];
+    sourceUrl: string;
+    fetchedAt: string;
+    totalExtracted: number;
+    skippedCount: number;
+  }) => { added: number; updated: number; batch: BdstallImportBatch };
+
+  // Universal Exact Model Image Finder & Auto Product Image Manager
+  imageHistory: ImageHistoryRecord[];
+  pendingAutoImageProductIds: string[];
+  dismissAutoImageAlert: (productId: string) => void;
+  assignVerifiedProductImage: (
+    productId: string,
+    payload: {
+      exactModel: string;
+      mainImageUrl: string;
+      imageStoragePath?: string;
+      imageThumbnailPath?: string;
+      imageSourceUrl?: string;
+      imageSourceName?: string;
+      imageLicense?: string;
+      imageAttribution?: string;
+      imageResolution?: string;
+      imageVerificationStatus: ImageVerificationStatus;
+      imageConfidence?: number;
+      verificationNotes?: string;
+      action?: ImageHistoryRecord['action'];
+    }
+  ) => void;
+  rejectProductImage: (
+    productId: string,
+    params: {
+      candidateUrl?: string;
+      exactModel: string;
+      reason: string;
+      status?: ImageVerificationStatus;
+    }
+  ) => void;
+  rollbackProductImage: (
+    productId: string,
+    targetHistoryOrUrl?: string | ImageHistoryRecord
+  ) => { success: boolean; message: string };
+  removeWrongProductImage: (productId: string, reason: string) => void;
+  updateProductImageStatus: (
+    productId: string,
+    status: ImageVerificationStatus,
+    notes?: string
+  ) => void;
 }
 
 const AdminStoreContext = createContext<AdminStoreType | undefined>(undefined);
 
-// Initial Seed Data for JHF Laptop Zone
+// Official Featured Catalog Seed Data (BDStall MRP & Offer Prices, Unified Brand Photos)
 const INITIAL_PRODUCTS: Product[] = [
+  // ================= LENOVO THINKPAD SERIES =================
   {
     id: 'prod-lenovo-l14-gen2',
-    sku: 'JHF-LP-01',
-    name: 'Lenovo ThinkPad L14 Gen-2 (Core i5 11th Gen / 16GB / 512GB SSD)',
+    sku: 'JHF-TP-01',
+    name: 'Lenovo ThinkPad L14 Gen-2 Core i5 11th Gen',
     slug: 'lenovo-thinkpad-l14-gen-2',
     brand: 'Lenovo',
     model: 'ThinkPad L14 Gen 2',
     category: 'Business Laptop',
     condition: 'Dubai Grade A++',
-    processor: 'Intel Core i5-1135G7 (Up to 4.2GHz, 4 Cores, 8 Threads)',
+    processor: 'Intel Core i5-1135G7 (11th Gen, Up to 4.2GHz)',
     generation: '11th Gen',
     ram: '16GB DDR4 3200MHz',
     storage: '512GB M.2 NVMe SSD',
-    graphics: 'Intel Iris Xe Graphics 8GB Shared',
+    graphics: 'Intel Iris Xe Graphics',
     display: '14.0" Full HD (1920x1080) Anti-Glare IPS Display',
     screenSize: '14.0"',
     resolution: '1920x1080',
     batteryCondition: 'Original 45Wh (4-5 Hours Backup)',
     keyboardCondition: 'Backlit Spill-Resistant Precision Keyboard',
     bodyCondition: 'A++ Pristine Magnesium Composite',
-    operatingSystem: 'Windows 11 Pro 64-bit Genuine Activated',
-    includedAccessories: ['Original Lenovo 65W Type-C Charger', 'Power Cord', 'JHF Padded Laptop Bag', 'Wireless Mouse', 'Mouse Pad'],
-    purchasePrice: 38000,
+    operatingSystem: 'Windows 11 Pro 64-bit Genuine',
+    includedAccessories: ['Original Lenovo 65W Type-C Charger', 'Power Cord', 'JHF Laptop Bag', 'Wireless Mouse'],
+    purchasePrice: 36500,
     sellingPrice: 46500,
-    discountPrice: 45000,
-    profitMargin: 8500,
-    stockQuantity: 7,
+    discountPrice: 42500,
+    profitMargin: 6000,
+    stockQuantity: 6,
     minimumStockAlert: 2,
     warranty: '1 Month Full Replacement + 5 Years Free Service Warranty',
-    shortDescription: 'Military-grade rugged business laptop with 11th Gen Iris Xe power and ultra-durable chassis.',
-    specifications: 'Thunderbolt 4, USB 3.2 Gen 1, HDMI 2.0, RJ45 LAN, MicroSD card reader, HD Webcam with ThinkShutter.',
-    images: ['https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=700&auto=format&fit=crop&q=80'],
+    shortDescription: '11th Gen Intel Iris Xe business laptop with Thunderbolt 4 and military-grade durability.',
+    specifications: 'Thunderbolt 4, USB 3.2 Gen 1, HDMI 2.0, RJ45 LAN, MicroSD reader, ThinkShutter HD Webcam.',
+    images: [BRAND_LAPTOP_IMAGES.Lenovo],
     status: 'published',
     isFeatured: true,
-    createdAt: '2026-08-10T10:00:00Z',
-    updatedAt: '2026-09-01T12:00:00Z',
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
     createdBy: 'Jahid Hasan (Super Admin)',
   },
   {
-    id: 'prod-hp-elitebook-840-g8',
-    sku: 'JHF-LP-02',
-    name: 'HP EliteBook 840 G8 (Core i5 11th Gen / 16GB / 512GB SSD / IR Cam)',
-    slug: 'hp-elitebook-840-g8',
-    brand: 'HP',
-    model: 'EliteBook 840 G8',
+    id: 'prod-lenovo-t14s-gen1',
+    sku: 'JHF-TP-02',
+    name: 'Lenovo ThinkPad T14s Core i5 10th Gen',
+    slug: 'lenovo-thinkpad-t14s-10th',
+    brand: 'Lenovo',
+    model: 'ThinkPad T14s',
     category: 'Ultrabook',
     condition: 'Dubai Grade A++',
-    processor: 'Intel Core i5-1145G7 vPro (Up to 4.4GHz Turbo)',
-    generation: '11th Gen',
-    ram: '16GB DDR4 High-Speed RAM',
-    storage: '512GB PCIe NVMe SSD',
-    graphics: 'Intel Iris Xe Graphics',
-    display: '14.0" FHD IPS 400 Nits 100% sRGB Micro-Edge',
+    processor: 'Intel Core i5-10210U (10th Gen Quad Core)',
+    generation: '10th Gen',
+    ram: '16GB DDR4 RAM',
+    storage: '512GB M.2 NVMe SSD',
+    graphics: 'Intel UHD Graphics',
+    display: '14.0" FHD IPS Anti-Glare Ultrabook Display',
     screenSize: '14.0"',
     resolution: '1920x1080',
-    batteryCondition: 'HP 3-Cell 53Wh Long Life (4-5 Hours)',
-    keyboardCondition: 'Premium HP Spill-Resistant Backlit Keyboard',
-    bodyCondition: 'All-Aluminum CNC Silver Unibody',
+    batteryCondition: '57Wh RapidCharge (4-5 Hours)',
+    keyboardCondition: 'Backlit Precision Keyboard',
+    bodyCondition: 'Slim Carbon-Fiber & Magnesium Chassis',
     operatingSystem: 'Windows 11 Pro Genuine',
-    includedAccessories: ['Original HP 65W Smart AC / Type-C Charger', 'Laptop Bag', 'Wireless Optical Mouse'],
-    purchasePrice: 40000,
-    sellingPrice: 48500,
-    discountPrice: 47500,
-    profitMargin: 8500,
-    stockQuantity: 4,
+    includedAccessories: ['Original 65W Type-C Charger', 'Laptop Bag', 'Wireless Mouse'],
+    purchasePrice: 33000,
+    sellingPrice: 42500,
+    discountPrice: 38500,
+    profitMargin: 5500,
+    stockQuantity: 5,
     minimumStockAlert: 2,
-    warranty: '1 Month Full Replacement + 5 Years Free Service Warranty',
-    shortDescription: 'Premium executive ultrabook with Bang & Olufsen sound, face unlock IR, and sleek silver aluminum body.',
-    specifications: '2x Thunderbolt 4 / USB4 Type-C, 2x USB 3.2 Gen 1, HDMI 2.0b, Bang & Olufsen Dual Speakers, Fingerprint + IR Face Unlock.',
-    images: ['https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=700&auto=format&fit=crop&q=80'],
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: 'Ultra-slim flagship T-series ultrabook built for executives and developers.',
+    specifications: 'Thunderbolt 3, 2x USB 3.2, HDMI, Fingerprint Reader, ThinkShutter.',
+    images: [BRAND_LAPTOP_IMAGES.Lenovo],
     status: 'published',
     isFeatured: true,
-    createdAt: '2026-08-12T11:30:00Z',
-    updatedAt: '2026-09-02T15:00:00Z',
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
     createdBy: 'Jahid Hasan (Super Admin)',
   },
   {
-    id: 'prod-dell-latitude-7400',
-    sku: 'JHF-LP-03',
-    name: 'Dell Latitude 7400 (Core i7 8th Gen / 16GB / 512GB NVMe / Carbon)',
-    slug: 'dell-latitude-7400',
-    brand: 'Dell',
-    model: 'Latitude 7400',
-    category: 'Business Laptop',
+    id: 'prod-lenovo-t480s-standard',
+    sku: 'JHF-TP-03',
+    name: 'Lenovo ThinkPad T480s Core i5 8th Gen',
+    slug: 'lenovo-thinkpad-t480s-core-i5-8th',
+    brand: 'Lenovo',
+    model: 'ThinkPad T480s',
+    category: 'Ultrabook',
     condition: 'Dubai Grade A++',
-    processor: 'Intel Core i7-8665U Quad-Core (Up to 4.8GHz, 8MB Cache)',
+    processor: 'Intel Core i5-8350U Quad Core (8th Gen)',
     generation: '8th Gen',
-    ram: '16GB DDR4 2400MHz',
-    storage: '512GB PCIe M.2 SSD',
+    ram: '8GB DDR4 RAM',
+    storage: '512GB NVMe SSD',
     graphics: 'Intel UHD Graphics 620',
-    display: '14.0" FHD (1920x1080) Anti-Glare Carbon Fiber Display',
+    display: '14.0" Full HD (1920x1080) IPS Anti-Glare',
     screenSize: '14.0"',
     resolution: '1920x1080',
-    batteryCondition: 'Dell 60Wh ExpressCharge Battery (3.5-4.5 Hours)',
-    keyboardCondition: 'Single Pointing Backlit US English',
-    bodyCondition: 'High-Density Carbon Fiber & Magnesium Alloy',
-    operatingSystem: 'Windows 11 Pro 64-bit Genuine',
-    includedAccessories: ['Original Dell 65W Adapter', 'Power Cable', 'Laptop Bag', 'Mouse'],
-    purchasePrice: 31000,
-    sellingPrice: 38500,
-    discountPrice: 37500,
-    profitMargin: 7500,
-    stockQuantity: 2, // Low stock alert trigger
-    minimumStockAlert: 3,
+    batteryCondition: '57Wh Internal QuickCharge (3.5-4.5 Hours)',
+    keyboardCondition: 'Backlit Spill-Resistant Keyboard',
+    bodyCondition: 'Slim Magnesium Alloy (1.3kg)',
+    operatingSystem: 'Windows 11 Pro Genuine',
+    includedAccessories: ['Original Lenovo 65W Type-C Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 25000,
+    sellingPrice: 33500,
+    discountPrice: 30000,
+    profitMargin: 5000,
+    stockQuantity: 6,
+    minimumStockAlert: 2,
     warranty: '1 Month Replacement + 5 Years Free Service Warranty',
-    shortDescription: 'High performance Core i7 workhorse built in lightweight carbon fiber chassis.',
-    specifications: 'Thunderbolt 3, 2x USB 3.1 Gen 1, HDMI 1.4a, MicroSD 4.0, Noble Wedge Lock slot.',
-    images: ['https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=700&auto=format&fit=crop&q=80'],
+    shortDescription: 'Slim corporate ThinkPad T480s with fast 512GB NVMe SSD and Windows 11 support.',
+    specifications: 'USB-C Thunderbolt 3, 2x USB 3.1, HDMI, RJ45, SD Card Reader.',
+    images: [BRAND_LAPTOP_IMAGES.Lenovo],
     status: 'published',
     isFeatured: true,
-    createdAt: '2026-08-14T09:00:00Z',
-    updatedAt: '2026-09-03T16:00:00Z',
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+  {
+    id: 'prod-lenovo-t480-7th-16-512',
+    sku: 'JHF-TP-04',
+    name: 'Lenovo ThinkPad T480 (i5 7th, 16gb/512gb)',
+    slug: 'lenovo-thinkpad-t480-i5-7th-16-512',
+    brand: 'Lenovo',
+    model: 'ThinkPad T480',
+    category: 'Business Laptop',
+    condition: 'Grade A+',
+    processor: 'Intel Core i5-7300U (7th Gen vPro)',
+    generation: '7th Gen',
+    ram: '16GB DDR4 RAM',
+    storage: '512GB NVMe SSD',
+    graphics: 'Intel HD Graphics 620',
+    display: '14.0" Full HD (1920x1080) IPS Anti-Glare',
+    screenSize: '14.0"',
+    resolution: '1920x1080',
+    batteryCondition: 'PowerBridge Dual Battery (4-5 Hours)',
+    keyboardCondition: 'ThinkPad Precision Backlit Keyboard',
+    bodyCondition: 'Grade A+ Clean Black Matte Chassis',
+    operatingSystem: 'Windows 10 / 11 Pro',
+    includedAccessories: ['Original Lenovo Type-C Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 22500,
+    sellingPrice: 29500,
+    discountPrice: 27000,
+    profitMargin: 4500,
+    stockQuantity: 5,
+    minimumStockAlert: 2,
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: 'Heavy-duty ThinkPad T480 upgraded with 16GB RAM and 512GB NVMe SSD.',
+    specifications: 'Dual Battery System, Thunderbolt 3, USB-C, HDMI, RJ45 Ethernet.',
+    images: [BRAND_LAPTOP_IMAGES.Lenovo],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+  {
+    id: 'prod-lenovo-t480-7th-8-256',
+    sku: 'JHF-TP-05',
+    name: 'Lenovo ThinkPad T480 (i5 7th, 8gb/256gb)',
+    slug: 'lenovo-thinkpad-t480-i5-7th-8-256',
+    brand: 'Lenovo',
+    model: 'ThinkPad T480',
+    category: 'Business Laptop',
+    condition: 'Grade A+',
+    processor: 'Intel Core i5-7300U (7th Gen)',
+    generation: '7th Gen',
+    ram: '8GB DDR4 RAM',
+    storage: '256GB NVMe SSD',
+    graphics: 'Intel HD Graphics 620',
+    display: '14.0" Full HD IPS Anti-Glare',
+    screenSize: '14.0"',
+    resolution: '1920x1080',
+    batteryCondition: 'PowerBridge Dual Battery (3.5-4.5 Hours)',
+    keyboardCondition: 'Spill-Resistant ThinkPad Keyboard',
+    bodyCondition: 'Grade A+ Matte Black Chassis',
+    operatingSystem: 'Windows 10 / 11 Pro',
+    includedAccessories: ['Original Type-C Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 19500,
+    sellingPrice: 25500,
+    discountPrice: 23500,
+    profitMargin: 4000,
+    stockQuantity: 7,
+    minimumStockAlert: 2,
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: 'Reliable corporate ThinkPad T480 with dual battery architecture and USB-C charging.',
+    specifications: 'Dual Battery, Thunderbolt 3, USB 3.1, HDMI, RJ45 LAN.',
+    images: [BRAND_LAPTOP_IMAGES.Lenovo],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+  {
+    id: 'prod-lenovo-t470s-6th-16-512',
+    sku: 'JHF-TP-06',
+    name: 'Lenovo ThinkPad T470s (i5 6th/16GB/512GB)',
+    slug: 'lenovo-thinkpad-t470s-i5-6th-16-512',
+    brand: 'Lenovo',
+    model: 'ThinkPad T470s',
+    category: 'Ultrabook',
+    condition: 'Grade A+',
+    processor: 'Intel Core i5-6300U (6th Gen)',
+    generation: '6th Gen',
+    ram: '16GB DDR4 RAM',
+    storage: '512GB M.2 NVMe SSD',
+    graphics: 'Intel HD Graphics 520',
+    display: '14.0" Full HD (1920x1080) IPS Display',
+    screenSize: '14.0"',
+    resolution: '1920x1080',
+    batteryCondition: 'Dual Internal Battery (3.5 Hours)',
+    keyboardCondition: 'Backlit Precision Keyboard',
+    bodyCondition: 'Slim Carbon-Fiber Unibody',
+    operatingSystem: 'Windows 10 Pro',
+    includedAccessories: ['Original Lenovo Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 20500,
+    sellingPrice: 26500,
+    discountPrice: 24500,
+    profitMargin: 4000,
+    stockQuantity: 5,
+    minimumStockAlert: 2,
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: 'High-memory 16GB/512GB slim ThinkPad T470s ideal for multitasking & freelancing.',
+    specifications: 'USB-C Thunderbolt 3, 3x USB 3.0, HDMI, RJ45, SD Reader.',
+    images: [BRAND_LAPTOP_IMAGES.Lenovo],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+  {
+    id: 'prod-lenovo-t470s-6th-8-256',
+    sku: 'JHF-TP-07',
+    name: 'Lenovo ThinkPad T470s (i5 6th/8GB/256GB)',
+    slug: 'lenovo-thinkpad-t470s-i5-6th-8-256',
+    brand: 'Lenovo',
+    model: 'ThinkPad T470s',
+    category: 'Ultrabook',
+    condition: 'Grade A+',
+    processor: 'Intel Core i5-6300U (6th Gen)',
+    generation: '6th Gen',
+    ram: '8GB DDR4 RAM',
+    storage: '256GB M.2 SSD',
+    graphics: 'Intel HD Graphics 520',
+    display: '14.0" Full HD IPS Anti-Glare',
+    screenSize: '14.0"',
+    resolution: '1920x1080',
+    batteryCondition: 'Dual Internal Battery (3-4 Hours)',
+    keyboardCondition: 'ThinkPad Spill-Resistant Keyboard',
+    bodyCondition: 'Slim Lightweight Carbon Chassis',
+    operatingSystem: 'Windows 10 Pro',
+    includedAccessories: ['Original Lenovo Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 17000,
+    sellingPrice: 22500,
+    discountPrice: 20500,
+    profitMargin: 3500,
+    stockQuantity: 8,
+    minimumStockAlert: 2,
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: 'Budget-friendly slim ThinkPad T470s for students, office work, and coding.',
+    specifications: 'USB-C Thunderbolt 3, 3x USB 3.0, HDMI, RJ45 Ethernet.',
+    images: [BRAND_LAPTOP_IMAGES.Lenovo],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+  {
+    id: 'prod-lenovo-t480s-8th-8-256',
+    sku: 'JHF-TP-08',
+    name: 'Lenovo ThinkPad T480s (i5 8th, 8GB/256GB)',
+    slug: 'lenovo-thinkpad-t480s-i5-8th-8-256',
+    brand: 'Lenovo',
+    model: 'ThinkPad T480s',
+    category: 'Ultrabook',
+    condition: 'Dubai Grade A++',
+    processor: 'Intel Core i5-8350U Quad Core (8th Gen)',
+    generation: '8th Gen',
+    ram: '8GB DDR4 RAM',
+    storage: '256GB NVMe SSD',
+    graphics: 'Intel UHD Graphics 620',
+    display: '14.0" Full HD IPS Anti-Glare',
+    screenSize: '14.0"',
+    resolution: '1920x1080',
+    batteryCondition: '57Wh QuickCharge (3.5-4.5 Hours)',
+    keyboardCondition: 'Backlit Precision Keyboard',
+    bodyCondition: 'Slim Magnesium Chassis (1.3kg)',
+    operatingSystem: 'Windows 11 Pro Genuine',
+    includedAccessories: ['Original Lenovo 65W Type-C Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 23000,
+    sellingPrice: 29500,
+    discountPrice: 27500,
+    profitMargin: 4500,
+    stockQuantity: 6,
+    minimumStockAlert: 2,
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: '8th Gen Quad-Core slim ThinkPad T480s with official Windows 11 support.',
+    specifications: 'Thunderbolt 3, 2x USB 3.1, HDMI, SD Reader, RJ45.',
+    images: [BRAND_LAPTOP_IMAGES.Lenovo],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
     createdBy: 'Jahid Hasan (Super Admin)',
   },
   {
     id: 'prod-lenovo-t480s',
-    sku: 'JHF-LP-04',
-    name: 'Lenovo ThinkPad T480s (Core i5 8th Gen / 16GB / 512GB SSD)',
-    slug: 'lenovo-thinkpad-t480s',
+    sku: 'JHF-TP-09',
+    name: 'Lenovo ThinkPad T480s (i5 8th/16GB/512GB)',
+    slug: 'lenovo-thinkpad-t480s-i5-8th-16-512',
     brand: 'Lenovo',
     model: 'ThinkPad T480s',
     category: 'Ultrabook',
-    condition: 'Grade A+',
+    condition: 'Dubai Grade A++',
     processor: 'Intel Core i5-8350U Quad-Core vPro',
     generation: '8th Gen',
-    ram: '16GB DDR4',
+    ram: '16GB DDR4 RAM',
     storage: '512GB NVMe SSD',
     graphics: 'Intel UHD 620',
     display: '14.0" Full HD IPS Anti-Glare',
     screenSize: '14.0"',
     resolution: '1920x1080',
-    batteryCondition: '57Wh Internal QuickCharge (3.5 Hours)',
+    batteryCondition: '57Wh Internal QuickCharge (4 Hours)',
     keyboardCondition: 'Original ThinkPad Precision Backlit',
     bodyCondition: 'Slim Magnesium Unibody (1.3kg)',
-    operatingSystem: 'Windows 10 / 11 Pro',
-    includedAccessories: ['Original Lenovo 65W USB-C Charger', 'Laptop Sleeve', 'Mouse'],
-    purchasePrice: 27500,
-    sellingPrice: 33500,
-    profitMargin: 6000,
+    operatingSystem: 'Windows 11 Pro',
+    includedAccessories: ['Original Lenovo 65W USB-C Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 27000,
+    sellingPrice: 34500,
+    discountPrice: 32000,
+    profitMargin: 5000,
     stockQuantity: 6,
     minimumStockAlert: 2,
     warranty: '1 Month Replacement + 5 Years Free Service Warranty',
-    shortDescription: 'Legendary slim business ultrabook with rapid USB-C fast charging.',
+    shortDescription: 'Top-selling 16GB/512GB slim ThinkPad T480s with rapid USB-C fast charging.',
     specifications: 'USB Type-C with Thunderbolt 3, USB 3.1 Gen 1, HDMI, SD card reader.',
-    images: ['https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=700&auto=format&fit=crop&q=80'],
+    images: [BRAND_LAPTOP_IMAGES.Lenovo],
     status: 'published',
-    isFeatured: false,
-    createdAt: '2026-08-15T14:00:00Z',
-    updatedAt: '2026-09-04T10:00:00Z',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
     createdBy: 'Jahid Hasan (Super Admin)',
   },
+
+  // ================= HP ELITEBOOK SERIES =================
+  {
+    id: 'prod-hp-elitebook-840-g8-32',
+    sku: 'JHF-HP-01',
+    name: 'HP EliteBook 840 G8 (32GB RAM, 512GB SSD)',
+    slug: 'hp-elitebook-840-g8-32gb',
+    brand: 'HP',
+    model: 'EliteBook 840 G8',
+    category: 'Ultrabook',
+    condition: 'Dubai Grade A++',
+    processor: 'Intel Core i5-1145G7 vPro (11th Gen)',
+    generation: '11th Gen',
+    ram: '32GB DDR4 High-Speed RAM',
+    storage: '512GB PCIe NVMe SSD',
+    graphics: 'Intel Iris Xe Graphics',
+    display: '14.0" FHD IPS 400 Nits Micro-Edge',
+    screenSize: '14.0"',
+    resolution: '1920x1080',
+    batteryCondition: 'HP 3-Cell 53Wh Long Life (4-5 Hours)',
+    keyboardCondition: 'HP Spill-Resistant Backlit Keyboard',
+    bodyCondition: 'All-Aluminum CNC Silver Unibody',
+    operatingSystem: 'Windows 11 Pro Genuine',
+    includedAccessories: ['Original HP 65W Type-C Charger', 'Laptop Bag', 'Wireless Mouse'],
+    purchasePrice: 44000,
+    sellingPrice: 54000,
+    discountPrice: 51000,
+    profitMargin: 7000,
+    stockQuantity: 4,
+    minimumStockAlert: 2,
+    warranty: '1 Month Full Replacement + 5 Years Free Service Warranty',
+    shortDescription: '32GB RAM powerhouse executive EliteBook 840 G8 with Bang & Olufsen audio.',
+    specifications: '2x Thunderbolt 4 Type-C, 2x USB 3.2, HDMI 2.0b, IR Face Unlock, Fingerprint.',
+    images: [BRAND_LAPTOP_IMAGES.HP],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+  {
+    id: 'prod-hp-elitebook-840-g8',
+    sku: 'JHF-HP-02',
+    name: 'HP EliteBook 840 G8 (16GB RAM, 512GB SSD)',
+    slug: 'hp-elitebook-840-g8-16gb',
+    brand: 'HP',
+    model: 'EliteBook 840 G8',
+    category: 'Ultrabook',
+    condition: 'Dubai Grade A++',
+    processor: 'Intel Core i5-1135G7 (11th Gen)',
+    generation: '11th Gen',
+    ram: '16GB DDR4 High-Speed RAM',
+    storage: '512GB PCIe NVMe SSD',
+    graphics: 'Intel Iris Xe Graphics',
+    display: '14.0" FHD IPS Micro-Edge Anti-Glare',
+    screenSize: '14.0"',
+    resolution: '1920x1080',
+    batteryCondition: 'HP 53Wh Long Life (4-5 Hours)',
+    keyboardCondition: 'Premium HP Backlit Keyboard',
+    bodyCondition: 'All-Aluminum CNC Silver Unibody',
+    operatingSystem: 'Windows 11 Pro Genuine',
+    includedAccessories: ['Original HP 65W Charger', 'Laptop Bag', 'Wireless Mouse'],
+    purchasePrice: 39500,
+    sellingPrice: 48500,
+    discountPrice: 45500,
+    profitMargin: 6000,
+    stockQuantity: 5,
+    minimumStockAlert: 2,
+    warranty: '1 Month Full Replacement + 5 Years Free Service Warranty',
+    shortDescription: 'Sleek 11th Gen silver CNC aluminum ultrabook with IR Face Unlock & B&O audio.',
+    specifications: '2x Thunderbolt 4 Type-C, 2x USB 3.2, HDMI 2.0, Bang & Olufsen Audio.',
+    images: [BRAND_LAPTOP_IMAGES.HP],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+  {
+    id: 'prod-hp-elitebook-840-g7',
+    sku: 'JHF-HP-03',
+    name: 'HP EliteBook 840 G7 (16GB RAM, 512GB SSD)',
+    slug: 'hp-elitebook-840-g7-16gb',
+    brand: 'HP',
+    model: 'EliteBook 840 G7',
+    category: 'Ultrabook',
+    condition: 'Dubai Grade A++',
+    processor: 'Intel Core i5-10310U (10th Gen vPro)',
+    generation: '10th Gen',
+    ram: '16GB DDR4 RAM',
+    storage: '512GB NVMe SSD',
+    graphics: 'Intel UHD Graphics',
+    display: '14.0" FHD IPS Narrow-Bezel Display',
+    screenSize: '14.0"',
+    resolution: '1920x1080',
+    batteryCondition: 'HP 53Wh Long Life (4 Hours)',
+    keyboardCondition: 'Backlit Spill-Resistant Keyboard',
+    bodyCondition: 'Slim CNC Silver Aluminum Body',
+    operatingSystem: 'Windows 11 Pro Genuine',
+    includedAccessories: ['Original HP Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 33500,
+    sellingPrice: 41500,
+    discountPrice: 39000,
+    profitMargin: 5500,
+    stockQuantity: 6,
+    minimumStockAlert: 2,
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: '10th Gen redesigned narrow-bezel HP EliteBook 840 G7 with 16GB/512GB.',
+    specifications: '2x USB-C Thunderbolt, 2x USB 3.1, HDMI, Bang & Olufsen Audio.',
+    images: [BRAND_LAPTOP_IMAGES.HP],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+  {
+    id: 'prod-hp-elitebook-840-g6-16',
+    sku: 'JHF-HP-04',
+    name: 'HP EliteBook 840 G6 (16GB RAM, 512GB SSD)',
+    slug: 'hp-elitebook-840-g6-16gb',
+    brand: 'HP',
+    model: 'EliteBook 840 G6',
+    category: 'Business Laptop',
+    condition: 'Dubai Grade A++',
+    processor: 'Intel Core i5-8365U Quad Core (8th Gen)',
+    generation: '8th Gen',
+    ram: '16GB DDR4 RAM',
+    storage: '512GB NVMe SSD',
+    graphics: 'Intel UHD Graphics 620',
+    display: '14.0" FHD IPS Anti-Glare Display',
+    screenSize: '14.0"',
+    resolution: '1920x1080',
+    batteryCondition: 'HP Long Life Battery (3.5-4.5 Hours)',
+    keyboardCondition: 'Backlit Keyboard with Pointing Stick',
+    bodyCondition: 'Grade A++ Silver Aluminum Body',
+    operatingSystem: 'Windows 11 Pro Genuine',
+    includedAccessories: ['Original HP Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 28000,
+    sellingPrice: 35500,
+    discountPrice: 33000,
+    profitMargin: 5000,
+    stockQuantity: 7,
+    minimumStockAlert: 2,
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: 'Most popular 16GB/512GB EliteBook 840 G6 with Bang & Olufsen speakers.',
+    specifications: 'Thunderbolt 3 USB-C, 2x USB 3.1, HDMI, RJ45, Privacy Shutter.',
+    images: [BRAND_LAPTOP_IMAGES.HP],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+  {
+    id: 'prod-hp-elitebook-840-g6-8',
+    sku: 'JHF-HP-05',
+    name: 'HP EliteBook 840 G6 (8GB RAM, 256GB SSD)',
+    slug: 'hp-elitebook-840-g6-8gb',
+    brand: 'HP',
+    model: 'EliteBook 840 G6',
+    category: 'Business Laptop',
+    condition: 'Dubai Grade A++',
+    processor: 'Intel Core i5-8365U Quad Core (8th Gen)',
+    generation: '8th Gen',
+    ram: '8GB DDR4 RAM',
+    storage: '256GB NVMe SSD',
+    graphics: 'Intel UHD Graphics 620',
+    display: '14.0" FHD IPS Anti-Glare Display',
+    screenSize: '14.0"',
+    resolution: '1920x1080',
+    batteryCondition: 'HP Long Life Battery (3.5-4.5 Hours)',
+    keyboardCondition: 'Backlit Keyboard',
+    bodyCondition: 'Grade A++ Silver Aluminum Body',
+    operatingSystem: 'Windows 11 Pro',
+    includedAccessories: ['Original HP Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 25500,
+    sellingPrice: 32500,
+    discountPrice: 30000,
+    profitMargin: 4500,
+    stockQuantity: 8,
+    minimumStockAlert: 2,
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: 'Corporate silver HP EliteBook 840 G6 8th Gen with Windows 11 compatibility.',
+    specifications: 'Thunderbolt 3 USB-C, 2x USB 3.1, HDMI, RJ45, B&O Audio.',
+    images: [BRAND_LAPTOP_IMAGES.HP],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+  {
+    id: 'prod-hp-elitebook-840-g5',
+    sku: 'JHF-HP-06',
+    name: 'HP EliteBook 840 G5 (8GB RAM, 256GB SSD)',
+    slug: 'hp-elitebook-840-g5-8gb',
+    brand: 'HP',
+    model: 'EliteBook 840 G5',
+    category: 'Business Laptop',
+    condition: 'Grade A+',
+    processor: 'Intel Core i5-8350U Quad Core (8th Gen)',
+    generation: '8th Gen',
+    ram: '8GB DDR4 RAM',
+    storage: '256GB NVMe SSD',
+    graphics: 'Intel UHD Graphics 620',
+    display: '14.0" FHD IPS Display',
+    screenSize: '14.0"',
+    resolution: '1920x1080',
+    batteryCondition: '3.5-4 Hours Backup',
+    keyboardCondition: 'Backlit Keyboard',
+    bodyCondition: 'Full Aluminum Silver Body',
+    operatingSystem: 'Windows 11 Pro',
+    includedAccessories: ['Original HP Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 23500,
+    sellingPrice: 29500,
+    discountPrice: 27500,
+    profitMargin: 4000,
+    stockQuantity: 7,
+    minimumStockAlert: 2,
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: 'Bangladesh favorite 8th Gen Quad-Core HP EliteBook 840 G5 in sleek aluminum.',
+    specifications: 'Thunderbolt 3, 2x USB 3.1, HDMI, RJ45 LAN, Bang & Olufsen.',
+    images: [BRAND_LAPTOP_IMAGES.HP],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+  {
+    id: 'prod-hp-elitebook-840-g4',
+    sku: 'JHF-HP-07',
+    name: 'HP EliteBook 840 G4 (8GB RAM, 256GB SSD, 1TB HDD)',
+    slug: 'hp-elitebook-840-g4-dual-storage',
+    brand: 'HP',
+    model: 'EliteBook 840 G4',
+    category: 'Business Laptop',
+    condition: 'Grade A+',
+    processor: 'Intel Core i5-7200U (7th Gen)',
+    generation: '7th Gen',
+    ram: '8GB DDR4 RAM',
+    storage: '256GB SSD + 1TB HDD',
+    graphics: 'Intel HD Graphics 620',
+    display: '14.0" FHD Slim Anti-Glare Display',
+    screenSize: '14.0"',
+    resolution: '1920x1080',
+    batteryCondition: '3.5 Hours Backup',
+    keyboardCondition: 'Backlit Keyboard',
+    bodyCondition: 'Silver & Matte Black Chassis',
+    operatingSystem: 'Windows 10 Pro',
+    includedAccessories: ['Original HP Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 20500,
+    sellingPrice: 26500,
+    discountPrice: 24500,
+    profitMargin: 4000,
+    stockQuantity: 5,
+    minimumStockAlert: 2,
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: 'Massive 1.25TB dual storage (256GB NVMe SSD + 1TB HDD) HP EliteBook 840 G4.',
+    specifications: 'USB-C, 2x USB 3.0, DisplayPort, VGA, RJ45 LAN, B&O Audio.',
+    images: [BRAND_LAPTOP_IMAGES.HP],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+  {
+    id: 'prod-hp-elitebook-840-g3',
+    sku: 'JHF-HP-08',
+    name: 'HP EliteBook 840 G3 (8GB RAM, 256GB SSD)',
+    slug: 'hp-elitebook-840-g3-8gb',
+    brand: 'HP',
+    model: 'EliteBook 840 G3',
+    category: 'Business Laptop',
+    condition: 'Grade A+',
+    processor: 'Intel Core i5-6300U (6th Gen)',
+    generation: '6th Gen',
+    ram: '8GB DDR4 RAM',
+    storage: '256GB M.2 SSD',
+    graphics: 'Intel HD Graphics 520',
+    display: '14.0" Slim Anti-Glare Display',
+    screenSize: '14.0"',
+    resolution: '1920x1080',
+    batteryCondition: '3-3.5 Hours Backup',
+    keyboardCondition: 'Spill-Resistant Backlit Keyboard',
+    bodyCondition: 'Slim Silver Metallic Design',
+    operatingSystem: 'Windows 10 Pro',
+    includedAccessories: ['Original HP Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 18000,
+    sellingPrice: 23500,
+    discountPrice: 21500,
+    profitMargin: 3500,
+    stockQuantity: 6,
+    minimumStockAlert: 2,
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: 'Affordable slim metallic HP EliteBook 840 G3 for office, freelance, and study.',
+    specifications: 'USB-C, 2x USB 3.0, DisplayPort, VGA, RJ45 LAN, B&O Speakers.',
+    images: [BRAND_LAPTOP_IMAGES.HP],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+  {
+    id: 'prod-hp-elitebook-840-g2',
+    sku: 'JHF-HP-09',
+    name: 'HP EliteBook 840 G2 (8GB RAM, 128GB SSD, 500GB HDD)',
+    slug: 'hp-elitebook-840-g2-dual-storage',
+    brand: 'HP',
+    model: 'EliteBook 840 G2',
+    category: 'Student / Office',
+    condition: 'Grade A',
+    processor: 'Intel Core i5-5300U (5th Gen)',
+    generation: '5th Gen',
+    ram: '8GB DDR3L RAM',
+    storage: '128GB SSD + 500GB HDD',
+    graphics: 'Intel HD Graphics 5500',
+    display: '14.0" HD+ Anti-Glare Display',
+    screenSize: '14.0"',
+    resolution: '1600x900',
+    batteryCondition: '3 Hours Backup',
+    keyboardCondition: 'Spill-Resistant Business Keyboard',
+    bodyCondition: 'Durable Magnesium-Aluminum Chassis',
+    operatingSystem: 'Windows 10 Pro',
+    includedAccessories: ['Original HP Charger', 'Laptop Bag', 'Mouse'],
+    purchasePrice: 15500,
+    sellingPrice: 20500,
+    discountPrice: 18500,
+    profitMargin: 3000,
+    stockQuantity: 5,
+    minimumStockAlert: 2,
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: 'Budget dual-storage HP EliteBook 840 G2 with fast 128GB SSD + 500GB HDD.',
+    specifications: '4x USB 3.0, DisplayPort, VGA, RJ45 Ethernet, Fingerprint Reader.',
+    images: [BRAND_LAPTOP_IMAGES.HP],
+    status: 'published',
+    isFeatured: true,
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T10:00:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  },
+
+  // ================= DELL LATITUDE SERIES (6TH - 11TH GEN) =================
+  ...DELL_LATITUDE_CATALOG_SEED.map((d): Product => ({
+    id: d.id,
+    sku: d.sku,
+    name: `Dell Latitude ${d.model} (${d.generation})`,
+    slug: `dell-latitude-${d.model.toLowerCase()}-${d.generation.replace(/\s+/g, '-').toLowerCase()}`,
+    brand: 'Dell',
+    series: 'Dell Latitude',
+    model: `Latitude ${d.model}`,
+    category: 'Business Laptop',
+    condition: 'Dubai Grade A++',
+    processor: d.processor,
+    generation: d.generation,
+    ram: `${d.ram} DDR4 RAM`,
+    storage: `${d.ssd} NVMe SSD`,
+    ssd: d.ssd,
+    hdd: d.hdd,
+    graphics: d.generation === '11th Gen' ? 'Intel Iris Xe Graphics' : 'Intel UHD Graphics',
+    display: `${d.display} ${d.resolution} (${d.touchscreen})`,
+    screenSize: d.display,
+    resolution: d.resolution,
+    touchscreen: d.touchscreen,
+    batteryCondition: 'Tested Genuine Battery (3.5-5 Hours)',
+    keyboardCondition: 'Backlit Precision Spill-Resistant Keyboard',
+    bodyCondition: 'Grade A++ Clean Business Chassis',
+    operatingSystem: 'Windows 10/11 Pro Genuine',
+    includedAccessories: ['Original Dell 65W Adapter', 'Power Cord', 'JHF Laptop Bag', 'Mouse'],
+    purchasePrice: d.purchasePrice,
+    sellingPrice: d.mrpPrice,
+    discountPrice: d.offerPrice,
+    profitMargin: d.offerPrice - d.purchasePrice,
+    marketPrice: d.offerPrice,
+    marketPriceMin: d.offerPrice,
+    marketPriceMax: d.mrpPrice,
+    sellerCount: 1,
+    sellerListings: [],
+    sourceUrl: 'https://www.bdstall.com/laptop/dell-latitude/',
+    lastUpdated: '2026-11-17T20:30:00Z',
+    stockQuantity: d.stockQuantity,
+    minimumStockAlert: 2,
+    stockStatus: 'In Stock',
+    warranty: '1 Month Replacement + 5 Years Free Service Warranty',
+    shortDescription: `Dell Latitude ${d.model} (${d.generation}) — ${d.processor}, ${d.ram}, ${d.ssd} SSD, ${d.display} ${d.resolution}.`,
+    specifications: `USB-C / Thunderbolt, USB 3.1, HDMI, RJ45 Ethernet, HD Webcam, Dual-Band Wi-Fi.`,
+    images: [BRAND_LAPTOP_IMAGES.Dell],
+    status: 'published',
+    isFeatured: true,
+    configKey: d.configKey,
+    specificationSource: 'Model Catalog',
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T20:30:00Z',
+    createdBy: 'Jahid Hasan (Super Admin)',
+  })),
 ];
 
 const INITIAL_ORDERS: Order[] = [
@@ -1423,11 +2119,73 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, []);
 
+  const CATALOG_BDSTALL_SYNC_KEY = 'jhf_bdstall_catalog_v4_dell_bdstall_prices';
+
+  const mergeOfficialCatalogProducts = (existing: Product[]): Product[] => {
+    const map = new Map<string, Product>();
+    existing.forEach((p) => map.set(p.id, p));
+    INITIAL_PRODUCTS.forEach((official) => {
+      const prev = map.get(official.id);
+      if (prev) {
+        const shouldRefreshModelCatalogDell =
+          prev.brand === 'Dell' &&
+          official.id.startsWith('prod-dell-lat-') &&
+          prev.specificationSource !== 'Admin Edited' &&
+          prev.specificationSource !== 'BDStall Sync';
+        map.set(official.id, {
+          ...prev,
+          name: prev.name || official.name,
+          brand: prev.brand || official.brand,
+          series: prev.series || official.series,
+          model: prev.model || official.model,
+          processor: shouldRefreshModelCatalogDell ? official.processor : prev.processor || official.processor,
+          ram: shouldRefreshModelCatalogDell ? official.ram : prev.ram || official.ram,
+          storage: shouldRefreshModelCatalogDell ? official.storage : prev.storage || official.storage,
+          ssd: shouldRefreshModelCatalogDell ? official.ssd : prev.ssd || official.ssd,
+          display: shouldRefreshModelCatalogDell ? official.display : prev.display || official.display,
+          touchscreen: shouldRefreshModelCatalogDell ? official.touchscreen : prev.touchscreen || official.touchscreen,
+          images: prev.images?.length ? prev.images : official.images,
+          configKey: official.configKey || prev.configKey,
+          purchasePrice: shouldRefreshModelCatalogDell ? official.purchasePrice : prev.purchasePrice,
+          sellingPrice: shouldRefreshModelCatalogDell ? official.sellingPrice : prev.sellingPrice,
+          discountPrice: shouldRefreshModelCatalogDell ? official.discountPrice : prev.discountPrice,
+          profitMargin: shouldRefreshModelCatalogDell ? official.profitMargin : prev.profitMargin,
+          marketPrice: shouldRefreshModelCatalogDell ? official.marketPrice : prev.marketPrice,
+          marketPriceMin: shouldRefreshModelCatalogDell ? official.marketPriceMin : prev.marketPriceMin,
+          marketPriceMax: shouldRefreshModelCatalogDell ? official.marketPriceMax : prev.marketPriceMax,
+          stockQuantity: shouldRefreshModelCatalogDell ? official.stockQuantity : prev.stockQuantity,
+          stockStatus: shouldRefreshModelCatalogDell ? official.stockStatus : prev.stockStatus,
+          lastUpdated: shouldRefreshModelCatalogDell ? official.lastUpdated : prev.lastUpdated,
+          isFeatured: true,
+          status: prev.status || 'published',
+        });
+      } else {
+        map.set(official.id, official);
+      }
+    });
+    // Preserve INITIAL_PRODUCTS order first, then any custom user products
+    const orderedIds = new Set(INITIAL_PRODUCTS.map((p) => p.id));
+    const orderedOfficial = INITIAL_PRODUCTS.map((p) => map.get(p.id)!);
+    const customOthers = existing.filter((p) => !orderedIds.has(p.id));
+    return [...orderedOfficial, ...customOthers];
+  };
+
   // State with LocalStorage persistent backing
   const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('jhf_admin_products');
-    if (saved) return JSON.parse(saved);
-    return isDummyDataCleared() ? [] : INITIAL_PRODUCTS;
+    try {
+      const saved = localStorage.getItem('jhf_admin_products');
+      const baseList: Product[] = saved
+        ? JSON.parse(saved)
+        : isDummyDataCleared()
+        ? []
+        : INITIAL_PRODUCTS;
+      if (!localStorage.getItem(CATALOG_BDSTALL_SYNC_KEY)) {
+        return mergeOfficialCatalogProducts(baseList);
+      }
+      return baseList;
+    } catch {
+      return INITIAL_PRODUCTS;
+    }
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
@@ -1739,6 +2497,47 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   });
 
+  // BDStall Import Audit History
+  const [bdstallImportHistory, setBdstallImportHistory] = useState<BdstallImportBatch[]>(() => {
+    try {
+      const saved = localStorage.getItem('jhf_admin_bdstall_imports');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('jhf_admin_bdstall_imports', JSON.stringify(bdstallImportHistory));
+  }, [bdstallImportHistory]);
+
+  // Universal Image History & Pending Auto-Image Queue
+  const [imageHistory, setImageHistory] = useState<ImageHistoryRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('jhf_admin_image_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('jhf_admin_image_history', JSON.stringify(imageHistory));
+  }, [imageHistory]);
+
+  const [pendingAutoImageProductIds, setPendingAutoImageProductIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('jhf_admin_pending_auto_images');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('jhf_admin_pending_auto_images', JSON.stringify(pendingAutoImageProductIds));
+  }, [pendingAutoImageProductIds]);
+
   // Storage persistence state (10-Year Safe Guarantee)
   const [storageHealth, setStorageHealth] = useState<{
     isPersisted: boolean;
@@ -1897,17 +2696,41 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // REAL-TIME CLOUD FIRESTORE SYNC LISTENERS
   // ==========================================
 
-  // 1. Products Collection Listener
+  // 1. Products Collection Listener + One-Time Official BDStall Catalog Sync
   useEffect(() => {
+    const syncOfficialCatalogToFirestore = (currentList: Product[]) => {
+      try {
+        const merged = mergeOfficialCatalogProducts(currentList);
+        const batch = writeBatch(db);
+        INITIAL_PRODUCTS.forEach((p) => {
+          const itemToSave = merged.find((m) => m.id === p.id) || p;
+          batch.set(doc(db, 'products', itemToSave.id), sanitizeForFirestore(itemToSave));
+        });
+        batch.commit().catch((err) => console.warn('BDStall catalog Firestore sync:', err));
+        localStorage.setItem(CATALOG_BDSTALL_SYNC_KEY, 'true');
+        localStorage.setItem('jhf_admin_products', JSON.stringify(merged));
+        setProducts(merged);
+      } catch (err) {
+        console.warn('BDStall catalog sync error:', err);
+      }
+    };
+
     try {
       const colRef = collection(db, 'products');
       const unsubscribe = onSnapshot(
         colRef,
         (snapshot) => {
+          const alreadySynced = localStorage.getItem(CATALOG_BDSTALL_SYNC_KEY) === 'true';
           if (!snapshot.empty) {
             const list: Product[] = [];
             snapshot.forEach((d) => list.push({ ...(d.data() as Product), id: d.id }));
-            setProducts(list);
+            if (!alreadySynced) {
+              syncOfficialCatalogToFirestore(list);
+            } else {
+              setProducts(list);
+            }
+          } else if (!alreadySynced) {
+            syncOfficialCatalogToFirestore([]);
           } else if (!isDummyDataCleared()) {
             // Seed initial products to Firestore
             const batch = writeBatch(db);
@@ -1930,6 +2753,62 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return () => unsubscribe();
     } catch (e) {
       console.warn('Products Firestore snapshot subscription error:', e);
+    }
+  }, []);
+
+  // 1b. BDStall Import Audit Batches Listener
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'bdstallImports');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: BdstallImportBatch[] = [];
+            snapshot.forEach((d) => list.push({ ...(d.data() as BdstallImportBatch), id: d.id }));
+            list.sort((a, b) => new Date(b.approvedAt).getTime() - new Date(a.approvedAt).getTime());
+            setBdstallImportHistory(list);
+          }
+        },
+        (error) => {
+          try {
+            handleFirestoreError(error, OperationType.GET, 'bdstallImports');
+          } catch (e) {
+            console.warn('bdstallImports Firestore snapshot notice:', e);
+          }
+        }
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('bdstallImports Firestore snapshot subscription error:', e);
+    }
+  }, []);
+
+  // 1c. Universal Image Audit History Listener
+  useEffect(() => {
+    try {
+      const colRef = collection(db, 'imageHistory');
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: ImageHistoryRecord[] = [];
+            snapshot.forEach((d) => list.push({ ...(d.data() as ImageHistoryRecord), id: d.id }));
+            list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            setImageHistory(list);
+          }
+        },
+        (error) => {
+          try {
+            handleFirestoreError(error, OperationType.GET, 'imageHistory');
+          } catch (e) {
+            console.warn('imageHistory Firestore snapshot notice:', e);
+          }
+        }
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('imageHistory Firestore snapshot subscription error:', e);
     }
   }, []);
 
@@ -2306,6 +3185,14 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     logActivity('Add Product', 'Products', newProduct.name, `Created SKU: ${newProduct.sku} with stock ${newProduct.stockQuantity}`);
     triggerAutoBackup(`Product Added: ${newProduct.name}`);
+
+    // Step 11: Automatic Monitoring when a new product lacks a verified exact-model image
+    if (
+      newProduct.imageVerificationStatus !== 'Verified' &&
+      newProduct.imageVerificationStatus !== 'Image Imported'
+    ) {
+      setPendingAutoImageProductIds((prev) => (prev.includes(newId) ? prev : [newId, ...prev]));
+    }
   };
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
@@ -2396,6 +3283,474 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const clearAllProducts = () => {
     setProducts([]);
     logActivity('Clear All Products', 'Products', 'All', 'Purged all products from catalog');
+  };
+
+  const approveBdstallImportBatch: AdminStoreType['approveBdstallImportBatch'] = ({
+    items,
+    importMethod,
+    sourceUrl,
+    fetchedAt,
+    totalExtracted,
+    skippedCount,
+  }) => {
+    const now = new Date().toISOString();
+    let added = 0;
+    let updated = 0;
+    const toPersist: Product[] = [];
+
+    setProducts((prev) => {
+      const next = [...prev];
+      items.forEach((item, idx) => {
+        const existingIdx = item.existingProductId
+          ? next.findIndex((p) => p.id === item.existingProductId)
+          : next.findIndex((p) => !p.isDeleted && p.configKey && p.configKey === item.configKey);
+
+        const storageStr =
+          item.hdd && item.hdd !== 'None'
+            ? `${item.ssd} NVMe SSD + ${item.hdd}`
+            : `${item.ssd} NVMe SSD`;
+
+        if (existingIdx >= 0) {
+          const existing = next[existingIdx];
+          // CRITICAL: Never automatically overwrite purchasePrice or sellingPrice with marketPrice!
+          const nextPurchase = item.purchasePrice >= 0 ? item.purchasePrice : existing.purchasePrice;
+          const nextSelling = item.sellingPrice >= 0 ? item.sellingPrice : existing.sellingPrice;
+          const mergedProduct: Product = {
+            ...existing,
+            brand: 'Dell',
+            series: item.series || existing.series || 'Dell Latitude',
+            model: item.model,
+            generation: item.generation,
+            processor: item.processor,
+            ram: item.ram,
+            ssd: item.ssd,
+            hdd: item.hdd,
+            storage: storageStr,
+            display: `${item.display} ${item.resolution} (${item.touchscreen})`,
+            screenSize: item.display,
+            resolution: item.resolution,
+            touchscreen: item.touchscreen,
+            condition: item.condition,
+            purchasePrice: nextPurchase,
+            sellingPrice: nextSelling,
+            profitMargin: nextSelling - nextPurchase,
+            marketPrice: item.marketPrice,
+            marketPriceMin: item.marketPriceMin ?? item.marketPrice,
+            marketPriceMax: item.marketPriceMax ?? item.marketPrice,
+            sellerCount: item.sellerCount,
+            sellerListings: item.sellerListings,
+            sourceUrl: item.sourceUrl,
+            lastUpdated: item.lastUpdated || now,
+            stockStatus: item.stockStatus,
+            stockQuantity: item.stockQuantity,
+            configKey: item.configKey,
+            specificationSource: 'BDStall Sync',
+            updatedAt: now,
+          };
+          next[existingIdx] = mergedProduct;
+          toPersist.push(mergedProduct);
+          updated++;
+        } else {
+          const newId = `prod-lat-${Date.now()}-${idx}`;
+          const skuSafe = item.model.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+          const ramSafe = item.ram.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+          const ssdSafe = item.ssd.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+          const newProduct: Product = {
+            id: newId,
+            sku: `JHF-LAT-${skuSafe}-${ramSafe}-${ssdSafe}-${String(idx + 1).padStart(2, '0')}`,
+            name: `Dell Latitude ${item.model} (${item.generation} ${item.processor.replace('Intel ', '')} / ${item.ram} / ${item.ssd}${item.hdd && item.hdd !== 'None' ? ' + ' + item.hdd : ''})`,
+            slug: `dell-latitude-${skuSafe.toLowerCase()}-${ramSafe.toLowerCase()}-${ssdSafe.toLowerCase()}`,
+            brand: 'Dell',
+            series: 'Dell Latitude',
+            model: item.model,
+            category: 'Business Laptop',
+            condition: item.condition,
+            processor: item.processor,
+            generation: item.generation,
+            ram: item.ram,
+            storage: storageStr,
+            ssd: item.ssd,
+            hdd: item.hdd,
+            graphics: 'Intel UHD / Iris Graphics',
+            display: `${item.display} ${item.resolution} (${item.touchscreen})`,
+            screenSize: item.display,
+            resolution: item.resolution,
+            touchscreen: item.touchscreen,
+            batteryCondition: 'Tested 3–5 Hours Backup',
+            keyboardCondition: 'Backlit Original Keyboard',
+            bodyCondition: 'Verified Corporate Business Grade',
+            operatingSystem: 'Windows 10 / 11 Pro Ready',
+            includedAccessories: ['Original Dell Charger', 'Power Cord'],
+            purchasePrice: item.purchasePrice || 0,
+            sellingPrice: item.sellingPrice || 0,
+            profitMargin: (item.sellingPrice || 0) - (item.purchasePrice || 0),
+            marketPrice: item.marketPrice,
+            marketPriceMin: item.marketPriceMin ?? item.marketPrice,
+            marketPriceMax: item.marketPriceMax ?? item.marketPrice,
+            sellerCount: item.sellerCount,
+            sellerListings: item.sellerListings,
+            sourceUrl: item.sourceUrl,
+            lastUpdated: item.lastUpdated || now,
+            stockStatus: item.stockStatus,
+            stockQuantity: item.stockQuantity || 0,
+            minimumStockAlert: 1,
+            warranty: '30 Days Replacement + 5 Years Free Service',
+            shortDescription: `Dell Latitude ${item.model} • ${item.generation} • ${item.processor} • ${item.ram} • ${storageStr} • ${item.display} ${item.touchscreen}`,
+            specifications: `${item.processor} • ${item.ram} • ${storageStr} • ${item.display} ${item.resolution} • ${item.touchscreen}`,
+            images: [BRAND_LAPTOP_IMAGES.Dell],
+            status: item.publishToCatalog && (item.stockQuantity || 0) > 0 && (item.sellingPrice || 0) > 0 ? 'published' : 'draft',
+            isFeatured: false,
+            specificationSource: 'BDStall Sync',
+            configKey: item.configKey,
+            createdAt: now,
+            updatedAt: now,
+            createdBy: currentUser?.name || 'Administrator',
+          };
+          next.unshift(newProduct);
+          toPersist.push(newProduct);
+          added++;
+        }
+      });
+      return next;
+    });
+
+    if (toPersist.length > 0) {
+      const batch = writeBatch(db);
+      toPersist.forEach((prod) => {
+        batch.set(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true });
+      });
+      batch.commit().catch((err) => {
+        console.warn('Failed to persist approved BDStall products to Firestore:', err);
+        handleFirestoreError(err, OperationType.WRITE, 'products');
+      });
+    }
+
+    const importBatch: BdstallImportBatch = {
+      id: `bdi-${Date.now()}`,
+      sourceUrl,
+      fetchedAt,
+      approvedAt: now,
+      approvedBy: currentUser?.name || 'Administrator',
+      totalExtracted,
+      approvedNewCount: added,
+      approvedUpdatedCount: updated,
+      skippedCount,
+      importMethod,
+    };
+
+    setBdstallImportHistory((prev) => [importBatch, ...prev]);
+    setDoc(doc(db, 'bdstallImports', importBatch.id), sanitizeForFirestore(importBatch)).catch((err) => {
+      console.warn('Failed to persist BDStall import batch:', err);
+    });
+
+    logActivity(
+      'Approve BDStall Import',
+      'Products',
+      'Dell Latitude',
+      `Approved ${added} new + ${updated} updated Latitude configs (${importMethod})`
+    );
+    triggerAutoBackup(`BDStall Import Approved (${added} new, ${updated} updated)`);
+
+    // Step 11: Monitor newly created products that still need exact-model image verification
+    const newlyAddedIds = toPersist
+      .filter((p) => p.imageVerificationStatus !== 'Verified' && p.imageVerificationStatus !== 'Image Imported')
+      .map((p) => p.id);
+    if (newlyAddedIds.length > 0) {
+      setPendingAutoImageProductIds((prev) => Array.from(new Set([...newlyAddedIds, ...prev])));
+    }
+
+    return { added, updated, batch: importBatch };
+  };
+
+  const dismissAutoImageAlert = (productId: string) => {
+    setPendingAutoImageProductIds((prev) => prev.filter((id) => id !== productId));
+  };
+
+  const recordImageHistoryEntry = (entry: ImageHistoryRecord) => {
+    setImageHistory((prev) => [entry, ...prev].slice(0, 500));
+    setDoc(doc(db, 'imageHistory', entry.id), sanitizeForFirestore(entry)).catch((err) => {
+      console.warn('Failed to persist imageHistory to Firestore:', err);
+    });
+  };
+
+  const assignVerifiedProductImage: AdminStoreType['assignVerifiedProductImage'] = (productId, payload) => {
+    const now = new Date().toISOString();
+    let updatedTarget: Product | null = null;
+    let prevUrlSnapshot = '';
+
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id !== productId) return p;
+        const currentMain = p.mainImageUrl || p.images?.[0] || '';
+        prevUrlSnapshot =
+          currentMain && currentMain !== payload.mainImageUrl
+            ? currentMain
+            : p.previousImageUrl || currentMain;
+
+        // Keep other verified gallery items but place verified mainImageUrl at index 0
+        const existingExtras = (p.images || []).filter(
+          (u) => u && u !== payload.mainImageUrl && u !== currentMain
+        );
+
+        const nextProd: Product = {
+          ...p,
+          exactModel: payload.exactModel || p.exactModel || p.model,
+          mainImageUrl: payload.mainImageUrl,
+          images: [payload.mainImageUrl, ...existingExtras],
+          imageStoragePath: payload.imageStoragePath ?? p.imageStoragePath,
+          imageThumbnailPath: payload.imageThumbnailPath ?? p.imageThumbnailPath,
+          imageSourceUrl: payload.imageSourceUrl ?? p.imageSourceUrl,
+          imageSourceName: payload.imageSourceName ?? p.imageSourceName,
+          imageLicense: payload.imageLicense ?? p.imageLicense,
+          imageAttribution: payload.imageAttribution ?? p.imageAttribution,
+          imageResolution: payload.imageResolution ?? p.imageResolution,
+          imageVerificationStatus: payload.imageVerificationStatus,
+          imageConfidence: payload.imageConfidence ?? p.imageConfidence,
+          verificationNotes: payload.verificationNotes ?? p.verificationNotes,
+          imageUpdatedAt: now,
+          previousImageUrl: prevUrlSnapshot,
+          updatedAt: now,
+        };
+        updatedTarget = nextProd;
+        return nextProd;
+      })
+    );
+
+    if (updatedTarget) {
+      const saved: Product = updatedTarget;
+      setDoc(doc(db, 'products', productId), sanitizeForFirestore(saved), { merge: true }).catch((err) => {
+        console.warn('Failed to persist verified image to Firestore:', err);
+        handleFirestoreError(err, OperationType.UPDATE, `products/${productId}`);
+      });
+
+      recordImageHistoryEntry({
+        id: `imghist-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        productId,
+        brand: saved.brand,
+        series: saved.series,
+        exactModel: saved.exactModel || saved.model,
+        generation: saved.generation,
+        action: payload.action || 'imported',
+        imageUrl: payload.mainImageUrl,
+        previousImageUrl: prevUrlSnapshot || undefined,
+        imageStoragePath: payload.imageStoragePath,
+        imageThumbnailPath: payload.imageThumbnailPath,
+        imageSourceUrl: payload.imageSourceUrl,
+        imageSourceName: payload.imageSourceName,
+        imageLicense: payload.imageLicense,
+        imageAttribution: payload.imageAttribution,
+        imageResolution: payload.imageResolution,
+        imageVerificationStatus: payload.imageVerificationStatus,
+        imageConfidence: payload.imageConfidence,
+        verificationNotes: payload.verificationNotes,
+        performedBy: currentUser?.name || 'Administrator',
+        timestamp: now,
+      });
+
+      setPendingAutoImageProductIds((prev) => prev.filter((id) => id !== productId));
+      logActivity(
+        'Update Product Image',
+        'Image Manager',
+        saved.exactModel || saved.name,
+        `Assigned ${payload.imageVerificationStatus} image (${payload.imageConfidence ?? 0}% confidence) from ${payload.imageSourceName || 'Verified Source'}`
+      );
+    }
+  };
+
+  const rejectProductImage: AdminStoreType['rejectProductImage'] = (productId, params) => {
+    const now = new Date().toISOString();
+    let updatedTarget: Product | null = null;
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id !== productId) return p;
+        const rejectedList = Array.from(
+          new Set([...(p.rejectedImageUrls || []), ...(params.candidateUrl ? [params.candidateUrl] : [])])
+        );
+        const nextProd: Product = {
+          ...p,
+          rejectedImageUrls: rejectedList,
+          imageVerificationStatus: params.status || p.imageVerificationStatus || 'Rejected',
+          verificationNotes: params.reason,
+          updatedAt: now,
+        };
+        updatedTarget = nextProd;
+        return nextProd;
+      })
+    );
+
+    if (updatedTarget) {
+      const saved: Product = updatedTarget;
+      setDoc(doc(db, 'products', productId), sanitizeForFirestore(saved), { merge: true }).catch((err) => {
+        console.warn('Failed to persist rejected image log:', err);
+      });
+      recordImageHistoryEntry({
+        id: `imghist-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        productId,
+        brand: saved.brand,
+        series: saved.series,
+        exactModel: params.exactModel || saved.exactModel || saved.model,
+        generation: saved.generation,
+        action: 'rejected',
+        imageUrl: params.candidateUrl || saved.mainImageUrl || saved.images?.[0] || '',
+        previousImageUrl: saved.mainImageUrl || saved.images?.[0],
+        imageVerificationStatus: params.status || 'Rejected',
+        verificationNotes: params.reason,
+        performedBy: currentUser?.name || 'Administrator',
+        timestamp: now,
+      });
+    }
+  };
+
+  const rollbackProductImage: AdminStoreType['rollbackProductImage'] = (productId, targetHistoryOrUrl) => {
+    const prod = products.find((p) => p.id === productId);
+    if (!prod) {
+      return { success: false, message: 'Product not found.' };
+    }
+
+    const histRecord =
+      targetHistoryOrUrl && typeof targetHistoryOrUrl === 'object' ? targetHistoryOrUrl : undefined;
+    const restoreUrl =
+      typeof targetHistoryOrUrl === 'string'
+        ? targetHistoryOrUrl
+        : histRecord?.previousImageUrl || histRecord?.imageUrl || prod.previousImageUrl || '';
+
+    if (!restoreUrl) {
+      return { success: false, message: 'No previous image URL available to roll back to.' };
+    }
+
+    const now = new Date().toISOString();
+    const currentMain = prod.mainImageUrl || prod.images?.[0] || '';
+    const isLocalOrVerifiedRestore = restoreUrl.startsWith('/uploads/laptop-images/');
+    const nextStatus: ImageVerificationStatus = histRecord
+      ? histRecord.imageVerificationStatus
+      : isLocalOrVerifiedRestore
+      ? 'Image Imported'
+      : 'Verification Pending';
+
+    const updatedProd: Product = {
+      ...prod,
+      mainImageUrl: restoreUrl,
+      images: [restoreUrl, ...(prod.images || []).filter((u) => u && u !== restoreUrl && u !== currentMain)],
+      previousImageUrl: currentMain || prod.previousImageUrl,
+      imageStoragePath: histRecord?.imageStoragePath ?? (isLocalOrVerifiedRestore ? restoreUrl : undefined),
+      imageThumbnailPath: histRecord?.imageThumbnailPath ?? prod.imageThumbnailPath,
+      imageSourceUrl: histRecord?.imageSourceUrl ?? prod.imageSourceUrl,
+      imageSourceName: histRecord?.imageSourceName ?? 'Rollback Restore',
+      imageLicense: histRecord?.imageLicense ?? prod.imageLicense,
+      imageAttribution: histRecord?.imageAttribution ?? prod.imageAttribution,
+      imageResolution: histRecord?.imageResolution ?? prod.imageResolution,
+      imageVerificationStatus: nextStatus,
+      verificationNotes: `Rolled back to previous image (${now})`,
+      imageUpdatedAt: now,
+      updatedAt: now,
+    };
+
+    setProducts((prev) => prev.map((p) => (p.id === productId ? updatedProd : p)));
+    setDoc(doc(db, 'products', productId), sanitizeForFirestore(updatedProd), { merge: true }).catch((err) => {
+      console.warn('Failed to persist rollback to Firestore:', err);
+    });
+
+    recordImageHistoryEntry({
+      id: `imghist-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      productId,
+      brand: prod.brand,
+      series: prod.series,
+      exactModel: prod.exactModel || prod.model,
+      generation: prod.generation,
+      action: 'rolled_back',
+      imageUrl: restoreUrl,
+      previousImageUrl: currentMain,
+      imageVerificationStatus: nextStatus,
+      verificationNotes: `Rolled back from ${currentMain || 'none'}`,
+      performedBy: currentUser?.name || 'Administrator',
+      timestamp: now,
+    });
+
+    logActivity('Rollback Product Image', 'Image Manager', prod.model, `Restored previous image URL`);
+    return { success: true, message: 'Previous product image restored safely.' };
+  };
+
+  const removeWrongProductImage: AdminStoreType['removeWrongProductImage'] = (productId, reason) => {
+    const prod = products.find((p) => p.id === productId);
+    if (!prod) return;
+    const now = new Date().toISOString();
+    const removedUrl = prod.mainImageUrl || prod.images?.[0] || '';
+    const brandFallback =
+      BRAND_LAPTOP_IMAGES[prod.brand as keyof typeof BRAND_LAPTOP_IMAGES] || BRAND_LAPTOP_IMAGES.Dell;
+
+    const updatedProd: Product = {
+      ...prod,
+      mainImageUrl: undefined,
+      imageStoragePath: undefined,
+      imageThumbnailPath: undefined,
+      imageSourceUrl: undefined,
+      imageSourceName: undefined,
+      imageLicense: undefined,
+      imageAttribution: undefined,
+      imageResolution: undefined,
+      imageConfidence: 0,
+      imageVerificationStatus: 'Image Missing',
+      verificationNotes: reason || 'Wrong image removed by admin — awaiting verified exact model photo.',
+      previousImageUrl: removedUrl || prod.previousImageUrl,
+      rejectedImageUrls: Array.from(
+        new Set([...(prod.rejectedImageUrls || []), ...(removedUrl ? [removedUrl] : [])])
+      ),
+      images: [brandFallback],
+      imageUpdatedAt: now,
+      updatedAt: now,
+    };
+
+    setProducts((prev) => prev.map((p) => (p.id === productId ? updatedProd : p)));
+    setDoc(doc(db, 'products', productId), sanitizeForFirestore(updatedProd), { merge: true }).catch((err) => {
+      console.warn('Failed to persist image removal to Firestore:', err);
+    });
+
+    recordImageHistoryEntry({
+      id: `imghist-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      productId,
+      brand: prod.brand,
+      series: prod.series,
+      exactModel: prod.exactModel || prod.model,
+      generation: prod.generation,
+      action: 'removed',
+      imageUrl: removedUrl,
+      previousImageUrl: removedUrl,
+      imageVerificationStatus: 'Rejected',
+      verificationNotes: reason || 'Removed incorrect product image',
+      performedBy: currentUser?.name || 'Administrator',
+      timestamp: now,
+    });
+
+    logActivity('Remove Wrong Image', 'Image Manager', prod.model, reason || 'Removed wrong image');
+  };
+
+  const updateProductImageStatus: AdminStoreType['updateProductImageStatus'] = (
+    productId,
+    status,
+    notes
+  ) => {
+    const now = new Date().toISOString();
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === productId
+          ? {
+              ...p,
+              imageVerificationStatus: status,
+              verificationNotes: notes ?? p.verificationNotes,
+              updatedAt: now,
+            }
+          : p
+      )
+    );
+    setDoc(
+      doc(db, 'products', productId),
+      sanitizeForFirestore({
+        imageVerificationStatus: status,
+        ...(notes !== undefined ? { verificationNotes: notes } : {}),
+        updatedAt: now,
+      }),
+      { merge: true }
+    ).catch((err) => console.warn('Failed to update image status:', err));
   };
 
   // Order Actions
@@ -3930,45 +5285,69 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     serviceJobId: string,
     partId: string,
     quantity: number,
-    customerCharge?: number
+    customerCharge?: number,
+    overrideWarrantyDays?: number
   ) => {
     const part = serviceParts.find((p) => p.id === partId);
     if (!part) return;
+    const safeQty = Math.max(1, Math.round(Number(quantity) || 1));
+    const deductedStock = Math.min(Math.max(0, part.stock || 0), safeQty);
 
     // Deduct stock from serviceParts
     setServiceParts((prev) =>
       prev.map((p) =>
-        p.id === partId ? { ...p, stock: Math.max(0, p.stock - quantity) } : p
+        p.id === partId ? { ...p, stock: Math.max(0, (p.stock || 0) - safeQty) } : p
       )
     );
 
-    const charge = customerCharge !== undefined ? customerCharge : part.sellingPrice * quantity;
-    const purchaseCost = part.purchaseCost * quantity;
+    const charge =
+      customerCharge !== undefined && !Number.isNaN(Number(customerCharge))
+        ? Math.max(0, Number(customerCharge))
+        : Math.max(0, part.sellingPrice * safeQty);
+    const purchaseCost = Math.max(0, (part.purchaseCost || 0) * safeQty);
+    const wDays =
+      overrideWarrantyDays !== undefined && !Number.isNaN(Number(overrideWarrantyDays))
+        ? Math.max(0, Math.round(Number(overrideWarrantyDays)))
+        : Math.max(0, Number(part.warrantyDays ?? 0));
+    const startDate = new Date();
+    const startStr = startDate.toISOString().split('T')[0];
+    let endStr: string | undefined;
+    if (wDays > 0) {
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + wDays);
+      endStr = endDate.toISOString().split('T')[0];
+    }
 
     const usage: ServicePartUsage = {
-      id: `usage-${Date.now()}`,
+      id: `usage-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       partId: part.id,
       partName: part.name,
       partCode: part.code,
-      quantity,
+      quantity: safeQty,
       purchaseCost,
       customerCharge: charge,
-      warrantyDays: part.warrantyDays,
-      warrantyStart: new Date().toISOString().split('T')[0],
+      warrantyDays: wDays,
+      warrantyStart: startStr,
+      warrantyEnd: endStr,
       serialNumber: part.serialNumber,
+      isCustomPart: false,
+      deductedStock,
     };
 
     setServices((prev) =>
       prev.map((job) => {
         if (job.id !== serviceJobId) return job;
         const newPartsUsed = [...(job.partsUsed || []), usage];
-        const newPartsCost = (job.partsCost || 0) + charge;
-        const newInternalPartsCost = (job.internalPartsCost || 0) + purchaseCost;
-        const newTotal = (job.diagnosticFee || 0) + (job.laborCost || 0) + newPartsCost + (job.otherCost || 0) - (job.discount || 0);
+        const newPartsCost = newPartsUsed.reduce((sum, u) => sum + (Number(u.customerCharge) || 0), 0);
+        const newInternalPartsCost = newPartsUsed.reduce((sum, u) => sum + (Number(u.purchaseCost) || 0), 0);
+        const newTotal = Math.max(
+          0,
+          (job.diagnosticFee || 0) + (job.laborCost || 0) + newPartsCost + (job.otherCost || 0) - (job.discount || 0)
+        );
         const newDue = Math.max(0, newTotal - (job.paidAmount || 0));
         const newProfit = Math.max(0, newTotal - (newInternalPartsCost + (job.diagnosticFee || 0) * 0.2));
 
-        const updated = {
+        const updated: ServiceJob = {
           ...job,
           partsUsed: newPartsUsed,
           partsCost: newPartsCost,
@@ -3982,14 +5361,185 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             {
               id: `log-${Date.now()}`,
               timestamp: new Date().toISOString(),
-              action: 'Spare Part Attached',
+              action: 'Spare Part Added to Bill',
               user: currentUser?.name || 'Admin',
-              details: `Attached ${quantity}x ${part.name} (Code: ${part.code}). Charge: ৳${charge}.`,
+              details: `Added ${safeQty}x ${part.name} (Code: ${part.code}, Warranty: ${wDays > 0 ? `${wDays} Days` : 'No Warranty'}). Charge: ৳${charge}.`,
             },
           ],
         };
         setDoc(doc(db, 'services', serviceJobId), sanitizeForFirestore(updated), { merge: true }).catch((err) => {
           console.warn('Failed to update service job parts in Firestore:', err);
+        });
+        return updated;
+      })
+    );
+  };
+
+  const addCustomServicePartToJob = (
+    serviceJobId: string,
+    customPart: {
+      name: string;
+      code?: string;
+      category?: ServicePart['category'];
+      quantity: number;
+      purchaseCost?: number;
+      customerCharge: number;
+      warrantyDays: number;
+      saveToInventory?: boolean;
+    }
+  ) => {
+    const cleanName = customPart.name.trim();
+    if (!cleanName) return;
+
+    const safeQty = Math.max(1, Math.round(Number(customPart.quantity) || 1));
+    const totalCharge = Math.max(0, Number(customPart.customerCharge) || 0);
+    const unitCost = Math.max(0, Number(customPart.purchaseCost) || 0);
+    const totalPurchaseCost = unitCost * safeQty;
+    const wDays = Math.max(0, Math.round(Number(customPart.warrantyDays) || 0));
+    const cleanCode =
+      customPart.code?.trim() ||
+      `PRT-${Date.now().toString().slice(-4)}`;
+
+    const startDate = new Date();
+    const startStr = startDate.toISOString().split('T')[0];
+    let endStr: string | undefined;
+    if (wDays > 0) {
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + wDays);
+      endStr = endDate.toISOString().split('T')[0];
+    }
+
+    let createdPartId = `custom-${Date.now()}`;
+    if (customPart.saveToInventory) {
+      createdPartId = `part-${Date.now().toString().slice(-5)}`;
+      const newInventoryPart: ServicePart = {
+        id: createdPartId,
+        name: cleanName,
+        code: cleanCode,
+        category: customPart.category || 'Other',
+        stock: 0,
+        minStockAlert: 2,
+        purchaseCost: unitCost,
+        sellingPrice: safeQty > 0 ? Math.round(totalCharge / safeQty) : totalCharge,
+        warrantyDays: wDays,
+        isDummy: false,
+        createdAt: new Date().toISOString(),
+      };
+      setServiceParts((prev) => [newInventoryPart, ...prev]);
+    }
+
+    const usage: ServicePartUsage = {
+      id: `usage-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      partId: createdPartId,
+      partName: cleanName,
+      partCode: cleanCode,
+      quantity: safeQty,
+      purchaseCost: totalPurchaseCost,
+      customerCharge: totalCharge,
+      warrantyDays: wDays,
+      warrantyStart: startStr,
+      warrantyEnd: endStr,
+      isCustomPart: true,
+      deductedStock: 0,
+    };
+
+    setServices((prev) =>
+      prev.map((job) => {
+        if (job.id !== serviceJobId) return job;
+        const newPartsUsed = [...(job.partsUsed || []), usage];
+        const newPartsCost = newPartsUsed.reduce((sum, u) => sum + (Number(u.customerCharge) || 0), 0);
+        const newInternalPartsCost = newPartsUsed.reduce((sum, u) => sum + (Number(u.purchaseCost) || 0), 0);
+        const newTotal = Math.max(
+          0,
+          (job.diagnosticFee || 0) + (job.laborCost || 0) + newPartsCost + (job.otherCost || 0) - (job.discount || 0)
+        );
+        const newDue = Math.max(0, newTotal - (job.paidAmount || 0));
+        const newProfit = Math.max(0, newTotal - (newInternalPartsCost + (job.diagnosticFee || 0) * 0.2));
+
+        const updated: ServiceJob = {
+          ...job,
+          partsUsed: newPartsUsed,
+          partsCost: newPartsCost,
+          internalPartsCost: newInternalPartsCost,
+          totalCost: newTotal,
+          dueAmount: newDue,
+          profit: newProfit,
+          updatedAt: new Date().toISOString(),
+          logs: [
+            ...(job.logs || []),
+            {
+              id: `log-${Date.now()}`,
+              timestamp: new Date().toISOString(),
+              action: 'Custom Spare Part Added',
+              user: currentUser?.name || 'Admin',
+              details: `Added ${safeQty}x ${cleanName} (Code: ${cleanCode}, Warranty: ${wDays > 0 ? `${wDays} Days` : 'No Warranty'}). Charge: ৳${totalCharge}.`,
+            },
+          ],
+        };
+        setDoc(doc(db, 'services', serviceJobId), sanitizeForFirestore(updated), { merge: true }).catch((err) => {
+          console.warn('Failed to update custom service part in Firestore:', err);
+        });
+        return updated;
+      })
+    );
+  };
+
+  const removeServicePart = (serviceJobId: string, usageId: string) => {
+    const targetJob = services.find((j) => j.id === serviceJobId);
+    if (!targetJob) return;
+    const targetUsage = (targetJob.partsUsed || []).find((u) => u.id === usageId);
+    if (!targetUsage) return;
+
+    // Restore stock if this came from inventory
+    if (!targetUsage.isCustomPart && targetUsage.partId) {
+      const restoreQty =
+        targetUsage.deductedStock !== undefined
+          ? Math.max(0, targetUsage.deductedStock)
+          : Math.max(0, targetUsage.quantity || 0);
+      if (restoreQty > 0) {
+        setServiceParts((prev) =>
+          prev.map((p) =>
+            p.id === targetUsage.partId ? { ...p, stock: (p.stock || 0) + restoreQty } : p
+          )
+        );
+      }
+    }
+
+    setServices((prev) =>
+      prev.map((job) => {
+        if (job.id !== serviceJobId) return job;
+        const remainingParts = (job.partsUsed || []).filter((u) => u.id !== usageId);
+        const newPartsCost = remainingParts.reduce((sum, u) => sum + (Number(u.customerCharge) || 0), 0);
+        const newInternalPartsCost = remainingParts.reduce((sum, u) => sum + (Number(u.purchaseCost) || 0), 0);
+        const newTotal = Math.max(
+          0,
+          (job.diagnosticFee || 0) + (job.laborCost || 0) + newPartsCost + (job.otherCost || 0) - (job.discount || 0)
+        );
+        const newDue = Math.max(0, newTotal - (job.paidAmount || 0));
+        const newProfit = Math.max(0, newTotal - (newInternalPartsCost + (job.diagnosticFee || 0) * 0.2));
+
+        const updated: ServiceJob = {
+          ...job,
+          partsUsed: remainingParts,
+          partsCost: newPartsCost,
+          internalPartsCost: newInternalPartsCost,
+          totalCost: newTotal,
+          dueAmount: newDue,
+          profit: newProfit,
+          updatedAt: new Date().toISOString(),
+          logs: [
+            ...(job.logs || []),
+            {
+              id: `log-${Date.now()}`,
+              timestamp: new Date().toISOString(),
+              action: 'Spare Part Removed from Bill',
+              user: currentUser?.name || 'Admin',
+              details: `Removed ${targetUsage.quantity}x ${targetUsage.partName} (৳${targetUsage.customerCharge}).`,
+            },
+          ],
+        };
+        setDoc(doc(db, 'services', serviceJobId), sanitizeForFirestore(updated), { merge: true }).catch((err) => {
+          console.warn('Failed to update service job after removing part in Firestore:', err);
         });
         return updated;
       })
@@ -4030,6 +5580,49 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         };
         setDoc(doc(db, 'services', serviceJobId), sanitizeForFirestore(updated), { merge: true }).catch((err) => {
           console.warn('Failed to update service payment in Firestore:', err);
+        });
+        return updated;
+      })
+    );
+  };
+
+  const removeServicePayment = (serviceJobId: string, paymentId: string) => {
+    setServices((prev) =>
+      prev.map((job) => {
+        if (job.id !== serviceJobId) return job;
+        const history = job.paymentHistory || [];
+        const targetPayment = history.find((p) => p.id === paymentId);
+        if (!targetPayment) return job;
+
+        const remainingHistory = history.filter((p) => p.id !== paymentId);
+        const removedAmount = Number(targetPayment.amount) || 0;
+        const prevHistorySum = history.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+        const remainingHistorySum = remainingHistory.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+        const newPaid =
+          Math.abs((job.paidAmount || 0) - prevHistorySum) < 0.01
+            ? remainingHistorySum
+            : Math.max(0, (job.paidAmount || 0) - removedAmount);
+        const newDue = Math.max(0, (job.totalCost || 0) - newPaid);
+
+        const updated: ServiceJob = {
+          ...job,
+          paidAmount: newPaid,
+          dueAmount: newDue,
+          paymentHistory: remainingHistory,
+          updatedAt: new Date().toISOString(),
+          logs: [
+            ...(job.logs || []),
+            {
+              id: `log-${Date.now()}`,
+              timestamp: new Date().toISOString(),
+              action: 'Payment Record Removed',
+              user: currentUser?.name || 'Admin',
+              details: `Removed ৳${removedAmount.toLocaleString()} payment (${targetPayment.method} • ${targetPayment.type}). Paid: ৳${newPaid.toLocaleString()}, Due: ৳${newDue.toLocaleString()}.`,
+            },
+          ],
+        };
+        setDoc(doc(db, 'services', serviceJobId), sanitizeForFirestore(updated), { merge: true }).catch((err) => {
+          console.warn('Failed to remove service payment in Firestore:', err);
         });
         return updated;
       })
@@ -4347,15 +5940,15 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       engineerName: engName,
       estimatedDeliveryDate: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
       diagnosticFee: 300,
-      laborCost: 500,
-      partsCost: 700,
-      internalPartsCost: 350,
+      laborCost: 0,
+      partsCost: 0,
+      internalPartsCost: 0,
       otherCost: 0,
       discount: 0,
-      totalCost: 1500,
+      totalCost: 300,
       paidAmount: 0,
-      dueAmount: 1500,
-      profit: 850,
+      dueAmount: 300,
+      profit: 240,
       partsUsed: [],
       paymentHistory: [],
       serviceWarrantyDays: 30,
@@ -4834,7 +6427,10 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         updateServicePart,
         deleteServicePart,
         useServicePart,
+        addCustomServicePartToJob,
+        removeServicePart,
         recordServicePayment,
+        removeServicePayment,
         addWarrantyClaim,
         updateWarrantyClaim,
         deleteWarrantyClaim,
@@ -4855,6 +6451,16 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         triggerAutoBackup,
         storageHealth,
         requestStoragePersistence,
+        bdstallImportHistory,
+        approveBdstallImportBatch,
+        imageHistory,
+        pendingAutoImageProductIds,
+        dismissAutoImageAlert,
+        assignVerifiedProductImage,
+        rejectProductImage,
+        rollbackProductImage,
+        removeWrongProductImage,
+        updateProductImageStatus,
       }}
     >
       {children}

@@ -163,25 +163,63 @@ export function getDetailedSpecsForLaptop(laptop: LaptopItem): DetailedLaptopSpe
     };
   }
 
-  // Generic fallback generator
+  // Generic fallback generator (reads both title & specs case-insensitively)
+  const combined = `${laptop.title || ''} ${laptop.specs || ''}`.toLowerCase();
+  const is11th = combined.includes('11th') || combined.includes('g8');
+  const is10th = combined.includes('10th') || combined.includes('g7');
+  const is8th = combined.includes('8th') || combined.includes('g6') || combined.includes('g5') || combined.includes('t480s');
+  const is7th = combined.includes('7th') || combined.includes('g4') || combined.includes('t480');
+  const is6th = combined.includes('6th') || combined.includes('g3') || combined.includes('t470s');
+  const is5th = combined.includes('5th') || combined.includes('g2');
+
+  const parsedProcessor = combined.includes('i7')
+    ? 'Intel Core i7 High Performance Quad Core'
+    : is11th
+    ? 'Intel Core i5 11th Gen Tiger Lake Processor'
+    : is10th
+    ? 'Intel Core i5 10th Gen Quad Core Processor'
+    : is8th
+    ? 'Intel Core i5 8th Gen Quad Core Turbo Processor'
+    : is7th
+    ? 'Intel Core i5 7th Gen Kaby Lake Processor'
+    : is6th
+    ? 'Intel Core i5 6th Gen Skylake Processor'
+    : is5th
+    ? 'Intel Core i5 5th Gen Broadwell Processor'
+    : 'Intel Core i5 Business Class Processor';
+
+  const parsedRam = combined.includes('32gb')
+    ? '32 GB DDR4 High-Speed RAM'
+    : combined.includes('16gb')
+    ? '16 GB DDR4 Dual Channel RAM'
+    : '8 GB DDR4 RAM';
+
+  const parsedStorage = combined.includes('128gb') && combined.includes('500gb')
+    ? '128 GB SSD + 500 GB HDD (Dual Storage)'
+    : combined.includes('256gb') && combined.includes('1tb')
+    ? '256 GB NVMe SSD + 1 TB HDD (Dual Storage)'
+    : combined.includes('512gb')
+    ? '512 GB M.2 NVMe PCIe High-Speed SSD'
+    : '256 GB M.2 NVMe PCIe High-Speed SSD';
+
+  const parsedGraphics = is11th
+    ? 'Intel Iris Xe Graphics'
+    : is10th || is8th || is7th
+    ? 'Intel UHD / HD Graphics 620'
+    : 'Intel HD Graphics 520 / 5500';
+
   return {
     brand: laptop.brand,
-    condition: 'Used (A Grade 100% Fresh Dubai Import)',
+    condition: laptop.tag || 'Used (A Grade 100% Fresh Dubai Import)',
     laptopType: 'Business-Class Reliable Laptop',
-    processorType: laptop.title.includes('i7')
-      ? 'Intel Core i7 High Performance Quad/Hexa Core'
-      : laptop.title.includes('11th')
-      ? 'Intel Core i5 11th Gen High-Efficiency Processor'
-      : laptop.title.includes('10th')
-      ? 'Intel Core i5 10th Gen Quad Core'
-      : 'Intel Core i5 8th Gen Quad Core Turbo Processor',
+    processorType: parsedProcessor,
     processorSpeed: '1.90 GHz Base, up to 4.20 GHz with Intel Turbo Boost',
     chipset: 'Intel Integrated Chipset',
-    screenSize: '14.0" Full HD (1920 x 1080) IPS Anti-Glare Display',
-    ram: laptop.title.includes('32GB') ? '32 GB DDR4' : laptop.title.includes('16GB') ? '16 GB DDR4' : '8 GB DDR4',
-    hardDisk: laptop.title.includes('512GB') ? '512 GB M.2 NVMe SSD' : '256 GB M.2 NVMe SSD',
-    diskType: 'M.2 NVMe PCIe High Speed SSD',
-    graphicsCard: laptop.title.includes('11th') ? 'Intel Iris Xe Graphics' : 'Intel UHD Graphics 620',
+    screenSize: is5th ? '14.0" HD+ (1600 x 900) Anti-Glare Display' : '14.0" Full HD (1920 x 1080) IPS Anti-Glare Display',
+    ram: parsedRam,
+    hardDisk: parsedStorage,
+    diskType: combined.includes('hdd') ? 'NVMe SSD + SATA HDD Dual Drive' : 'M.2 NVMe PCIe High Speed SSD',
+    graphicsCard: parsedGraphics,
     audioSpeaker: isHP ? 'Bang & Olufsen Stereo Speakers' : 'Dolby Audio HD Stereo Speakers',
     networking: 'Intel Dual-Band Wi-Fi + Bluetooth + Gigabit Ethernet',
     webcam: '720p HD Webcam with Privacy Shutter',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdminStore, BUSINESS_INFO } from '../admin/adminStore';
 import { useStore } from '../context/StoreContext';
 import { useCustomer } from '../context/CustomerContext';
@@ -6,6 +6,13 @@ import { useTranslation } from '../context/LanguageContext';
 import { ReconditionLaptop } from '../admin/types';
 import { CustomerOrderModal } from './CustomerOrderModal';
 import { ReviewsAndRatingModal } from './ReviewsAndRatingModal';
+import {
+  buildShareUrl,
+  copyTextToClipboard,
+  matchesShareSlug,
+  handleShareAnchorClick,
+  syncClientDocumentMeta,
+} from '../utils/shareLinks';
 import {
   Laptop,
   Search,
@@ -31,9 +38,20 @@ import {
   Heart,
   Star,
   Check,
+  Link2,
+  Copy,
+  ExternalLink,
 } from 'lucide-react';
 
-export const ReconditionZoneCustomerView: React.FC = () => {
+interface ReconditionZoneCustomerViewProps {
+  deepLinkSlug?: string | null;
+  onClearDeepLink?: () => void;
+}
+
+export const ReconditionZoneCustomerView: React.FC<ReconditionZoneCustomerViewProps> = ({
+  deepLinkSlug,
+  onClearDeepLink,
+}) => {
   const { reconditionLaptops } = useAdminStore();
   const { storeInfo } = useStore();
   const { formatPrice, currency, language } = useTranslation();
@@ -52,6 +70,37 @@ export const ReconditionZoneCustomerView: React.FC = () => {
   const [selectedLaptopForDetails, setSelectedLaptopForDetails] = useState<ReconditionLaptop | null>(null);
   const [orderModalLaptop, setOrderModalLaptop] = useState<ReconditionLaptop | null>(null);
   const [reviewModalTarget, setReviewModalTarget] = useState<{ id: string; name: string } | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!deepLinkSlug || reconditionLaptops.length === 0) return;
+    const matched = reconditionLaptops.find(
+      (l) => !(l as any).isDeleted && l.status !== 'trash' && matchesShareSlug(l, deepLinkSlug)
+    );
+    if (matched) {
+      setSelectedBrand('all');
+      setSelectedCondition('all');
+      setSearchQuery('');
+      setSelectedLaptopForDetails(matched);
+      const price = matched.offerPrice || matched.sellPrice || 0;
+      const priceStr = price > 0 ? `৳${price.toLocaleString()} BDT` : 'Call for Price';
+      syncClientDocumentMeta({
+        title: `${matched.title} (${priceStr}) | JHF Laptop Zone`,
+        description: `${matched.brand} ${matched.model} — ${matched.processor} • ${matched.ram} • ${matched.storage} • ${matched.display} • ${matched.warranty || '15 Days Replacement Warranty'}.`,
+        image: matched.images?.[0],
+        url: buildShareUrl('recondition', matched),
+      });
+    }
+  }, [deepLinkSlug, reconditionLaptops]);
+
+  const handleCopyRecondLink = async (laptop: ReconditionLaptop) => {
+    const url = buildShareUrl('recondition', laptop);
+    const ok = await copyTextToClipboard(url);
+    if (ok) {
+      setCopiedId(laptop.id);
+      setTimeout(() => setCopiedId((prev) => (prev === laptop.id ? null : prev)), 2500);
+    }
+  };
 
   const texts = {
     en: {
@@ -457,6 +506,7 @@ export const ReconditionZoneCustomerView: React.FC = () => {
             const price = laptop.offerPrice || laptop.sellPrice;
             const hasDiscount = laptop.offerPrice && laptop.offerPrice < laptop.sellPrice;
             const savings = hasDiscount ? laptop.sellPrice - laptop.offerPrice : 0;
+            const shareHref = buildShareUrl('recondition', laptop);
 
             return (
               <div
@@ -470,15 +520,22 @@ export const ReconditionZoneCustomerView: React.FC = () => {
                 <div>
                   {/* Image Container with Badges */}
                   <div className="relative h-52 bg-slate-100 dark:bg-slate-950 overflow-hidden group">
-                    <img
-                      src={laptop.images?.[0] || 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=700&auto=format&fit=crop&q=80'}
-                      alt={laptop.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                      referrerPolicy="no-referrer"
-                    />
+                    <a
+                      href={shareHref}
+                      onClick={(e) => handleShareAnchorClick(e, 'recondition', laptop)}
+                      className="block w-full h-full"
+                      title={`${laptop.title} — ${shareHref}`}
+                    >
+                      <img
+                        src={laptop.images?.[0] || '/images/lenovo-thinkpad.jpg'}
+                        alt={laptop.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        referrerPolicy="no-referrer"
+                      />
+                    </a>
 
                     {/* Top Badges */}
-                    <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                    <div className="absolute top-3 left-3 flex flex-col gap-1.5 pointer-events-none">
                       <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-950/80 backdrop-blur-md text-emerald-400 border border-emerald-500/30">
                         {laptop.physicalCondition}
                       </span>
@@ -491,6 +548,17 @@ export const ReconditionZoneCustomerView: React.FC = () => {
 
                     {/* Status Badge & Actions */}
                     <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                      {/* Direct Hoverable Permalink */}
+                      <a
+                        href={shareHref}
+                        onClick={(e) => handleShareAnchorClick(e, 'recondition', laptop)}
+                        className="w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-md shadow transition bg-slate-900/70 text-slate-200 hover:text-white hover:bg-blue-600"
+                        title={shareHref}
+                        aria-label={`Open full specs link for ${laptop.title}`}
+                      >
+                        <Link2 className="w-3.5 h-3.5" />
+                      </a>
+
                       {/* Compare Button */}
                       <button
                         onClick={() =>
@@ -573,9 +641,15 @@ export const ReconditionZoneCustomerView: React.FC = () => {
                           </span>
                         </button>
                       </div>
-                      <h3 className="text-base font-black text-slate-900 dark:text-white leading-snug line-clamp-2 mt-0.5">
-                        {laptop.title}
-                      </h3>
+                      <a
+                        href={shareHref}
+                        onClick={(e) => handleShareAnchorClick(e, 'recondition', laptop)}
+                        className="block hover:text-blue-600 dark:hover:text-blue-400 transition mt-0.5"
+                      >
+                        <h3 className="text-base font-black text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 leading-snug line-clamp-2 transition">
+                          {laptop.title}
+                        </h3>
+                      </a>
                     </div>
 
                     {/* Spec Highlights Grid */}
@@ -647,13 +721,14 @@ export const ReconditionZoneCustomerView: React.FC = () => {
 
                   {/* Actions */}
                   <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setSelectedLaptopForDetails(laptop)}
+                    <a
+                      href={shareHref}
+                      onClick={(e) => handleShareAnchorClick(e, 'recondition', laptop)}
                       className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1"
                     >
                       <Info className="w-3.5 h-3.5" />
                       <span>{texts.detailsBtn}</span>
-                    </button>
+                    </a>
 
                     {isSold ? (
                       <a
@@ -713,7 +788,10 @@ export const ReconditionZoneCustomerView: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-7 relative text-slate-800 dark:text-slate-200">
             <button
-              onClick={() => setSelectedLaptopForDetails(null)}
+              onClick={() => {
+                setSelectedLaptopForDetails(null);
+                onClearDeepLink?.();
+              }}
               className="absolute top-5 right-5 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white"
             >
               <X className="w-5 h-5" />
@@ -733,13 +811,50 @@ export const ReconditionZoneCustomerView: React.FC = () => {
             </div>
 
             {/* Photo */}
-            <div className="h-64 rounded-2xl overflow-hidden mb-5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <div className="h-64 rounded-2xl overflow-hidden mb-5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
               <img
-                src={selectedLaptopForDetails.images?.[0] || 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=700&auto=format&fit=crop&q=80'}
+                src={selectedLaptopForDetails.images?.[0] || '/images/lenovo-thinkpad.jpg'}
                 alt={selectedLaptopForDetails.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain p-2"
                 referrerPolicy="no-referrer"
               />
+            </div>
+
+            {/* Unique Share Link Box (Auto-adapts to current domain) */}
+            <div className="mb-5 bg-blue-50/70 dark:bg-slate-800/70 border border-blue-200 dark:border-slate-700 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <a
+                href={buildShareUrl('recondition', selectedLaptopForDetails)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline flex items-center gap-1.5 shrink-0"
+                title={buildShareUrl('recondition', selectedLaptopForDetails)}
+              >
+                <Link2 className="w-4 h-4 text-blue-500" />
+                <span>Direct Share Link</span>
+                <ExternalLink className="w-3 h-3 opacity-75" />
+              </a>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <a
+                  href={buildShareUrl('recondition', selectedLaptopForDetails)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 min-w-0 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-blue-700 dark:text-blue-300 hover:underline truncate"
+                >
+                  {buildShareUrl('recondition', selectedLaptopForDetails)}
+                </a>
+                <button
+                  type="button"
+                  onClick={() => handleCopyRecondLink(selectedLaptopForDetails)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shrink-0 ${
+                    copiedId === selectedLaptopForDetails.id
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  {copiedId === selectedLaptopForDetails.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedId === selectedLaptopForDetails.id ? 'Copied!' : 'Copy'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Complete Hardware Specs Table */}
@@ -821,6 +936,7 @@ export const ReconditionZoneCustomerView: React.FC = () => {
                     onClick={() => {
                       const laptop = selectedLaptopForDetails;
                       setSelectedLaptopForDetails(null);
+                      onClearDeepLink?.();
                       setOrderModalLaptop(laptop);
                     }}
                     disabled={selectedLaptopForDetails.status === 'sold'}

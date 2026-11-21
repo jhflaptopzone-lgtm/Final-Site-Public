@@ -25,12 +25,25 @@ import { LaptopDetailModal } from './components/LaptopDetailModal';
 import { CustomerOrderModal, OrderItemData } from './components/CustomerOrderModal';
 import { ServiceRequestModal } from './components/ServiceRequestModal';
 import { TrackServiceRequestModal } from './components/TrackServiceRequestModal';
+import {
+  DeepLinkTarget,
+  parseShareRoute,
+  clearShareUrlFromHistory,
+  syncClientDocumentMeta,
+  SHARE_NAVIGATE_EVENT,
+} from './utils/shareLinks';
 import { MessageSquare, PhoneCall, Copy, Check, ArrowUp, Sparkles, FolderGit2, Settings } from 'lucide-react';
+
+const DEFAULT_PAGE_TITLE = 'JHF LAPTOP ZONE • ThinkPad, EliteBook, Latitude, Software & Service Zone';
 
 function AppContent() {
   const { storeInfo, isAuthenticated, generateDynamicXml } = useStore();
   const [darkMode, setDarkMode] = useState(false);
   const [activeView, setActiveView] = useState<'preview' | 'xml' | 'admin'>('preview');
+  const [deepLinkTarget, setDeepLinkTarget] = useState<DeepLinkTarget | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return parseShareRoute(window.location.pathname, window.location.search);
+  });
   const [xmlContent, setXmlContent] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -46,6 +59,41 @@ function AppContent() {
   const [isServiceRequestModalOpen, setIsServiceRequestModalOpen] = useState(false);
   const [isTrackSrModalOpen, setIsTrackSrModalOpen] = useState(false);
   const [trackSrNumber, setTrackSrNumber] = useState('');
+
+  useEffect(() => {
+    const syncRoute = () => {
+      const target = parseShareRoute(window.location.pathname, window.location.search);
+      setDeepLinkTarget(target);
+      if (target) {
+        setActiveView('preview');
+      }
+    };
+
+    const handleShareNavigate = (event: Event) => {
+      const customEvent = event as CustomEvent<DeepLinkTarget>;
+      if (customEvent.detail?.type && customEvent.detail?.slug) {
+        setDeepLinkTarget(customEvent.detail);
+        setActiveView('preview');
+      }
+    };
+
+    window.addEventListener('popstate', syncRoute);
+    window.addEventListener(SHARE_NAVIGATE_EVENT, handleShareNavigate);
+    return () => {
+      window.removeEventListener('popstate', syncRoute);
+      window.removeEventListener(SHARE_NAVIGATE_EVENT, handleShareNavigate);
+    };
+  }, []);
+
+  const handleClearDeepLink = () => {
+    setDeepLinkTarget(null);
+    clearShareUrlFromHistory();
+    syncClientDocumentMeta({
+      title: DEFAULT_PAGE_TITLE,
+      description: 'Buy tested imported business laptops (Lenovo ThinkPad, HP EliteBook, Dell Latitude) plus Software, Testing Tools & OS Zones from JHF Laptop Zone Bangladesh.',
+      url: typeof window !== 'undefined' ? `${window.location.origin}/` : '/',
+    });
+  };
 
   const handleOrderWithPromo = (laptop: any, promoCode: string) => {
     setActivePromoCode(promoCode);
@@ -105,8 +153,8 @@ function AppContent() {
             copied={copied}
             onOpenAdminLogin={handleOpenAdminLogin}
             onRequestService={() => setIsServiceRequestModalOpen(true)}
-            onTrackService={(sr) => {
-              if (sr) setTrackSrNumber(sr);
+            onTrackService={(sr?: unknown) => {
+              setTrackSrNumber(typeof sr === 'string' ? sr : '');
               setIsTrackSrModalOpen(true);
             }}
           />
@@ -121,26 +169,44 @@ function AppContent() {
                 {/* Hero & Trust Badges */}
                 <HeroSection
                   onRequestService={() => setIsServiceRequestModalOpen(true)}
-                  onTrackService={() => setIsTrackSrModalOpen(true)}
+                  onTrackService={() => {
+                    setTrackSrNumber('');
+                    setIsTrackSrModalOpen(true);
+                  }}
                 />
 
                 {/* 1. Laptop Catalog with Specs Modal & Ordering */}
-                <LaptopCatalog />
+                <LaptopCatalog
+                  deepLinkSlug={deepLinkTarget?.type === 'laptop' ? deepLinkTarget.slug : null}
+                  onClearDeepLink={handleClearDeepLink}
+                />
 
                 {/* 1.1 JHF Recondition Zone (Pre-Owned / Used Laptops Catalog) */}
-                <ReconditionZoneCustomerView />
+                <ReconditionZoneCustomerView
+                  deepLinkSlug={deepLinkTarget?.type === 'recondition' ? deepLinkTarget.slug : null}
+                  onClearDeepLink={handleClearDeepLink}
+                />
 
                 {/* 1.2 JHF Promo Offers & Marketing Promo Text Zone */}
                 <PromoSection onOrderWithPromo={handleOrderWithPromo} />
 
                 {/* 2. JHF Software Zone */}
-                <SoftwareZone />
+                <SoftwareZone
+                  deepLinkSlug={deepLinkTarget?.type === 'software' ? deepLinkTarget.slug : null}
+                  onClearDeepLink={handleClearDeepLink}
+                />
 
                 {/* 3. JHF Laptop Testing Software Zone */}
-                <TestingToolsZone />
+                <TestingToolsZone
+                  deepLinkSlug={deepLinkTarget?.type === 'testing-tool' ? deepLinkTarget.slug : null}
+                  onClearDeepLink={handleClearDeepLink}
+                />
 
                 {/* 4. JHF Operating System Zone */}
-                <OperatingSystemZone />
+                <OperatingSystemZone
+                  deepLinkSlug={deepLinkTarget?.type === 'windows' ? deepLinkTarget.slug : null}
+                  onClearDeepLink={handleClearDeepLink}
+                />
 
                 {/* 5. JHF Customer Reviews & Ratings */}
                 <CustomerReviewsSection />
@@ -148,7 +214,10 @@ function AppContent() {
                 {/* 6. JHF Warranty Policies (3-Tiers) */}
                 <WarrantyZone
                   onRequestService={() => setIsServiceRequestModalOpen(true)}
-                  onTrackService={() => setIsTrackSrModalOpen(true)}
+                  onTrackService={() => {
+                    setTrackSrNumber('');
+                    setIsTrackSrModalOpen(true);
+                  }}
                 />
 
                 {/* 7. Payment & Visiting Card */}
@@ -209,7 +278,6 @@ function AppContent() {
                   <li><a href="#laptops-catalog" onClick={() => setActiveView('preview')} className="hover:text-white transition">HP EliteBook Series</a></li>
                   <li><a href="#laptops-catalog" onClick={() => setActiveView('preview')} className="hover:text-white transition">Dell Latitude Series</a></li>
                   <li><a href="#laptops-catalog" onClick={() => setActiveView('preview')} className="hover:text-white transition">Core i5 &amp; Core i7 Laptops</a></li>
-                  <li><a href={storeInfo.galleryFolder} target="_blank" rel="noreferrer" className="hover:text-white transition">Photo Gallery Folder</a></li>
                 </ul>
               </div>
 
@@ -368,9 +436,9 @@ function AppContent() {
           <ServiceRequestModal
             isOpen={isServiceRequestModalOpen}
             onClose={() => setIsServiceRequestModalOpen(false)}
-            onOpenTrackSr={(sr) => {
+            onOpenTrackSr={(sr?: unknown) => {
               setIsServiceRequestModalOpen(false);
-              setTrackSrNumber(sr || '');
+              setTrackSrNumber(typeof sr === 'string' ? sr : '');
               setIsTrackSrModalOpen(true);
             }}
           />

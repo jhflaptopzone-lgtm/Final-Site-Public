@@ -169,14 +169,14 @@ export const WarrantyZone: React.FC<WarrantyZoneProps> = ({
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={onRequestService}
+              onClick={() => onRequestService?.()}
               className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-1.5"
             >
               <Wrench className="w-3.5 h-3.5" />
               <span>🔧 REQUEST SERVICE</span>
             </button>
             <button
-              onClick={onTrackService}
+              onClick={() => onTrackService?.()}
               className="bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold text-xs px-3.5 py-2.5 rounded-xl border border-slate-700 transition flex items-center gap-1.5"
             >
               <Search className="w-3.5 h-3.5 text-cyan-400" />

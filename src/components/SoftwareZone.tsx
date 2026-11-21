@@ -1,14 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DownloadItem } from '../data/jhfData';
 import { useStore } from '../context/StoreContext';
 import { useTranslation } from '../context/LanguageContext';
-import { Download, Search, HardDrive, ExternalLink, Sparkles, Filter } from 'lucide-react';
+import { ResourceShareModal } from './ResourceShareModal';
+import {
+  buildShareUrl,
+  handleShareAnchorClick,
+  matchesShareSlug,
+  syncClientDocumentMeta,
+} from '../utils/shareLinks';
+import { Download, Search, HardDrive, ExternalLink, Sparkles, Filter, Eye } from 'lucide-react';
 
-export const SoftwareZone: React.FC = () => {
+interface SoftwareZoneProps {
+  deepLinkSlug?: string | null;
+  onClearDeepLink?: () => void;
+}
+
+export const SoftwareZone: React.FC<SoftwareZoneProps> = ({ deepLinkSlug, onClearDeepLink }) => {
   const { softwareList } = useStore();
   const { language } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [activeShareItem, setActiveShareItem] = useState<DownloadItem | null>(null);
+
+  useEffect(() => {
+    if (!deepLinkSlug || softwareList.length === 0) return;
+    const matched = softwareList.find((item) => matchesShareSlug(item, deepLinkSlug));
+    if (matched) {
+      setSelectedCategory('All');
+      setSearchQuery('');
+      setActiveShareItem(matched);
+      syncClientDocumentMeta({
+        title: `${matched.title} | JHF Software Zone`,
+        description: `${matched.category} • ${matched.source}${matched.size ? ` • ${matched.size}` : ''}${matched.description ? ` — ${matched.description}` : ''}`,
+        image: matched.image,
+        url: buildShareUrl('software', matched),
+      });
+    }
+  }, [deepLinkSlug, softwareList]);
 
   const texts = {
     en: {
@@ -126,43 +155,64 @@ export const SoftwareZone: React.FC = () => {
 
         {/* Grid of Software Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredItems.map((item) => (
-            <div
-              key={item.id}
-              className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/70 rounded-xl p-4 flex flex-col justify-between hover:border-blue-500 hover:shadow-md transition group"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/80 px-2 py-0.5 rounded">
-                    {item.category}
-                  </span>
-                  <span className="text-[10px] font-medium text-slate-400">
-                    {item.source}
-                  </span>
+          {filteredItems.map((item) => {
+            const shareHref = buildShareUrl('software', item);
+            return (
+              <div
+                key={item.id}
+                className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/70 rounded-xl p-4 flex flex-col justify-between hover:border-blue-500 hover:shadow-md transition group"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/80 px-2 py-0.5 rounded">
+                      {item.category}
+                    </span>
+                    <span className="text-[10px] font-medium text-slate-400">
+                      {item.source}
+                    </span>
+                  </div>
+
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-1">
+                    <a
+                      href={shareHref}
+                      onClick={(e) => handleShareAnchorClick(e, 'software', item)}
+                      className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition cursor-pointer"
+                    >
+                      {item.title}
+                    </a>
+                  </h3>
                 </div>
 
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition mb-1">
-                  {item.title}
-                </h3>
-              </div>
+                <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                    {texts.verified}
+                  </span>
 
-              <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
-                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                  {texts.verified}
-                </span>
+                  <div className="flex items-center gap-1.5">
+                    <a
+                      href={shareHref}
+                      onClick={(e) => handleShareAnchorClick(e, 'software', item)}
+                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-blue-600 hover:border-blue-500 transition cursor-pointer"
+                      title={shareHref}
+                    >
+                      <Eye className="w-3 h-3" />
+                      <span>Details</span>
+                    </a>
 
-                <a
-                  href={item.link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>{texts.download}</span>
-                </a>
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{texts.download}</span>
+                    </a>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {filteredItems.length === 0 && (
@@ -172,6 +222,15 @@ export const SoftwareZone: React.FC = () => {
         )}
 
       </div>
+
+      <ResourceShareModal
+        item={activeShareItem}
+        type="software"
+        onClose={() => {
+          setActiveShareItem(null);
+          onClearDeepLink?.();
+        }}
+      />
     </section>
   );
 };

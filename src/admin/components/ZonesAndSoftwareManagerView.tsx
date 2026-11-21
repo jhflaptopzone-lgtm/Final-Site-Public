@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { DownloadItem } from '../../data/jhfData';
+import { buildShareUrl, copyTextToClipboard, ShareItemType } from '../../utils/shareLinks';
 import {
   Download,
   Plus,
@@ -20,6 +21,7 @@ import {
   RotateCcw,
   Sparkles,
   Link,
+  Link2,
   FileText,
   Copy,
   Check,
@@ -56,6 +58,7 @@ export const ZonesAndSoftwareManagerView: React.FC<ZonesAndSoftwareManagerViewPr
 
   const [activeZone, setActiveZone] = useState<'software' | 'testing' | 'os' | 'cards'>(initialZone);
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
+  const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialZone) {
@@ -63,6 +66,22 @@ export const ZonesAndSoftwareManagerView: React.FC<ZonesAndSoftwareManagerViewPr
     }
   }, [initialZone]);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const zoneShareType: Extract<ShareItemType, 'software' | 'windows' | 'testing-tool'> =
+    activeZone === 'os' ? 'windows' : activeZone === 'testing' ? 'testing-tool' : 'software';
+
+  const handleCopyZoneShareLink = async (item: DownloadItem) => {
+    const shareUrl = buildShareUrl(zoneShareType, item);
+    const ok = await copyTextToClipboard(shareUrl);
+    if (ok) {
+      setCopiedShareId(item.id);
+      setSaveFeedback(`Copied dynamic share link: ${shareUrl}`);
+      setTimeout(() => {
+        setCopiedShareId((prev) => (prev === item.id ? null : prev));
+        setSaveFeedback(null);
+      }, 3000);
+    }
+  };
 
   // Modals for Software / Tool / OS
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -504,7 +523,7 @@ export const ZonesAndSoftwareManagerView: React.FC<ZonesAndSoftwareManagerViewPr
                     </div>
 
                     {/* Link display */}
-                    <div className="bg-slate-950 border border-slate-800/80 rounded-lg p-2 mb-4 flex items-center justify-between gap-2">
+                    <div className="bg-slate-950 border border-slate-800/80 rounded-lg p-2 mb-2 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-mono truncate">
                         <Link className="w-3 h-3 text-blue-400 shrink-0" />
                         <span className="truncate">{item.link}</span>
@@ -518,6 +537,35 @@ export const ZonesAndSoftwareManagerView: React.FC<ZonesAndSoftwareManagerViewPr
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
+                    </div>
+
+                    {/* Dynamic Public Share Link (Auto-adapts to current domain) */}
+                    <div className="bg-cyan-950/30 border border-cyan-500/20 rounded-lg p-2 mb-4 flex items-center justify-between gap-2">
+                      <a
+                        href={buildShareUrl(zoneShareType, item)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1.5 text-[10px] text-cyan-300 hover:text-cyan-200 hover:underline font-mono truncate"
+                        title={buildShareUrl(zoneShareType, item)}
+                      >
+                        <Link2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                        <span className="truncate">
+                          {buildShareUrl(zoneShareType, item)}
+                        </span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyZoneShareLink(item)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 transition shrink-0 ${
+                          copiedShareId === item.id
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300'
+                        }`}
+                        title="Copy Share Link for groups & customers"
+                      >
+                        {copiedShareId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedShareId === item.id ? 'Copied' : 'Copy'}</span>
+                      </button>
                     </div>
                   </div>
 

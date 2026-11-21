@@ -54,7 +54,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
     reconditionSummary,
     downloadEvents,
     securityEvents,
-    reviews,
+    customerReviews,
   } = useAdminStore();
 
   const { currentUser, isFirebaseLive } = useAdminAuth();
@@ -183,7 +183,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
     });
 
     // Real Reviews / Comments Events
-    (reviews || []).slice(0, 5).forEach((rev) => {
+    (customerReviews || []).slice(0, 5).forEach((rev) => {
       list.push({
         id: `rev-evt-${rev.id}`,
         timestamp: rev.createdAt || new Date().toISOString(),
@@ -197,7 +197,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
 
     // Sort by timestamp descending
     return list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [securityEvents, orders, downloadEvents, reviews]);
+  }, [securityEvents, orders, downloadEvents, customerReviews]);
 
   // Filtered Live Activity
   const filteredEvents = useMemo(() => {

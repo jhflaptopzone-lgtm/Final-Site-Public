@@ -23,17 +23,26 @@ import {
 
 interface SecurityCommandCenterViewProps {
   initialSubTab?: 'center' | 'ip' | 'risk' | 'audit';
+  navigationTick?: number;
 }
 
 export const SecurityCommandCenterView: React.FC<SecurityCommandCenterViewProps> = ({
   initialSubTab = 'center',
+  navigationTick = 0,
 }) => {
-  const { auditLogs, clearAuditLogs } = useAdminStore();
+  const { activityLogs = [], securityEvents = [] } = useAdminStore();
   const { currentUser } = useAdminAuth();
 
   const [activeSubTab, setActiveSubTab] = useState<'center' | 'ip' | 'risk' | 'audit'>(initialSubTab);
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+    }
+  }, [initialSubTab, navigationTick]);
   const [searchQuery, setSearchQuery] = useState('');
   const [severityFilter, setSeverityFilter] = useState('ALL');
+  const [clearedBefore, setClearedBefore] = useState<number>(0);
   const [liveTerminalTick, setLiveTerminalTick] = useState(0);
 
   // Periodic heartbeat animation for terminal
@@ -100,13 +109,34 @@ export const SecurityCommandCenterView: React.FC<SecurityCommandCenterViewProps>
     },
   ];
 
-  const filteredLogs = auditLogs.filter((log) => {
+  const safeAuditLogs = Array.isArray(activityLogs)
+    ? activityLogs.filter((log) => {
+        if (!clearedBefore) return true;
+        const ts = new Date(log.timestamp).getTime();
+        return Number.isNaN(ts) || ts > clearedBefore;
+      })
+    : [];
+
+  const filteredLogs = safeAuditLogs.filter((log) => {
+    const q = searchQuery.toLowerCase();
+    const actionStr = String(log.action || '').toLowerCase();
+    const userStr = String(log.adminEmail || log.adminName || (log as any).user || '').toLowerCase();
+    const detailsStr =
+      typeof log.details === 'object' && log.details !== null
+        ? JSON.stringify(log.details).toLowerCase()
+        : String(log.details || '').toLowerCase();
+    const ipStr = String((log as any).ip || '').toLowerCase();
+    const derivedSeverity = String(
+      (log as any).severity ||
+        (actionStr.includes('delete') || actionStr.includes('clear') ? 'warning' : 'info')
+    ).toUpperCase();
+
     const matchesSearch =
-      log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.details.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (log.ip && log.ip.includes(searchQuery));
-    const matchesSeverity = severityFilter === 'ALL' || (log.severity || 'info').toUpperCase() === severityFilter;
+      actionStr.includes(q) ||
+      userStr.includes(q) ||
+      detailsStr.includes(q) ||
+      ipStr.includes(q);
+    const matchesSeverity = severityFilter === 'ALL' || derivedSeverity === severityFilter;
     return matchesSearch && matchesSeverity;
   });
 
@@ -157,7 +187,7 @@ export const SecurityCommandCenterView: React.FC<SecurityCommandCenterViewProps>
           { id: 'center', label: 'Security Center', icon: Activity },
           { id: 'ip', label: 'IP Activity & Geolocation', icon: Globe },
           { id: 'risk', label: 'Risk Monitor & Rate Limiter', icon: AlertTriangle },
-          { id: 'audit', label: `Audit Activity Logs (${auditLogs.length})`, icon: Terminal },
+          { id: 'audit', label: `Audit Activity Logs (${safeAuditLogs.length})`, icon: Terminal },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeSubTab === tab.id;
@@ -363,10 +393,10 @@ export const SecurityCommandCenterView: React.FC<SecurityCommandCenterViewProps>
               ))}
 
               <button
-                onClick={clearAuditLogs}
+                onClick={() => setClearedBefore(Date.now())}
                 className="px-3 py-1 rounded-lg bg-rose-900/30 hover:bg-rose-900/50 text-rose-300 text-xs font-semibold border border-rose-800/40 transition ml-2"
               >
-                Clear Logs
+                Clear View
               </button>
             </div>
           </div>
@@ -385,28 +415,56 @@ export const SecurityCommandCenterView: React.FC<SecurityCommandCenterViewProps>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {filteredLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-800/30 transition">
-                    <td className="py-3 px-4 font-mono text-[11px] text-slate-400">
-                      {new Date(log.timestamp).toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4 font-bold text-white">{log.action}</td>
-                    <td className="py-3 px-4 text-blue-400">{log.user}</td>
-                    <td className="py-3 px-4 text-slate-300">{log.details}</td>
-                    <td className="py-3 px-4 font-mono text-[11px] text-slate-400">{log.ip || '103.205.140.22'}</td>
-                    <td className="py-3 px-4 text-right">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
-                        log.severity === 'critical'
-                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                          : log.severity === 'warning'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                      }`}>
-                        {log.severity || 'info'}
-                      </span>
+                {filteredLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-500">
+                      No audit activity logs found{securityEvents.length > 0 ? ` (${securityEvents.length} security events monitored)` : ''}.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredLogs.map((log) => {
+                    const actionText = String(log.action || 'EVENT');
+                    const severity = String(
+                      (log as any).severity ||
+                        (actionText.toLowerCase().includes('delete') || actionText.toLowerCase().includes('clear')
+                          ? 'warning'
+                          : 'info')
+                    );
+                    const detailsText =
+                      typeof log.details === 'object' && log.details !== null
+                        ? JSON.stringify(log.details)
+                        : String(log.details || '-');
+                    const userDisplay = log.adminEmail || log.adminName || (log as any).user || 'System';
+                    const formattedTime = log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Just now';
+
+                    return (
+                      <tr key={log.id} className="hover:bg-slate-800/30 transition">
+                        <td className="py-3 px-4 font-mono text-[11px] text-slate-400">
+                          {formattedTime}
+                        </td>
+                        <td className="py-3 px-4 font-bold text-white">{actionText}</td>
+                        <td className="py-3 px-4 text-blue-400">{userDisplay}</td>
+                        <td className="py-3 px-4 text-slate-300 max-w-md truncate">{detailsText}</td>
+                        <td className="py-3 px-4 font-mono text-[11px] text-slate-400">
+                          {(log as any).ip || '103.205.140.22'}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                              severity === 'critical'
+                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                : severity === 'warning'
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            }`}
+                          >
+                            {severity}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

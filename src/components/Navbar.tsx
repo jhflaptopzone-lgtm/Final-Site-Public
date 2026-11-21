@@ -261,7 +261,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Service Request Button (Section 1) */}
           <button
-            onClick={onRequestService}
+            onClick={() => onRequestService?.()}
             className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-sm shadow-orange-500/20 transition transform hover:-translate-y-0.5 cursor-pointer"
             title="Request Laptop Service Directly"
           >
@@ -271,9 +271,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Track SR Button (Section 11) */}
           <button
-            onClick={onTrackService}
+            onClick={() => onTrackService?.()}
             className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-750 transition cursor-pointer"
-            title="Track Service Request Number"
+            title="Track Service Request or Service History Code"
           >
             <Search className="w-3.5 h-3.5 text-cyan-500" />
             <span>🔎 Track SR</span>

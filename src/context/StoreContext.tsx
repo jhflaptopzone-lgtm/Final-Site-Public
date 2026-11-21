@@ -112,6 +112,12 @@ const STORAGE_KEYS = {
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [laptops, setLaptops] = useState<LaptopItem[]>(() => {
     try {
+      const storeSynced = localStorage.getItem('jhf_bdstall_store_v4_dell_bdstall_prices') === 'true';
+      if (!storeSynced) {
+        localStorage.setItem('jhf_bdstall_store_v4_dell_bdstall_prices', 'true');
+        localStorage.setItem(STORAGE_KEYS.LAPTOPS, JSON.stringify(LAPTOPS_DATA));
+        return LAPTOPS_DATA;
+      }
       if (localStorage.getItem('jhf_dummy_data_cleared') === 'true') {
         const saved = localStorage.getItem(STORAGE_KEYS.LAPTOPS);
         return saved ? JSON.parse(saved) : [];
@@ -119,7 +125,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const saved = localStorage.getItem(STORAGE_KEYS.LAPTOPS);
       return saved ? JSON.parse(saved) : LAPTOPS_DATA;
     } catch {
-      return [];
+      return LAPTOPS_DATA;
     }
   });
 

@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdminStore } from '../../adminStore';
-import { ServiceJob, ServiceStatus, ServicePart, ServiceEngineer } from '../../types';
+import { ServiceJob, ServicePart, ServiceEngineer, WarrantyClaim } from '../../types';
 import { NewServiceJobModal } from './NewServiceJobModal';
 import { ServiceJobDetailModal } from './ServiceJobDetailModal';
 import { ServiceInvoiceModal } from './ServiceInvoiceModal';
 import { WarrantyClaimModal } from './WarrantyClaimModal';
+import { formatWarrantyDays, SPARE_PART_WARRANTY_OPTIONS } from '../../../utils/warranty';
 import {
   Wrench,
   Plus,
   Search,
-  Filter,
   CheckCircle2,
   Clock,
   AlertTriangle,
@@ -20,42 +20,70 @@ import {
   FileText,
   DollarSign,
   TrendingUp,
-  Laptop,
-  ArrowRight,
   Phone,
-  Calendar,
   Sparkles,
-  Layers,
   ChevronRight,
-  Check,
-  X,
-  CreditCard,
   Trash2,
+  Edit2,
 } from 'lucide-react';
 
+type ServiceZoneVisibleTab =
+  | 'dashboard'
+  | 'active'
+  | 'estimates'
+  | 'engineers'
+  | 'parts'
+  | 'warranty'
+  | 'invoices'
+  | 'reports';
+
 interface ServiceZoneViewProps {
-  initialTab?:
-    | 'dashboard'
-    | 'new'
-    | 'active'
-    | 'estimates'
-    | 'engineers'
-    | 'parts'
-    | 'warranty'
-    | 'invoices'
-    | 'reports';
+  initialTab?: ServiceZoneVisibleTab | 'new';
+  navigationTick?: number;
+  onTabChange?: (tab: ServiceZoneVisibleTab) => void;
 }
 
-export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = 'dashboard' }) => {
+const PART_CATEGORIES: ServicePart['category'][] = [
+  'Display',
+  'Keyboard',
+  'Battery',
+  'RAM',
+  'SSD / Storage',
+  'Adapter / Charger',
+  'Cooling Fan / Paste',
+  'Hinge / Casing',
+  'Motherboard',
+  'DC Jack',
+  'Cables & Ports',
+  'Other',
+];
+
+const CLAIM_STATUSES: WarrantyClaim['status'][] = [
+  'PENDING',
+  'INSPECTION',
+  'REPAIRED',
+  'REPLACED',
+  'REJECTED',
+];
+
+export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({
+  initialTab = 'dashboard',
+  navigationTick = 0,
+  onTabChange,
+}) => {
   const {
     services,
     serviceEngineers,
     serviceParts,
     warrantyClaims,
     addServiceEngineer,
+    updateServiceEngineer,
     deleteServiceEngineer,
     addServicePart,
+    updateServicePart,
     deleteServicePart,
+    deleteServiceJob,
+    updateWarrantyClaim,
     deleteWarrantyClaim,
     clearAllServiceZoneDummyData,
   } = useAdminStore();
@@ -72,42 +100,65 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
     setTimeout(() => setClearServiceToast(null), 8000);
   };
 
-  const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'new' | 'active' | 'estimates' | 'engineers' | 'parts' | 'warranty' | 'invoices' | 'reports'
-  >(initialTab);
+  const [activeTab, setActiveTab] = useState<ServiceZoneVisibleTab>(
+    initialTab === 'new' ? 'active' : initialTab
+  );
 
   // Search & Filter for jobs
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
-  // Modals
-  const [newJobModalOpen, setNewJobModalOpen] = useState(false);
-  const [selectedJobForDetail, setSelectedJobForDetail] = useState<ServiceJob | null>(null);
-  const [selectedJobForInvoice, setSelectedJobForInvoice] = useState<ServiceJob | null>(null);
+  // Modals (Store Job IDs or resolve live against reactive `services`!)
+  const [newJobModalOpen, setNewJobModalOpen] = useState(initialTab === 'new');
+
+  useEffect(() => {
+    if (initialTab === 'new') {
+      setNewJobModalOpen(true);
+    } else if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, navigationTick]);
+
+  const [selectedDetailJobId, setSelectedDetailJobId] = useState<string | null>(null);
+  const [selectedInvoiceJobId, setSelectedInvoiceJobId] = useState<string | null>(null);
   const [warrantyModalOpen, setWarrantyModalOpen] = useState(false);
 
-  // New Engineer Modal
-  const [newEngOpen, setNewEngOpen] = useState(false);
+  const activeDetailJob: ServiceJob | null = selectedDetailJobId
+    ? services.find((s) => s.id === selectedDetailJobId) || null
+    : null;
+  const activeInvoiceJob: ServiceJob | null = selectedInvoiceJobId
+    ? services.find((s) => s.id === selectedInvoiceJobId) || null
+    : null;
+
+  // Add / Edit Engineer Modal
+  const [engModalOpen, setEngModalOpen] = useState(false);
+  const [editingEngineerId, setEditingEngineerId] = useState<string | null>(null);
   const [engName, setEngName] = useState('');
   const [engPhone, setEngPhone] = useState('');
   const [engSpecialization, setEngSpecialization] = useState('');
   const [engType, setEngType] = useState<'internal' | 'external'>('internal');
   const [engShop, setEngShop] = useState('JHF In-House Lab');
 
-  // New Part Modal
-  const [newPartOpen, setNewPartOpen] = useState(false);
+  // Add / Edit Part Modal
+  const [partModalOpen, setPartModalOpen] = useState(false);
+  const [editingPartId, setEditingPartId] = useState<string | null>(null);
   const [partName, setPartName] = useState('');
   const [partCode, setPartCode] = useState('');
   const [partCategory, setPartCategory] = useState<ServicePart['category']>('Display');
   const [partStock, setPartStock] = useState(5);
+  const [partMinStock, setPartMinStock] = useState(2);
   const [partCost, setPartCost] = useState(3000);
   const [partPrice, setPartPrice] = useState(4500);
   const [partWarranty, setPartWarranty] = useState(180);
+  const [partSupplier, setPartSupplier] = useState('');
+
+  // Claim resolution edits
+  const [claimResolutionDrafts, setClaimResolutionDrafts] = useState<Record<string, string>>({});
 
   // Stats
   const totalJobs = services.length;
   const inDiagnosis = services.filter((s) => s.status === 'DIAGNOSING').length;
-  const inRepair = services.filter((s) => ['IN REPAIR', 'WAITING FOR PARTS'].includes(s.status)).length;
+  const inRepair = services.filter((s) => ['IN REPAIR', 'WAITING FOR PARTS', 'TESTING'].includes(s.status)).length;
   const readyForDelivery = services.filter((s) => s.status === 'READY FOR DELIVERY').length;
   const delivered = services.filter((s) => s.status === 'DELIVERED').length;
   const warrantyReturns = services.filter((s) => s.status === 'WARRANTY RETURN').length;
@@ -129,43 +180,114 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
     return matchesSearch && matchesStatus;
   });
 
-  const handleAddEngineer = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!engName.trim() || !engPhone.trim()) return;
-    addServiceEngineer({
-      name: engName,
-      phone: engPhone,
-      specialization: engSpecialization || 'General Laptop Servicing',
-      engineerType: engType,
-      shopName: engShop,
-      status: 'active',
-      totalJobs: 0,
-      completedJobs: 0,
-      isDummy: false,
-    });
-    setNewEngOpen(false);
+  const openNewEngineerModal = () => {
+    setEditingEngineerId(null);
     setEngName('');
     setEngPhone('');
     setEngSpecialization('');
+    setEngType('internal');
+    setEngShop('JHF In-House Lab');
+    setEngModalOpen(true);
   };
 
-  const handleAddPart = (e: React.FormEvent) => {
+  const openEditEngineerModal = (eng: ServiceEngineer) => {
+    setEditingEngineerId(eng.id);
+    setEngName(eng.name);
+    setEngPhone(eng.phone);
+    setEngSpecialization(eng.specialization);
+    setEngType(eng.engineerType);
+    setEngShop(eng.shopName || 'JHF In-House Lab');
+    setEngModalOpen(true);
+  };
+
+  const handleSaveEngineer = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!partName.trim() || !partCode.trim()) return;
-    addServicePart({
-      name: partName,
-      code: partCode,
-      category: partCategory,
-      stock: partStock,
-      minStockAlert: 2,
-      purchaseCost: partCost,
-      sellingPrice: partPrice,
-      warrantyDays: partWarranty,
-      isDummy: false,
-    });
-    setNewPartOpen(false);
+    if (!engName.trim() || !engPhone.trim()) return;
+    if (editingEngineerId) {
+      updateServiceEngineer(editingEngineerId, {
+        name: engName.trim(),
+        phone: engPhone.trim(),
+        specialization: engSpecialization.trim() || 'General Laptop Servicing',
+        engineerType: engType,
+        shopName: engShop.trim() || 'JHF In-House Lab',
+      });
+    } else {
+      addServiceEngineer({
+        name: engName.trim(),
+        phone: engPhone.trim(),
+        specialization: engSpecialization.trim() || 'General Laptop Servicing',
+        engineerType: engType,
+        shopName: engShop.trim() || 'JHF In-House Lab',
+        status: 'active',
+        totalJobs: 0,
+        completedJobs: 0,
+        isDummy: false,
+      });
+    }
+    setEngModalOpen(false);
+    setEditingEngineerId(null);
+    setEngName('');
+    setEngPhone('');
+    setEngSpecialization('');
+    setEngShop('JHF In-House Lab');
+  };
+
+  const openNewPartModal = () => {
+    setEditingPartId(null);
     setPartName('');
     setPartCode('');
+    setPartCategory('Display');
+    setPartStock(5);
+    setPartMinStock(2);
+    setPartCost(3000);
+    setPartPrice(4500);
+    setPartWarranty(180);
+    setPartSupplier('');
+    setPartModalOpen(true);
+  };
+
+  const openEditPartModal = (part: ServicePart) => {
+    setEditingPartId(part.id);
+    setPartName(part.name);
+    setPartCode(part.code);
+    setPartCategory(part.category);
+    setPartStock(part.stock);
+    setPartMinStock(part.minStockAlert ?? 2);
+    setPartCost(part.purchaseCost);
+    setPartPrice(part.sellingPrice);
+    setPartWarranty(part.warrantyDays ?? 0);
+    setPartSupplier(part.supplier || '');
+    setPartModalOpen(true);
+  };
+
+  const handleSavePart = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!partName.trim() || !partCode.trim()) return;
+    const payload = {
+      name: partName.trim(),
+      code: partCode.trim(),
+      category: partCategory,
+      stock: Math.max(0, Number(partStock) || 0),
+      minStockAlert: Math.max(0, Number(partMinStock) || 0),
+      purchaseCost: Math.max(0, Number(partCost) || 0),
+      sellingPrice: Math.max(0, Number(partPrice) || 0),
+      warrantyDays: Math.max(0, Number(partWarranty) || 0),
+      supplier: partSupplier.trim() || undefined,
+    };
+
+    if (editingPartId) {
+      updateServicePart(editingPartId, payload);
+    } else {
+      addServicePart({
+        ...payload,
+        isDummy: false,
+      });
+    }
+    setPartModalOpen(false);
+    setEditingPartId(null);
+    setPartName('');
+    setPartCode('');
+    setPartSupplier('');
   };
 
   return (
@@ -181,13 +303,14 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
               JHF SERVICE ZONE <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">DIAGNOSTICS &amp; LAB</span>
             </h1>
             <p className="text-xs text-slate-400">
-              Complete laptop repair operations: intake, chip-level soldering, parts, billing &amp; warranty management.
+              Complete laptop repair operations: intake, chip-level soldering, spare parts warranty, billing &amp; service vouchers.
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
+            type="button"
             onClick={() => setConfirmClearServiceModalOpen(true)}
             className="px-3.5 py-2 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-md border border-rose-400/30 transition"
             title="Clear all demo/dummy service jobs, technicians, parts, and warranty claims"
@@ -196,6 +319,7 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
             <span>Clear Service Dummy Data</span>
           </button>
           <button
+            type="button"
             onClick={() => setWarrantyModalOpen(true)}
             className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition"
           >
@@ -203,6 +327,7 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
             File Warranty Claim
           </button>
           <button
+            type="button"
             onClick={() => setNewJobModalOpen(true)}
             className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-950/50 transition"
           >
@@ -223,20 +348,25 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
       <div className="flex border-b border-slate-800 text-xs font-semibold overflow-x-auto gap-1">
         {[
           { id: 'dashboard', label: 'Service Dashboard', icon: TrendingUp },
-          { id: 'active', label: `Active Services (${services.filter((s) => s.status !== 'DELIVERED').length})`, icon: Wrench },
+          { id: 'active', label: `Active Services (${services.filter((s) => s.status !== 'DELIVERED' && s.status !== 'CANCELLED').length})`, icon: Wrench },
           { id: 'estimates', label: `Estimates (${services.filter((s) => s.status === 'ESTIMATE READY').length})`, icon: DollarSign },
           { id: 'engineers', label: `Engineers (${serviceEngineers.length})`, icon: Users },
           { id: 'parts', label: `Service Parts (${serviceParts.length})`, icon: HardDrive },
           { id: 'warranty', label: `Warranty Claims (${warrantyClaims.length})`, icon: ShieldCheck },
-          { id: 'invoices', label: 'Service Invoices', icon: Printer },
+          { id: 'invoices', label: 'Service Vouchers / Invoices', icon: Printer },
           { id: 'reports', label: 'Service Reports', icon: FileText },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
             <button
+              type="button"
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => {
+                const nextTab = tab.id as ServiceZoneVisibleTab;
+                setActiveTab(nextTab);
+                onTabChange?.(nextTab);
+              }}
               className={`px-4 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
                 isActive
                   ? 'border-blue-500 text-white bg-slate-850'
@@ -253,7 +383,6 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
       {/* TAB 1: SERVICE DASHBOARD */}
       {activeTab === 'dashboard' && (
         <div className="space-y-6">
-          {/* Primary Metrics Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5">
               <div className="text-[11px] font-semibold text-slate-400 uppercase">Total Intake</div>
@@ -292,7 +421,6 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
             </div>
           </div>
 
-          {/* Financial KPIs */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
               <div>
@@ -331,7 +459,7 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
               <div>
                 <div className="text-[11px] font-semibold text-purple-400 uppercase">Service Net Profit</div>
                 <div className="text-2xl font-bold font-mono text-purple-300 mt-1">৳{totalProfit.toLocaleString()}</div>
-                <div className="text-[10px] text-purple-500/80 mt-0.5">Labor profit margin</div>
+                <div className="text-[10px] text-purple-500/80 mt-0.5">Labor + Parts profit</div>
               </div>
               <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
                 <TrendingUp className="w-5 h-5" />
@@ -347,6 +475,7 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                 <h3 className="text-xs font-bold text-white uppercase tracking-wider">Active Service Job Queue</h3>
               </div>
               <button
+                type="button"
                 onClick={() => setActiveTab('active')}
                 className="text-xs text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 transition"
               >
@@ -357,7 +486,7 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
 
             <div className="divide-y divide-slate-800/60">
               {services
-                .filter((s) => s.status !== 'DELIVERED')
+                .filter((s) => s.status !== 'DELIVERED' && s.status !== 'CANCELLED')
                 .slice(0, 5)
                 .map((job) => (
                   <div key={job.id} className="p-4 hover:bg-slate-800/30 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
@@ -385,7 +514,8 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                         </div>
                       </div>
                       <button
-                        onClick={() => setSelectedJobForDetail(job)}
+                        type="button"
+                        onClick={() => setSelectedDetailJobId(job.id)}
                         className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition"
                       >
                         Manage
@@ -401,7 +531,6 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
       {/* TAB 2: ACTIVE SERVICES TABLE */}
       {activeTab === 'active' && (
         <div className="space-y-4">
-          {/* Filters Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 rounded-xl p-3.5">
             <div className="relative flex-1 max-w-md">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -416,8 +545,22 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
 
             {/* Status Filter Pills */}
             <div className="flex flex-wrap gap-1">
-              {['ALL', 'RECEIVED', 'DIAGNOSING', 'ESTIMATE READY', 'WAITING FOR PARTS', 'IN REPAIR', 'READY FOR DELIVERY', 'DELIVERED', 'WARRANTY RETURN'].map((st) => (
+              {[
+                'ALL',
+                'RECEIVED',
+                'DIAGNOSING',
+                'ESTIMATE READY',
+                'CUSTOMER APPROVAL',
+                'WAITING FOR PARTS',
+                'IN REPAIR',
+                'TESTING',
+                'READY FOR DELIVERY',
+                'DELIVERED',
+                'WARRANTY RETURN',
+                'CANCELLED',
+              ].map((st) => (
                 <button
+                  type="button"
                   key={st}
                   onClick={() => setStatusFilter(st)}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition ${
@@ -432,7 +575,6 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
             </div>
           </div>
 
-          {/* Jobs Table */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
@@ -481,13 +623,15 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                           <div className="text-[10px] text-slate-500">{job.serviceShopName || 'Main Lab'}</div>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                            job.status === 'DELIVERED'
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : job.status === 'WARRANTY RETURN'
-                              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                              : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                          }`}>
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              job.status === 'DELIVERED'
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                : job.status === 'WARRANTY RETURN'
+                                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                            }`}
+                          >
                             {job.status}
                           </span>
                         </td>
@@ -500,17 +644,31 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                         <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center gap-1.5">
                             <button
-                              onClick={() => setSelectedJobForDetail(job)}
+                              type="button"
+                              onClick={() => setSelectedDetailJobId(job.id)}
                               className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px] transition"
                             >
                               Job Sheet
                             </button>
                             <button
-                              onClick={() => setSelectedJobForInvoice(job)}
-                              title="Print Service Invoice"
-                              className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                              type="button"
+                              onClick={() => setSelectedInvoiceJobId(job.id)}
+                              title="Print Service Invoice / Voucher"
+                              className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
                             >
                               <Printer className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Delete Service Job ${job.id}?`)) {
+                                  deleteServiceJob(job.id);
+                                }
+                              }}
+                              title="Delete service job"
+                              className="p-1.5 rounded bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 transition"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -558,7 +716,8 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
 
                   <div className="flex items-center justify-end gap-2 pt-1">
                     <button
-                      onClick={() => setSelectedJobForDetail(job)}
+                      type="button"
+                      onClick={() => setSelectedDetailJobId(job.id)}
                       className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs"
                     >
                       Open Job Sheet &amp; Approve
@@ -579,7 +738,8 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
               <p className="text-xs text-slate-400 mt-0.5">In-house hardware engineers and third-party specialty labs.</p>
             </div>
             <button
-              onClick={() => setNewEngOpen(true)}
+              type="button"
+              onClick={openNewEngineerModal}
               className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -597,22 +757,37 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {serviceEngineers.map((eng) => (
                 <div key={eng.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="font-bold text-white text-sm">{eng.name}</div>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        eng.engineerType === 'internal'
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : 'bg-purple-500/20 text-purple-300'
-                      }`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-bold text-white text-sm truncate">{eng.name}</div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          eng.engineerType === 'internal'
+                            ? 'bg-emerald-500/20 text-emerald-300'
+                            : 'bg-purple-500/20 text-purple-300'
+                        }`}
+                      >
                         {eng.engineerType}
                       </span>
                       <button
-                        onClick={() => deleteServiceEngineer(eng.id)}
-                        className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition"
+                        type="button"
+                        onClick={() => openEditEngineerModal(eng)}
+                        className="p-1 rounded text-slate-400 hover:text-blue-400 hover:bg-slate-800 transition"
+                        title="Edit engineer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`Remove engineer "${eng.name}"?`)) {
+                            deleteServiceEngineer(eng.id);
+                          }
+                        }}
+                        className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
                         title="Delete engineer"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -646,10 +821,11 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
           <div className="flex justify-between items-center bg-slate-900 border border-slate-800 rounded-xl p-4">
             <div>
               <h3 className="text-sm font-bold text-white">Laptop Service Spare Parts Inventory</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Dedicated repair stock: Displays, Keyboards, Batteries, RAM, SSD, Adapters.</p>
+              <p className="text-xs text-slate-400 mt-0.5">Dedicated repair stock with warranty duration (auto-printed on service vouchers).</p>
             </div>
             <button
-              onClick={() => setNewPartOpen(true)}
+              type="button"
+              onClick={openNewPartModal}
               className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -658,60 +834,96 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
           </div>
 
           <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-950/80 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">
-                  <th className="py-3 px-4">Part Name</th>
-                  <th className="py-3 px-4">Part Code</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4 text-center">In Stock</th>
-                  <th className="py-3 px-4 text-right">Cost Price</th>
-                  <th className="py-3 px-4 text-right">Selling Price</th>
-                  <th className="py-3 px-4 text-center">Warranty</th>
-                  <th className="py-3 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {serviceParts.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-slate-500">
-                      কোনো সার্ভিস পার্টস পাওয়া যায়নি (No spare parts found in inventory).
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-950/80 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                    <th className="py-3 px-4">Part Name</th>
+                    <th className="py-3 px-4">Part Code</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4 text-center">In Stock</th>
+                    <th className="py-3 px-4 text-right">Cost Price</th>
+                    <th className="py-3 px-4 text-right">Selling Price</th>
+                    <th className="py-3 px-4 text-center">Warranty</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
-                ) : (
-                  serviceParts.map((part) => (
-                    <tr key={part.id} className="hover:bg-slate-800/30 transition">
-                      <td className="py-3 px-4 font-semibold text-white">{part.name}</td>
-                      <td className="py-3 px-4 font-mono text-slate-400">{part.code}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 text-[10px]">
-                          {part.category}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-center font-mono">
-                        <span className={`px-2 py-0.5 rounded font-bold ${
-                          part.stock <= part.minStockAlert ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'
-                        }`}>
-                          {part.stock} pcs
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono text-slate-400">৳{part.purchaseCost.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-white">৳{part.sellingPrice.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-center text-emerald-400 font-semibold">{part.warrantyDays || 30} Days</td>
-                      <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => deleteServicePart(part.id)}
-                          className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition"
-                          title="Delete spare part"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                  {serviceParts.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-8 text-center text-slate-500">
+                        কোনো সার্ভিস পার্টস পাওয়া যায়নি (No spare parts found in inventory).
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    serviceParts.map((part) => (
+                      <tr key={part.id} className="hover:bg-slate-800/30 transition">
+                        <td className="py-3 px-4 font-semibold text-white">
+                          <div>{part.name}</div>
+                          {part.supplier && (
+                            <div className="text-[10px] text-slate-500 font-normal">Supplier: {part.supplier}</div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-slate-400">{part.code}</td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 text-[10px]">
+                            {part.category}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center font-mono">
+                          <span
+                            className={`px-2 py-0.5 rounded font-bold ${
+                              part.stock <= (part.minStockAlert ?? 2)
+                                ? 'bg-rose-500/20 text-rose-300'
+                                : 'bg-emerald-500/20 text-emerald-300'
+                            }`}
+                          >
+                            {part.stock} pcs
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono text-slate-400">৳{part.purchaseCost.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right font-mono font-bold text-white">৳{part.sellingPrice.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded font-semibold text-[11px] ${
+                              (part.warrantyDays ?? 0) > 0
+                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                : 'bg-slate-800 text-slate-400'
+                            }`}
+                          >
+                            {formatWarrantyDays(part.warrantyDays ?? 0)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => openEditPartModal(part)}
+                              className="p-1.5 rounded text-slate-400 hover:text-blue-400 hover:bg-slate-800 transition"
+                              title="Edit spare part & warranty"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Delete spare part "${part.name}"?`)) {
+                                  deleteServicePart(part.id);
+                                }
+                              }}
+                              className="p-1.5 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
+                              title="Delete spare part"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -725,6 +937,7 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
               <p className="text-xs text-slate-400 mt-0.5">Tracking post-delivery warranty claims under the JHF Service Guarantee.</p>
             </div>
             <button
+              type="button"
               onClick={() => setWarrantyModalOpen(true)}
               className="px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 transition"
             >
@@ -741,40 +954,88 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {warrantyClaims.map((claim) => (
-                <div key={claim.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-mono font-bold text-white text-sm">{claim.id}</div>
-                      <div className="text-slate-400 text-[11px]">Original Job: <strong className="text-white">{claim.originalServiceId}</strong></div>
+              {warrantyClaims.map((claim) => {
+                const draftVal =
+                  claimResolutionDrafts[claim.id] !== undefined
+                    ? claimResolutionDrafts[claim.id]
+                    : claim.resolution || '';
+                return (
+                  <div key={claim.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <div className="font-mono font-bold text-white text-sm">{claim.id}</div>
+                        <div className="text-slate-400 text-[11px]">
+                          Original Job: <strong className="text-white">{claim.originalServiceId}</strong>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={claim.status}
+                          onChange={(e) =>
+                            updateWarrantyClaim(claim.id, {
+                              status: e.target.value as WarrantyClaim['status'],
+                              resolvedDate: ['REPAIRED', 'REPLACED', 'REJECTED'].includes(e.target.value)
+                                ? new Date().toISOString()
+                                : undefined,
+                            })
+                          }
+                          className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[11px] font-bold text-emerald-300 outline-none"
+                        >
+                          {CLAIM_STATUSES.map((st) => (
+                            <option key={st} value={st}>
+                              {st}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`Delete warranty claim ${claim.id}?`)) {
+                              deleteWarrantyClaim(claim.id);
+                            }
+                          }}
+                          className="p-1.5 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition"
+                          title="Delete warranty claim (ডিলিট করুন)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase">
-                        {claim.status}
-                      </span>
-                      <button
-                        onClick={() => deleteWarrantyClaim(claim.id)}
-                        className="p-1.5 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition"
-                        title="Delete warranty claim (ডিলিট করুন)"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+
+                    <div className="bg-slate-950/60 p-3 rounded-lg border border-slate-800 space-y-1">
+                      <div><strong>Customer:</strong> {claim.customerName} ({claim.customerPhone})</div>
+                      <div><strong>Device:</strong> {claim.laptopModel}</div>
+                      <div><strong>Reported Problem:</strong> {claim.reportedProblem}</div>
+                      <div className="pt-1.5 flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={draftVal}
+                          onChange={(e) =>
+                            setClaimResolutionDrafts((prev) => ({
+                              ...prev,
+                              [claim.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="Enter resolution summary..."
+                          className="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-emerald-300 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateWarrantyClaim(claim.id, { resolution: draftVal })}
+                          className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-slate-500 flex justify-between items-center">
+                      <span>Handled By: {claim.handledBy}</span>
+                      <span>Filed: {new Date(claim.claimDate).toLocaleDateString()}</span>
                     </div>
                   </div>
-
-                  <div className="bg-slate-950/60 p-3 rounded-lg border border-slate-800 space-y-1">
-                    <div><strong>Customer:</strong> {claim.customerName} ({claim.customerPhone})</div>
-                    <div><strong>Device:</strong> {claim.laptopModel}</div>
-                    <div><strong>Reported Problem:</strong> {claim.reportedProblem}</div>
-                    {claim.resolution && <div className="text-emerald-400"><strong>Resolution:</strong> {claim.resolution}</div>}
-                  </div>
-
-                  <div className="text-[11px] text-slate-500 flex justify-between items-center">
-                    <span>Handled By: {claim.handledBy}</span>
-                    <span>Filed: {new Date(claim.claimDate).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -784,8 +1045,8 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
       {activeTab === 'invoices' && (
         <div className="space-y-4">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <h3 className="text-sm font-bold text-white">Official JHF Service &amp; Repair Invoices</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Printable and downloadable delivery sheets and service invoices.</p>
+            <h3 className="text-sm font-bold text-white">Official JHF Service Vouchers &amp; Invoices</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Printable delivery vouchers automatically listing attached spare parts &amp; part warranties.</p>
           </div>
 
           {services.length === 0 ? (
@@ -802,6 +1063,7 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                     <th className="py-3 px-4">Invoice / Job ID</th>
                     <th className="py-3 px-4">Customer</th>
                     <th className="py-3 px-4">Laptop Model</th>
+                    <th className="py-3 px-4 text-center">Parts</th>
                     <th className="py-3 px-4 text-center">Service Warranty</th>
                     <th className="py-3 px-4 text-right">Net Bill</th>
                     <th className="py-3 px-4 text-center">Action</th>
@@ -813,15 +1075,19 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                       <td className="py-3 px-4 font-mono font-bold text-white">{job.id}</td>
                       <td className="py-3 px-4">{job.customerName}</td>
                       <td className="py-3 px-4">{job.laptopBrand} {job.laptopModel}</td>
-                      <td className="py-3 px-4 text-center text-emerald-400 font-semibold">{job.serviceWarrantyDays || 30} Days</td>
+                      <td className="py-3 px-4 text-center font-mono text-slate-400">{(job.partsUsed || []).length}</td>
+                      <td className="py-3 px-4 text-center text-emerald-400 font-semibold">
+                        {formatWarrantyDays(job.serviceWarrantyDays ?? 0)}
+                      </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-white">৳{job.totalCost.toLocaleString()}</td>
                       <td className="py-3 px-4 text-center">
                         <button
-                          onClick={() => setSelectedJobForInvoice(job)}
+                          type="button"
+                          onClick={() => setSelectedInvoiceJobId(job.id)}
                           className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-white font-semibold flex items-center gap-1 mx-auto transition"
                         >
                           <Printer className="w-3.5 h-3.5 text-emerald-400" />
-                          Print A4 Invoice
+                          Print A4 Voucher
                         </button>
                       </td>
                     </tr>
@@ -855,7 +1121,7 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                     <div>
                       <span className="font-mono font-bold text-white text-sm">{job.id}</span> &bull;{' '}
                       <span className="font-semibold text-slate-200">{job.laptopBrand} {job.laptopModel}</span>
-                      <div className="text-[11px] text-slate-400">Customer: {job.customerName} &bull; Engineer: {job.engineerName}</div>
+                      <div className="text-[11px] text-slate-400">Customer: {job.customerName} &bull; Engineer: {job.engineerName || 'Unassigned'}</div>
                     </div>
                     <span className="px-2.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold uppercase text-[10px]">
                       {job.status}
@@ -876,7 +1142,12 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                     <div><strong>Complaint:</strong> {job.customerComplaintText || 'General inspection'}</div>
                     <div><strong>Diagnosis:</strong> {job.diagnosis || 'Pending inspection'}</div>
                     <div><strong>Testing:</strong> {job.finalTestingResults || 'Not recorded'}</div>
-                    <div><strong>Parts Attached:</strong> {(job.partsUsed || []).map((p) => p.partName).join(', ') || 'None (Labor only)'}</div>
+                    <div>
+                      <strong>Parts Attached:</strong>{' '}
+                      {(job.partsUsed || [])
+                        .map((p) => `${p.partName} (${formatWarrantyDays(p.warrantyDays ?? 0)})`)
+                        .join(', ') || 'None (Labor only)'}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -889,26 +1160,31 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
       {newJobModalOpen && (
         <NewServiceJobModal
           isOpen={newJobModalOpen}
-          onClose={() => setNewJobModalOpen(false)}
-          onCreated={(newJob) => setSelectedJobForDetail(newJob)}
+          onClose={() => {
+            setNewJobModalOpen(false);
+            if (initialTab === 'new') {
+              onTabChange?.(activeTab);
+            }
+          }}
+          onCreated={(newJob) => setSelectedDetailJobId(newJob.id)}
         />
       )}
 
-      {/* Job Sheet Detail Modal */}
-      {selectedJobForDetail && (
+      {/* Job Sheet Detail Modal (Reactive Lookup) */}
+      {activeDetailJob && (
         <ServiceJobDetailModal
-          job={selectedJobForDetail}
-          isOpen={!!selectedJobForDetail}
-          onClose={() => setSelectedJobForDetail(null)}
+          job={activeDetailJob}
+          isOpen={!!activeDetailJob}
+          onClose={() => setSelectedDetailJobId(null)}
         />
       )}
 
-      {/* Service Invoice Modal */}
-      {selectedJobForInvoice && (
+      {/* Service Invoice Modal (Reactive Lookup) */}
+      {activeInvoiceJob && (
         <ServiceInvoiceModal
-          job={selectedJobForInvoice}
-          isOpen={!!selectedJobForInvoice}
-          onClose={() => setSelectedJobForInvoice(null)}
+          job={activeInvoiceJob}
+          isOpen={!!activeInvoiceJob}
+          onClose={() => setSelectedInvoiceJobId(null)}
         />
       )}
 
@@ -920,12 +1196,14 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
         />
       )}
 
-      {/* New Engineer Modal */}
-      {newEngOpen && (
+      {/* Add / Edit Engineer Modal */}
+      {engModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-5 space-y-3 text-xs">
-            <h3 className="font-bold text-white text-sm">Add Service Engineer / Lab</h3>
-            <form onSubmit={handleAddEngineer} className="space-y-3">
+            <h3 className="font-bold text-white text-sm">
+              {editingEngineerId ? 'Edit Service Engineer / Lab' : 'Add Service Engineer / Lab'}
+            </h3>
+            <form onSubmit={handleSaveEngineer} className="space-y-3">
               <div>
                 <label className="text-slate-300 block mb-1">Full Name *</label>
                 <input
@@ -958,21 +1236,33 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                   className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white outline-none"
                 />
               </div>
-              <div>
-                <label className="text-slate-300 block mb-1">Type</label>
-                <select
-                  value={engType}
-                  onChange={(e) => setEngType(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white outline-none"
-                >
-                  <option value="internal">In-House Technician (JHF)</option>
-                  <option value="external">External Third-Party Lab</option>
-                </select>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-slate-300 block mb-1">Type</label>
+                  <select
+                    value={engType}
+                    onChange={(e) => setEngType(e.target.value as 'internal' | 'external')}
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white outline-none"
+                  >
+                    <option value="internal">In-House Technician (JHF)</option>
+                    <option value="external">External Third-Party Lab</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1">Lab / Shop Name</label>
+                  <input
+                    type="text"
+                    value={engShop}
+                    onChange={(e) => setEngShop(e.target.value)}
+                    placeholder="JHF In-House Lab"
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white outline-none"
+                  />
+                </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setNewEngOpen(false)}
+                  onClick={() => setEngModalOpen(false)}
                   className="px-3 py-1.5 rounded bg-slate-800 text-slate-300"
                 >
                   Cancel
@@ -981,7 +1271,7 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                   type="submit"
                   className="px-4 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
                 >
-                  Add Engineer
+                  {editingEngineerId ? 'Save Changes' : 'Add Engineer'}
                 </button>
               </div>
             </form>
@@ -989,12 +1279,14 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
         </div>
       )}
 
-      {/* New Spare Part Modal */}
-      {newPartOpen && (
+      {/* Add / Edit Spare Part Modal WITH WARRANTY OPTION */}
+      {partModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-5 space-y-3 text-xs">
-            <h3 className="font-bold text-white text-sm">Add New Spare Part to Inventory</h3>
-            <form onSubmit={handleAddPart} className="space-y-3">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full p-5 space-y-3 text-xs">
+            <h3 className="font-bold text-white text-sm">
+              {editingPartId ? 'Edit Spare Part & Warranty Terms' : 'Add New Spare Part to Inventory'}
+            </h3>
+            <form onSubmit={handleSavePart} className="space-y-3">
               <div>
                 <label className="text-slate-300 block mb-1">Part Name *</label>
                 <input
@@ -1002,8 +1294,8 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                   required
                   value={partName}
                   onChange={(e) => setPartName(e.target.value)}
-                  placeholder="e.g. 14.0 FHD IPS Panel"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white outline-none"
+                  placeholder="e.g. 14.0 FHD IPS Display Panel (30-Pin)"
+                  className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white outline-none focus:border-blue-500"
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -1022,27 +1314,36 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                   <label className="text-slate-300 block mb-1">Category</label>
                   <select
                     value={partCategory}
-                    onChange={(e) => setPartCategory(e.target.value as any)}
+                    onChange={(e) => setPartCategory(e.target.value as ServicePart['category'])}
                     className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white outline-none"
                   >
-                    <option value="Display">Display Panel</option>
-                    <option value="Keyboard">Keyboard</option>
-                    <option value="Battery">Battery</option>
-                    <option value="RAM">RAM</option>
-                    <option value="SSD / Storage">SSD / Storage</option>
-                    <option value="Adapter / Charger">Adapter / Charger</option>
-                    <option value="Cooling Fan / Paste">Cooling Fan / Paste</option>
-                    <option value="Other Component">Other Component</option>
+                    {PART_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+
+              <div className="grid grid-cols-4 gap-2">
                 <div>
                   <label className="text-slate-300 block mb-1">Stock Qty</label>
                   <input
                     type="number"
+                    min={0}
                     value={partStock}
-                    onChange={(e) => setPartStock(Number(e.target.value) || 0)}
+                    onChange={(e) => setPartStock(Math.max(0, Number(e.target.value) || 0))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white font-mono outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1">Min Alert</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={partMinStock}
+                    onChange={(e) => setPartMinStock(Math.max(0, Number(e.target.value) || 0))}
                     className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white font-mono outline-none"
                   />
                 </div>
@@ -1050,8 +1351,9 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                   <label className="text-slate-300 block mb-1">Cost (৳)</label>
                   <input
                     type="number"
+                    min={0}
                     value={partCost}
-                    onChange={(e) => setPartCost(Number(e.target.value) || 0)}
+                    onChange={(e) => setPartCost(Math.max(0, Number(e.target.value) || 0))}
                     className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white font-mono outline-none"
                   />
                 </div>
@@ -1059,16 +1361,73 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                   <label className="text-slate-300 block mb-1">Selling (৳)</label>
                   <input
                     type="number"
+                    min={0}
                     value={partPrice}
-                    onChange={(e) => setPartPrice(Number(e.target.value) || 0)}
+                    onChange={(e) => setPartPrice(Math.max(0, Number(e.target.value) || 0))}
                     className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white font-mono outline-none"
                   />
                 </div>
               </div>
+
+              {/* Warranty Duration Configuration */}
+              <div className="bg-slate-950/70 border border-emerald-500/30 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-emerald-300 font-bold flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Spare Part Warranty (Auto-shown on Service Voucher)
+                  </label>
+                  <span className="text-[11px] font-bold text-white">
+                    {formatWarrantyDays(partWarranty)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <select
+                    value={
+                      SPARE_PART_WARRANTY_OPTIONS.some((o) => o.days === partWarranty)
+                        ? String(partWarranty)
+                        : 'custom'
+                    }
+                    onChange={(e) => {
+                      if (e.target.value !== 'custom') {
+                        setPartWarranty(Number(e.target.value));
+                      }
+                    }}
+                    className="sm:col-span-2 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white outline-none focus:border-emerald-500"
+                  >
+                    {SPARE_PART_WARRANTY_OPTIONS.map((opt) => (
+                      <option key={opt.days} value={String(opt.days)}>
+                        {opt.label}
+                      </option>
+                    ))}
+                    <option value="custom">Custom Days...</option>
+                  </select>
+                  <input
+                    type="number"
+                    min={0}
+                    value={partWarranty}
+                    onChange={(e) => setPartWarranty(Math.max(0, Number(e.target.value) || 0))}
+                    placeholder="Days"
+                    className="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white font-mono outline-none focus:border-emerald-500"
+                    title="Exact warranty days (0 for No Warranty)"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-300 block mb-1">Supplier / Source (Optional)</label>
+                <input
+                  type="text"
+                  value={partSupplier}
+                  onChange={(e) => setPartSupplier(e.target.value)}
+                  placeholder="e.g. Multiplan Trade Hub / Original Pull"
+                  className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white outline-none"
+                />
+              </div>
+
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setNewPartOpen(false)}
+                  onClick={() => setPartModalOpen(false)}
                   className="px-3 py-1.5 rounded bg-slate-800 text-slate-300"
                 >
                   Cancel
@@ -1077,7 +1436,7 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
                   type="submit"
                   className="px-4 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
                 >
-                  Save Spare Part
+                  {editingPartId ? 'Update Spare Part' : 'Save Spare Part'}
                 </button>
               </div>
             </form>
@@ -1101,7 +1460,7 @@ export const ServiceZoneView: React.FC<ServiceZoneViewProps> = ({ initialTab = '
 
             <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-2 text-xs text-slate-300">
               <p>
-                This will permanently delete all demo <strong>Active Services, Estimates, Demo Engineers (3), Spare Parts, Warranty Claims (1),</strong> and repair intake requests.
+                This will permanently delete all demo <strong>Active Services, Estimates, Demo Engineers, Spare Parts, Warranty Claims,</strong> and repair intake requests.
               </p>
               <p className="text-slate-400">
                 সার্ভিস ড্যাশবোর্ড সম্পূর্ণ ক্লিন (Clean/Zero) হয়ে যাবে এবং আপনি আপনার আসল গ্রাহক ও ইঞ্জিনিয়ারদের ডাটা নির্ভুলভাবে এন্ট্রি করতে পারবেন।

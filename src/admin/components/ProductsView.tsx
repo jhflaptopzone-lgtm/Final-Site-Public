@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdminStore } from '../adminStore';
 import { useAdminAuth } from '../authContext';
 import { Product } from '../types';
 import { SmartProductAddModal } from './SmartProductAddModal';
 import { BulkStockImportModal } from './BulkStockImportModal';
 import { BarcodeGenerator } from './BarcodeGenerator';
+import { buildShareUrl, copyTextToClipboard } from '../../utils/shareLinks';
 import {
   Laptop,
   Plus,
@@ -24,19 +25,34 @@ import {
   Printer,
   Sparkles,
   X,
+  Image as ImageIcon,
+  Link2,
+  Check,
 } from 'lucide-react';
 
 interface ProductsViewProps {
   initialTrashMode?: boolean;
+  navigationTick?: number;
+  onOpenLatitudeImport?: () => void;
+  onOpenImageManager?: () => void;
 }
 
-export const ProductsView: React.FC<ProductsViewProps> = ({ initialTrashMode = false }) => {
+export const ProductsView: React.FC<ProductsViewProps> = ({
+  initialTrashMode = false,
+  navigationTick = 0,
+  onOpenLatitudeImport,
+  onOpenImageManager,
+}) => {
   const { products, addProduct, updateProduct, softDeleteProduct, restoreProduct, permanentDeleteProduct, clearAllProducts, exportDataAsCsv, exportDataAsJson } = useAdminStore();
   const { hasPermission, currentUser } = useAdminAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBrand, setSelectedBrand] = useState<string>('all');
   const [showTrash, setShowTrash] = useState(initialTrashMode);
+
+  useEffect(() => {
+    setShowTrash(initialTrashMode);
+  }, [initialTrashMode, navigationTick]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -47,6 +63,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ initialTrashMode = f
 
   // Notification Toast
   const [notification, setNotification] = useState<string | null>(null);
+  const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
 
   // Soft Delete Modal
   const [deleteModalId, setDeleteModalId] = useState<string | null>(null);
@@ -57,6 +74,16 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ initialTrashMode = f
     setTimeout(() => {
       setNotification(null);
     }, 4000);
+  };
+
+  const handleCopyProductShareLink = async (prod: Product) => {
+    const url = buildShareUrl('laptop', prod);
+    const ok = await copyTextToClipboard(url);
+    if (ok) {
+      setCopiedShareId(prod.id);
+      showToast(`Copied Facebook-ready share link: ${url}`);
+      setTimeout(() => setCopiedShareId((prev) => (prev === prod.id ? null : prev)), 2500);
+    }
   };
 
   const filteredProducts = products.filter((prod) => {
@@ -182,6 +209,28 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ initialTrashMode = f
 
           {!showTrash && hasPermission('Products', 'write') && (
             <>
+              {onOpenImageManager && (
+                <button
+                  onClick={onOpenImageManager}
+                  className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 text-xs font-bold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer"
+                  title="Open Universal Exact Model Image Finder & AI Vision Manager"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>AI Image Finder</span>
+                </button>
+              )}
+
+              {onOpenLatitudeImport && (
+                <button
+                  onClick={onOpenLatitudeImport}
+                  className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 text-xs font-bold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer"
+                  title="Open Dell Latitude 6th–11th Gen BDStall Import & Price Sync"
+                >
+                  <Laptop className="w-4 h-4" />
+                  <span>Dell Latitude BDStall Sync</span>
+                </button>
+              )}
+
               <button
                 onClick={() => setIsBulkImportOpen(true)}
                 className="bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer"
@@ -432,6 +481,31 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ initialTrashMode = f
                           </div>
                         ) : (
                           <div className="flex items-center justify-end gap-1.5">
+                            <div className="inline-flex items-center rounded-lg border border-cyan-500/30 bg-cyan-600/10 overflow-hidden">
+                              <a
+                                href={buildShareUrl('laptop', prod)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-2 py-1 text-xs font-semibold text-cyan-400 hover:bg-cyan-600/20 flex items-center gap-1 transition"
+                                title={`Open Full Specs Link: ${buildShareUrl('laptop', prod)}`}
+                              >
+                                <Link2 className="w-3 h-3" />
+                                <span className="hidden xl:inline">Link</span>
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyProductShareLink(prod)}
+                                className={`px-1.5 py-1 border-l border-cyan-500/20 text-xs transition ${
+                                  copiedShareId === prod.id
+                                    ? 'bg-emerald-600/30 text-emerald-300'
+                                    : 'text-cyan-300 hover:bg-cyan-600/20'
+                                }`}
+                                title={`Copy Link: ${buildShareUrl('laptop', prod)}`}
+                              >
+                                {copiedShareId === prod.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                              </button>
+                            </div>
+
                             <button
                               onClick={() => setBarcodePrintProduct(prod)}
                               className="px-2 py-1 rounded-lg bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1 transition"

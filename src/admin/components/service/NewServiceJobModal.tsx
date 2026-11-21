@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdminStore } from '../../adminStore';
 import { useAdminAuth } from '../../authContext';
 import { ServiceJob, ServiceStatus } from '../../types';
 import { SERVICE_COMPLAINT_PRESETS } from '../../data/serviceInitialData';
-import { X, Wrench, Laptop, User, Calendar, DollarSign, Check, Plus, AlertCircle } from 'lucide-react';
+import { SERVICE_WARRANTY_OPTIONS } from '../../../utils/warranty';
+import { X, Wrench, Laptop, User, DollarSign, Check, AlertCircle } from 'lucide-react';
 
 interface NewServiceJobModalProps {
   isOpen: boolean;
@@ -47,8 +48,15 @@ export const NewServiceJobModal: React.FC<NewServiceJobModalProps> = ({
   const [advancePaid, setAdvancePaid] = useState<number>(0);
   const [advancePaymentMethod, setAdvancePaymentMethod] = useState<'Cash' | 'bKash' | 'Nagad' | 'Bank'>('Cash');
   const [advanceTrxId, setAdvanceTrxId] = useState('');
+  const [serviceWarrantyDays, setServiceWarrantyDays] = useState<number>(30);
 
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!engineerId && serviceEngineers.length > 0) {
+      setEngineerId(serviceEngineers[0].id);
+    }
+  }, [serviceEngineers, engineerId]);
 
   if (!isOpen) return null;
 
@@ -137,8 +145,8 @@ export const NewServiceJobModal: React.FC<NewServiceJobModalProps> = ({
       profit: diagnosticFee * 0.8,
       paymentHistory,
       partsUsed: [],
-      serviceWarrantyDays: 60,
-      warrantyStatus: 'ACTIVE',
+      serviceWarrantyDays,
+      warrantyStatus: serviceWarrantyDays > 0 ? 'ACTIVE' : 'EXPIRED',
       isDummy: false, // NEW REAL USER JOB!
     });
 
@@ -383,7 +391,7 @@ export const NewServiceJobModal: React.FC<NewServiceJobModalProps> = ({
               <span>4. Engineer Assignment &amp; Intake Charges</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
                 <label className="text-slate-300 block mb-1">Assign Technician / Lab</label>
                 <select
@@ -401,11 +409,27 @@ export const NewServiceJobModal: React.FC<NewServiceJobModalProps> = ({
               </div>
 
               <div>
+                <label className="text-slate-300 block mb-1">Service Warranty</label>
+                <select
+                  value={serviceWarrantyDays}
+                  onChange={(e) => setServiceWarrantyDays(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                >
+                  {SERVICE_WARRANTY_OPTIONS.map((opt) => (
+                    <option key={opt.days} value={opt.days}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="text-slate-300 block mb-1">Diagnostic Testing Fee (৳)</label>
                 <input
                   type="number"
+                  min={0}
                   value={diagnosticFee}
-                  onChange={(e) => setDiagnosticFee(Number(e.target.value) || 0)}
+                  onChange={(e) => setDiagnosticFee(Math.max(0, Number(e.target.value) || 0))}
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono outline-none focus:border-blue-500"
                 />
               </div>
@@ -414,8 +438,9 @@ export const NewServiceJobModal: React.FC<NewServiceJobModalProps> = ({
                 <label className="text-slate-300 block mb-1">Advance Deposit Collected (৳)</label>
                 <input
                   type="number"
+                  min={0}
                   value={advancePaid}
-                  onChange={(e) => setAdvancePaid(Number(e.target.value) || 0)}
+                  onChange={(e) => setAdvancePaid(Math.max(0, Number(e.target.value) || 0))}
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono outline-none focus:border-blue-500"
                 />
               </div>

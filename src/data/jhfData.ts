@@ -1,3 +1,5 @@
+import { DELL_LATITUDE_CATALOG_SEED } from '../utils/dellLatitudeCatalogSpec';
+
 export interface LaptopItem {
   id: string;
   title: string;
@@ -5,6 +7,8 @@ export interface LaptopItem {
   series: string;
   specs: string;
   price: string;
+  mrp?: string;
+  numericMrp?: number;
   tag: string;
   image: string;
   url?: string;
@@ -149,137 +153,266 @@ export const STORE_INFO = {
   bankAccounts: OFFICIAL_BANK_ACCOUNTS,
 };
 
+export const BRAND_LAPTOP_IMAGES = {
+  Lenovo: '/images/lenovo-thinkpad.jpg',
+  HP: '/images/hp-elitebook.jpg',
+  Dell: '/images/dell-latitude.jpg',
+} as const;
+
 export const LAPTOPS_DATA: LaptopItem[] = [
+  // ==========================================
+  // LENOVO THINKPAD SERIES (Same Brand Picture)
+  // ==========================================
   {
     id: 'lenovo-l14-gen2',
-    title: 'Lenovo ThinkPad L14 Gen-2 (Core i5 11th Gen / 16GB RAM / 512GB NVMe SSD)',
+    title: 'Lenovo ThinkPad L14 Gen-2 Core i5 11th Gen',
     brand: 'Lenovo',
     series: 'ThinkPad L-Series',
-    specs: 'Intel Core i5-1135G7 (11th Gen) • 16GB DDR4 RAM • 512GB M.2 NVMe SSD • 14" FHD IPS Anti-Glare • Iris Xe Graphics • Thunderbolt 4 • Type-C Fast Charging',
-    price: '৳ 46,500',
+    specs: 'Intel Core i5-1135G7 (11th Gen) • 16GB DDR4 RAM • 512GB NVMe SSD • 14" FHD IPS • Intel Iris Xe Graphics • Thunderbolt 4',
+    price: '৳ 42,500',
+    mrp: '৳ 46,500',
+    numericMrp: 46500,
     tag: '11th Gen Iris Xe',
-    image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=700&auto=format&fit=crop&q=80',
+    image: BRAND_LAPTOP_IMAGES.Lenovo,
     url: 'https://www.jhflaptopzone.com/2024/03/lenovo-thinkpad-l14-gen-2-core-i5-11th.html'
   },
   {
     id: 'lenovo-t14s-gen1',
-    title: 'Lenovo ThinkPad T14s (Core i5 10th Gen / 16GB RAM / 512GB SSD)',
+    title: 'Lenovo ThinkPad T14s Core i5 10th Gen',
     brand: 'Lenovo',
     series: 'ThinkPad T-Series (Slim)',
-    specs: 'Intel Core i5-10210U (10th Gen) • 16GB RAM • 512GB NVMe SSD • 14" FHD IPS (Super Slim & Lightweight Magnesium Chassis) • Backlit KB • Fingerprint Security',
-    price: '৳ 42,500',
-    tag: 'Ultrabook Slim',
-    image: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=700&auto=format&fit=crop&q=80',
+    specs: 'Intel Core i5-10210U (10th Gen) • 16GB RAM • 512GB NVMe SSD • 14" FHD IPS Slim Magnesium Chassis • Backlit KB • Fingerprint',
+    price: '৳ 38,500',
+    mrp: '৳ 42,500',
+    numericMrp: 42500,
+    tag: '10th Gen Slim',
+    image: BRAND_LAPTOP_IMAGES.Lenovo,
     url: 'https://www.jhflaptopzone.com/2024/03/lenovo-thinkpad-t14s-core-i5-10th-gen.html'
   },
   {
-    id: 'lenovo-t480s-i5-8th-16gb',
-    title: 'Lenovo ThinkPad T480s (Core i5 8th Gen / 16GB RAM / 512GB NVMe SSD)',
+    id: 'lenovo-t480s-i5-8th-standard',
+    title: 'Lenovo ThinkPad T480s Core i5 8th Gen',
     brand: 'Lenovo',
     series: 'ThinkPad T-Series',
-    specs: 'Intel Core i5-8350U Quad Core • 16GB DDR4 • 512GB SSD • 14" FHD IPS • Dual Battery System • Type-C Thunderbolt 3 • Military-Grade Durability',
-    price: '৳ 33,500',
-    tag: 'Most Popular',
-    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=700&auto=format&fit=crop&q=80',
+    specs: 'Intel Core i5-8350U Quad Core (8th Gen) • 8GB DDR4 • 512GB NVMe SSD • 14" FHD IPS • Thunderbolt 3 • Backlit Keyboard',
+    price: '৳ 30,000',
+    mrp: '৳ 33,500',
+    numericMrp: 33500,
+    tag: '8th Gen Business',
+    image: BRAND_LAPTOP_IMAGES.Lenovo,
     url: 'https://www.jhflaptopzone.com/2024/02/core-i5-8th-gen-16gb-ram-512gb-ssd-14.html'
   },
   {
+    id: 'lenovo-t480-i5-7th-16-512',
+    title: 'Lenovo ThinkPad T480 (i5 7th, 16GB/512GB)',
+    brand: 'Lenovo',
+    series: 'ThinkPad T-Series',
+    specs: 'Intel Core i5-7300U (7th Gen) • 16GB DDR4 RAM • 512GB NVMe SSD • 14" FHD IPS • Dual Battery Support • USB-C Fast Charging',
+    price: '৳ 27,000',
+    mrp: '৳ 29,500',
+    numericMrp: 29500,
+    tag: 'Dual Battery Pro',
+    image: BRAND_LAPTOP_IMAGES.Lenovo,
+  },
+  {
+    id: 'lenovo-t480-i5-7th-8-256',
+    title: 'Lenovo ThinkPad T480 (i5 7th, 8GB/256GB)',
+    brand: 'Lenovo',
+    series: 'ThinkPad T-Series',
+    specs: 'Intel Core i5-7300U (7th Gen) • 8GB DDR4 RAM • 256GB NVMe SSD • 14" FHD IPS Anti-Glare • Dual Battery • Spill-Resistant KB',
+    price: '৳ 23,500',
+    mrp: '৳ 25,500',
+    numericMrp: 25500,
+    tag: 'Value ThinkPad',
+    image: BRAND_LAPTOP_IMAGES.Lenovo,
+  },
+  {
+    id: 'lenovo-t470s-i5-6th-16-512',
+    title: 'Lenovo ThinkPad T470s (i5 6th / 16GB / 512GB)',
+    brand: 'Lenovo',
+    series: 'ThinkPad T-Series (Slim)',
+    specs: 'Intel Core i5-6300U (6th Gen) • 16GB DDR4 RAM • 512GB M.2 SSD • 14" FHD IPS • Ultra-Slim Carbon Chassis • Dual Battery',
+    price: '৳ 24,500',
+    mrp: '৳ 26,500',
+    numericMrp: 26500,
+    tag: '16GB Heavy Work',
+    image: BRAND_LAPTOP_IMAGES.Lenovo,
+    url: 'https://www.jhflaptopzone.com/2024/02/lenovo-thinkpad-t470s.html'
+  },
+  {
+    id: 'lenovo-t470s-i5-6th-8-256',
+    title: 'Lenovo ThinkPad T470s (i5 6th / 8GB / 256GB)',
+    brand: 'Lenovo',
+    series: 'ThinkPad T-Series (Slim)',
+    specs: 'Intel Core i5-6300U (6th Gen) • 8GB DDR4 RAM • 256GB M.2 SSD • 14" FHD IPS • Lightweight Slim Ultrabook • Dual Battery',
+    price: '৳ 20,500',
+    mrp: '৳ 22,500',
+    numericMrp: 22500,
+    tag: 'Budget ThinkPad',
+    image: BRAND_LAPTOP_IMAGES.Lenovo,
+    url: 'https://www.jhflaptopzone.com/2024/02/lenovo-thinkpad-t470s.html'
+  },
+  {
+    id: 'lenovo-t480s-i5-8th-8-256',
+    title: 'Lenovo ThinkPad T480s (i5 8th, 8GB/256GB)',
+    brand: 'Lenovo',
+    series: 'ThinkPad T-Series (Slim)',
+    specs: 'Intel Core i5-8350U Quad Core (8th Gen) • 8GB DDR4 RAM • 256GB NVMe SSD • 14" FHD IPS • Thunderbolt 3 • 1.3kg Slim Body',
+    price: '৳ 27,500',
+    mrp: '৳ 29,500',
+    numericMrp: 29500,
+    tag: '8th Gen Slim',
+    image: BRAND_LAPTOP_IMAGES.Lenovo,
+  },
+  {
+    id: 'lenovo-t480s-i5-8th-16-512',
+    title: 'Lenovo ThinkPad T480s (i5 8th / 16GB / 512GB)',
+    brand: 'Lenovo',
+    series: 'ThinkPad T-Series (Slim)',
+    specs: 'Intel Core i5-8350U Quad Core (8th Gen) • 16GB DDR4 RAM • 512GB NVMe SSD • 14" FHD IPS • Thunderbolt 3 • Military-Grade',
+    price: '৳ 32,000',
+    mrp: '৳ 34,500',
+    numericMrp: 34500,
+    tag: 'Most Popular',
+    image: BRAND_LAPTOP_IMAGES.Lenovo,
+    url: 'https://www.jhflaptopzone.com/2024/02/core-i5-8th-gen-16gb-ram-512gb-ssd-14.html'
+  },
+
+  // ==========================================
+  // HP ELITEBOOK SERIES (Same Brand Picture)
+  // ==========================================
+  {
     id: 'hp-840-g8-32gb',
-    title: 'HP EliteBook 840 G8 (Core i5 11th Gen / 32GB RAM / 512GB NVMe SSD)',
+    title: 'HP EliteBook 840 G8 (32GB RAM, 512GB SSD)',
     brand: 'HP',
     series: 'EliteBook G8 Series',
-    specs: 'Intel Core i5 11th Gen • 32GB High Speed RAM • 512GB NVMe SSD • 14" FHD IPS 400 Nits • Premium CNC Aluminum • Bang & Olufsen Quad Speakers',
-    price: '৳ 54,000',
+    specs: 'Intel Core i5 11th Gen • 32GB High Speed RAM • 512GB NVMe SSD • 14" FHD IPS 400 Nits • CNC Aluminum • Bang & Olufsen Audio',
+    price: '৳ 51,000',
+    mrp: '৳ 54,000',
+    numericMrp: 54000,
     tag: '32GB Beast',
-    image: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=700&auto=format&fit=crop&q=80',
+    image: BRAND_LAPTOP_IMAGES.HP,
     url: 'https://www.jhflaptopzone.com/2023/09/blog-post.html'
   },
   {
     id: 'hp-840-g8-16gb',
-    title: 'HP EliteBook 840 G8 (Core i5 11th Gen / 16GB RAM / 512GB SSD)',
+    title: 'HP EliteBook 840 G8 (16GB RAM, 512GB SSD)',
     brand: 'HP',
     series: 'EliteBook G8 Series',
-    specs: 'Intel Core i5-1135G7 • 16GB DDR4 • 512GB SSD • 14" FHD IPS • Backlit Keyboard • Face Unlock IR Camera • Aluminum Unibody',
-    price: '৳ 48,500',
+    specs: 'Intel Core i5-1135G7 (11th Gen) • 16GB DDR4 • 512GB NVMe SSD • 14" FHD IPS • Face Unlock IR Camera • CNC Aluminum Unibody',
+    price: '৳ 45,500',
+    mrp: '৳ 48,500',
+    numericMrp: 48500,
     tag: '11th Gen Executive',
-    image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=700&auto=format&fit=crop&q=80',
+    image: BRAND_LAPTOP_IMAGES.HP,
     url: 'https://www.jhflaptopzone.com/2023/09/hp-elitebook-840-g8.html'
   },
   {
     id: 'hp-840-g7-16gb',
-    title: 'HP EliteBook 840 G7 (Core i5 10th Gen / 16GB RAM / 512GB SSD)',
+    title: 'HP EliteBook 840 G7 (16GB RAM, 512GB SSD)',
     brand: 'HP',
     series: 'EliteBook G7 Series',
-    specs: 'Intel Core i5-10310U • 16GB RAM • 512GB NVMe • 14" FHD IPS Micro-Edge • Slim & Elegant Silver Aluminum Finish • Type-C Thunderbolt',
-    price: '৳ 41,500',
+    specs: 'Intel Core i5-10310U (10th Gen) • 16GB RAM • 512GB NVMe SSD • 14" FHD IPS Micro-Edge • Slim Silver Aluminum • Thunderbolt',
+    price: '৳ 39,000',
+    mrp: '৳ 41,500',
+    numericMrp: 41500,
     tag: '10th Gen Value',
-    image: 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=700&auto=format&fit=crop&q=80',
+    image: BRAND_LAPTOP_IMAGES.HP,
     url: 'https://www.jhflaptopzone.com/2023/09/hp-elitebook-840-g7.html'
   },
   {
     id: 'hp-840-g6-16gb',
-    title: 'HP EliteBook 840 G6 (Core i5 8th Gen / 16GB RAM / 512GB SSD)',
+    title: 'HP EliteBook 840 G6 (16GB RAM, 512GB SSD)',
     brand: 'HP',
     series: 'EliteBook G6 Series',
-    specs: 'Intel Core i5-8265U Quad Core • 16GB RAM • 512GB SSD • 14" FHD Anti-Glare IPS • B&O Audio • Backlit KB • Privacy Shutter',
-    price: '৳ 34,500',
-    tag: 'Top Seller',
-    image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=700&auto=format&fit=crop&q=80',
+    specs: 'Intel Core i5-8265U Quad Core (8th Gen) • 16GB RAM • 512GB NVMe SSD • 14" FHD Anti-Glare IPS • B&O Audio • Backlit KB',
+    price: '৳ 33,000',
+    mrp: '৳ 35,500',
+    numericMrp: 35500,
+    tag: 'Top Seller G6',
+    image: BRAND_LAPTOP_IMAGES.HP,
+    url: 'https://www.jhflaptopzone.com/2023/09/hp-elitebook-840-g6_24.html'
+  },
+  {
+    id: 'hp-840-g6-8gb',
+    title: 'HP EliteBook 840 G6 (8GB RAM, 256GB SSD)',
+    brand: 'HP',
+    series: 'EliteBook G6 Series',
+    specs: 'Intel Core i5-8265U Quad Core (8th Gen) • 8GB DDR4 RAM • 256GB NVMe SSD • 14" FHD IPS • Privacy Shutter • Aluminum Chassis',
+    price: '৳ 30,000',
+    mrp: '৳ 32,500',
+    numericMrp: 32500,
+    tag: '8th Gen Executive',
+    image: BRAND_LAPTOP_IMAGES.HP,
     url: 'https://www.jhflaptopzone.com/2023/09/hp-elitebook-840-g6_24.html'
   },
   {
     id: 'hp-840-g5-8gb',
-    title: 'HP EliteBook 840 G5 (Core i5 8th Gen / 8GB RAM / 256GB SSD)',
+    title: 'HP EliteBook 840 G5 (8GB RAM, 256GB SSD)',
     brand: 'HP',
     series: 'EliteBook G5 Series',
-    specs: 'Intel Core i5-8350U • 8GB DDR4 (Upgradable) • 256GB NVMe SSD • 14" FHD IPS • Full Aluminum Body • Backlit KB • Type-C',
-    price: '৳ 28,500',
-    tag: 'Budget G5',
-    image: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=700&auto=format&fit=crop&q=80',
+    specs: 'Intel Core i5-8350U Quad Core (8th Gen) • 8GB DDR4 RAM • 256GB NVMe SSD • 14" FHD IPS • Full Aluminum Body • Backlit KB',
+    price: '৳ 27,500',
+    mrp: '৳ 29,500',
+    numericMrp: 29500,
+    tag: 'Best Value G5',
+    image: BRAND_LAPTOP_IMAGES.HP,
     url: 'https://www.jhflaptopzone.com/2023/09/hp-elitebook-840-g5.html'
   },
   {
-    id: 'dell-latitude-7400',
-    title: 'Dell Latitude 7400 (Core i7 8th Gen / 16GB RAM / 512GB SSD)',
-    brand: 'Dell',
-    series: 'Latitude 7000 Series',
-    specs: 'Intel Core i7-8665U (Up to 4.8GHz) • 16GB DDR4 • 512GB NVMe SSD • 14" FHD IPS Carbon Fiber / Aluminum • Thunderbolt 3 • ExpressCharge',
-    price: '৳ 38,500',
-    tag: 'Core i7 Premium',
-    image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=700&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'dell-latitude-5400',
-    title: 'Dell Latitude 5400 (Core i5 8th Gen / 8GB RAM / 256GB SSD)',
-    brand: 'Dell',
-    series: 'Latitude 5000 Series',
-    specs: 'Intel Core i5-8365U • 8GB RAM • 256GB M.2 SSD • 14" FHD Display • High Battery Capacity • Rugged Business Build',
-    price: '৳ 27,000',
-    tag: 'Budget Business',
-    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=700&auto=format&fit=crop&q=80'
-  },
-  {
     id: 'hp-840-g4-dual-drive',
-    title: 'HP EliteBook 840 G4 (Core i5 7th Gen / 8GB RAM / 256GB SSD + 1TB HDD)',
+    title: 'HP EliteBook 840 G4 (8GB RAM, 256GB SSD, 1TB HDD)',
     brand: 'HP',
     series: 'EliteBook G4 Series',
-    specs: 'Intel Core i5-7200U • 8GB RAM • 256GB SSD + 1000GB HDD Storage • 14" Slim Display • Good Battery Backup',
+    specs: 'Intel Core i5-7200U (7th Gen) • 8GB DDR4 RAM • 256GB SSD + 1TB HDD Dual Storage • 14" FHD Slim Display • B&O Speakers',
     price: '৳ 24,500',
-    tag: 'Dual Storage',
-    image: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=700&auto=format&fit=crop&q=80',
+    mrp: '৳ 26,500',
+    numericMrp: 26500,
+    tag: 'Dual Storage 1.25TB',
+    image: BRAND_LAPTOP_IMAGES.HP,
     url: 'https://www.jhflaptopzone.com/2023/09/hp-elitebook-840-g4.html'
   },
   {
-    id: 'lenovo-t470s-i5-6th',
-    title: 'Lenovo ThinkPad T470s (Core i5 6th Gen / 8GB RAM / 256GB SSD)',
-    brand: 'Lenovo',
-    series: 'ThinkPad T-Series',
-    specs: 'Intel Core i5-6300U • 8GB RAM • 256GB SSD • 14" FHD IPS • Ultra-durable keyboard • Dual battery support',
-    price: '৳ 22,500',
-    tag: 'Entry ThinkPad',
-    image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=700&auto=format&fit=crop&q=80',
-    url: 'https://www.jhflaptopzone.com/2024/02/lenovo-thinkpad-t470s.html'
-  }
+    id: 'hp-840-g3-8gb',
+    title: 'HP EliteBook 840 G3 (8GB RAM, 256GB SSD)',
+    brand: 'HP',
+    series: 'EliteBook G3 Series',
+    specs: 'Intel Core i5-6300U (6th Gen) • 8GB DDR4 RAM • 256GB M.2 SSD • 14" Slim Anti-Glare Display • Backlit KB • B&O Audio',
+    price: '৳ 21,500',
+    mrp: '৳ 23,500',
+    numericMrp: 23500,
+    tag: 'Budget EliteBook',
+    image: BRAND_LAPTOP_IMAGES.HP,
+  },
+  {
+    id: 'hp-840-g2-dual-drive',
+    title: 'HP EliteBook 840 G2 (8GB RAM, 128GB SSD, 500GB HDD)',
+    brand: 'HP',
+    series: 'EliteBook G2 Series',
+    specs: 'Intel Core i5-5300U (5th Gen) • 8GB DDR3L RAM • 128GB SSD + 500GB HDD Dual Storage • 14" HD+ Anti-Glare • Durable Metal Chassis',
+    price: '৳ 18,500',
+    mrp: '৳ 20,500',
+    numericMrp: 20500,
+    tag: 'Entry Dual Drive',
+    image: BRAND_LAPTOP_IMAGES.HP,
+  },
+
+  // ==========================================
+  // DELL LATITUDE 6TH - 11TH GEN SERIES (BD Market & MRP Pricing)
+  // ==========================================
+  ...DELL_LATITUDE_CATALOG_SEED.map((item) => ({
+    id: item.id,
+    title: `Dell Latitude ${item.model} (${item.generation} • ${item.ram}/${item.ssd} SSD)`,
+    brand: 'Dell' as const,
+    series: `Latitude ${item.generation}`,
+    specs: `${item.processor} • ${item.ram} RAM • ${item.ssd} NVMe SSD • ${item.display} ${item.resolution} • ${item.touchscreen}`,
+    price: `৳ ${item.offerPrice.toLocaleString()}`,
+    mrp: `৳ ${item.mrpPrice.toLocaleString()}`,
+    numericMrp: item.mrpPrice,
+    tag: item.tag,
+    image: BRAND_LAPTOP_IMAGES.Dell,
+    url: 'https://www.bdstall.com/laptop/dell-latitude/',
+  })),
 ];
 
 export const TESTING_TOOLS: DownloadItem[] = [

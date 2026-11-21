@@ -1,13 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { DownloadItem } from '../data/jhfData';
 import { useStore } from '../context/StoreContext';
 import { useTranslation } from '../context/LanguageContext';
-import { Wrench, Download, Search, Activity, ShieldCheck, Cpu, Battery, Monitor, Keyboard, CheckCircle2 } from 'lucide-react';
+import { ResourceShareModal } from './ResourceShareModal';
+import {
+  buildShareUrl,
+  handleShareAnchorClick,
+  matchesShareSlug,
+  syncClientDocumentMeta,
+} from '../utils/shareLinks';
+import { Wrench, Download, Search, Activity, ShieldCheck, Cpu, Battery, Monitor, Keyboard, CheckCircle2, Eye } from 'lucide-react';
 
-export const TestingToolsZone: React.FC = () => {
+interface TestingToolsZoneProps {
+  deepLinkSlug?: string | null;
+  onClearDeepLink?: () => void;
+}
+
+export const TestingToolsZone: React.FC<TestingToolsZoneProps> = ({ deepLinkSlug, onClearDeepLink }) => {
   const { testingTools } = useStore();
   const { language } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [activeShareTool, setActiveShareTool] = useState<DownloadItem | null>(null);
+
+  useEffect(() => {
+    if (!deepLinkSlug || testingTools.length === 0) return;
+    const matched = testingTools.find((tool) => matchesShareSlug(tool, deepLinkSlug));
+    if (matched) {
+      setSelectedCategory('All');
+      setSearchQuery('');
+      setActiveShareTool(matched);
+      syncClientDocumentMeta({
+        title: `${matched.title} | JHF Testing Tools Zone`,
+        description: `${matched.category} • ${matched.source}${matched.size ? ` • ${matched.size}` : ''}${matched.description ? ` — ${matched.description}` : ''}`,
+        image: matched.image,
+        url: buildShareUrl('testing-tool', matched),
+      });
+    }
+  }, [deepLinkSlug, testingTools]);
 
   const texts = {
     en: {
@@ -168,49 +198,70 @@ export const TestingToolsZone: React.FC = () => {
 
         {/* Grid of Diagnostic Tools */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTools.map((tool) => (
-            <div
-              key={tool.id}
-              className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/70 rounded-xl p-4 flex flex-col justify-between hover:border-emerald-500 hover:shadow-md transition group"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/80 px-2 py-0.5 rounded">
-                    {getCatLabel(tool.category)}
-                  </span>
-                  <span className="text-[10px] font-medium text-slate-400">
-                    {tool.source}
-                  </span>
+          {filteredTools.map((tool) => {
+            const shareHref = buildShareUrl('testing-tool', tool);
+            return (
+              <div
+                key={tool.id}
+                className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/70 rounded-xl p-4 flex flex-col justify-between hover:border-emerald-500 hover:shadow-md transition group"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/80 px-2 py-0.5 rounded">
+                      {getCatLabel(tool.category)}
+                    </span>
+                    <span className="text-[10px] font-medium text-slate-400">
+                      {tool.source}
+                    </span>
+                  </div>
+
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-1">
+                    <a
+                      href={shareHref}
+                      onClick={(e) => handleShareAnchorClick(e, 'testing-tool', tool)}
+                      className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition cursor-pointer"
+                    >
+                      {tool.title}
+                    </a>
+                  </h3>
+
+                  {tool.description && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                      {tool.description}
+                    </p>
+                  )}
                 </div>
 
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition mb-1">
-                  {tool.title}
-                </h3>
+                <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {texts.freeDiagnostic}
+                  </span>
 
-                {tool.description && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                    {tool.description}
-                  </p>
-                )}
+                  <div className="flex items-center gap-1.5">
+                    <a
+                      href={shareHref}
+                      onClick={(e) => handleShareAnchorClick(e, 'testing-tool', tool)}
+                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-emerald-600 hover:border-emerald-500 transition cursor-pointer"
+                      title={shareHref}
+                    >
+                      <Eye className="w-3 h-3" />
+                      <span>Details</span>
+                    </a>
+
+                    <a
+                      href={tool.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{texts.downloadTool}</span>
+                    </a>
+                  </div>
+                </div>
               </div>
-
-              <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400 font-medium">
-                  {texts.freeDiagnostic}
-                </span>
-
-                <a
-                  href={tool.link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>{texts.downloadTool}</span>
-                </a>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {filteredTools.length === 0 && (
@@ -220,6 +271,15 @@ export const TestingToolsZone: React.FC = () => {
         )}
 
       </div>
+
+      <ResourceShareModal
+        item={activeShareTool}
+        type="testing-tool"
+        onClose={() => {
+          setActiveShareTool(null);
+          onClearDeepLink?.();
+        }}
+      />
     </section>
   );
 };

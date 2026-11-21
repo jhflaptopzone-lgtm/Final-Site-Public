@@ -11,7 +11,6 @@ import {
   MapPin,
   ExternalLink,
   Sparkles,
-  FolderGit2,
   BookOpen,
   Bot,
   Building2,
@@ -110,7 +109,6 @@ export const PaymentAndVisitingCardZone: React.FC = () => {
       : isHi
       ? 'JHF विशेष मुफ़्त संसाधन:'
       : 'Special Free Resources from JHF:',
-    photoGallery: isBn ? 'ফটো গ্যালারি' : isHi ? 'फोटो गैलरी' : 'Photo Gallery',
     marketingCourse: isBn ? 'মার্কেটিং কোর্স' : isHi ? 'मार्केटिंग कोर्स' : 'Marketing Course',
     callBtn: isBn ? 'কল করুন' : isHi ? 'कॉल करें' : 'Call',
     accountNameLabel: isBn ? '👤 হিসাবের নাম' : isHi ? '👤 खाता धारक' : '👤 Account Name',
@@ -558,17 +556,7 @@ export const PaymentAndVisitingCardZone: React.FC = () => {
               <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 {texts.resourcesHeader}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                <a
-                  href={storeInfo.galleryFolder}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 hover:border-blue-500 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition"
-                >
-                  <FolderGit2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                  <span className="truncate font-semibold">{texts.photoGallery}</span>
-                </a>
-
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 <a
                   href={storeInfo.sharaAiLink}
                   target="_blank"
