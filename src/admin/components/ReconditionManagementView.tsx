@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAdminStore, BUSINESS_INFO } from '../adminStore';
 import { useAdminAuth } from '../authContext';
 import { ReconditionLaptop } from '../types';
-import { buildShareUrl, copyTextToClipboard } from '../../utils/shareLinks';
+import { buildShareUrl } from '../../utils/shareLinks';
 import {
   Laptop,
   Plus,
@@ -33,8 +33,6 @@ import {
   Layers,
   ArrowRight,
   Link2,
-  Check,
-  Copy,
 } from 'lucide-react';
 
 export const ReconditionManagementView: React.FC = () => {
@@ -61,7 +59,6 @@ export const ReconditionManagementView: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isMarkSoldModalOpen, setIsMarkSoldModalOpen] = useState(false);
   const [selectedLaptop, setSelectedLaptop] = useState<ReconditionLaptop | null>(null);
-  const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
 
   // Mark Sold Form State
   const [soldForm, setSoldForm] = useState({
@@ -598,24 +595,6 @@ export const ReconditionManagementView: React.FC = () => {
                     >
                       <Link2 className="w-3.5 h-3.5" />
                     </a>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const ok = await copyTextToClipboard(buildShareUrl('recondition', laptop));
-                        if (ok) {
-                          setCopiedShareId(laptop.id);
-                          setTimeout(() => setCopiedShareId((prev) => (prev === laptop.id ? null : prev)), 2500);
-                        }
-                      }}
-                      className={`p-1.5 rounded-lg transition ${
-                        copiedShareId === laptop.id
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                      }`}
-                      title={`Copy Share Link: ${buildShareUrl('recondition', laptop)}`}
-                    >
-                      {copiedShareId === laptop.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
                     <button
                       onClick={() => handleOpenEdit(laptop)}
                       className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"

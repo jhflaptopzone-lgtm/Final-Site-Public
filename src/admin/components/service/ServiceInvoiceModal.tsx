@@ -1,7 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ServiceJob } from '../../types';
+import { useAdminStore } from '../../adminStore';
 import { formatWarrantyDays } from '../../../utils/warranty';
-import { Printer, X, ShieldCheck, Phone, Mail, MapPin } from 'lucide-react';
+import { getDynamicBaseOrigin } from '../../../utils/shareLinks';
+import { Printer, X, ShieldCheck, Phone, Mail, MapPin, FileText, ExternalLink, MessageSquare } from 'lucide-react';
 
 interface ServiceInvoiceModalProps {
   job: ServiceJob;
@@ -9,14 +11,85 @@ interface ServiceInvoiceModalProps {
   onClose: () => void;
 }
 
+function createVoucherToken(): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let out = '';
+  for (let i = 0; i < 12; i++) {
+    out += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `${out}${Date.now().toString(36).slice(-4)}`;
+}
+
 export const ServiceInvoiceModal: React.FC<ServiceInvoiceModalProps> = ({ job, isOpen, onClose }) => {
+  const { updateServiceJob } = useAdminStore();
   const printRef = useRef<HTMLDivElement>(null);
+  const [fallbackEntry, setFallbackEntry] = useState<{ jobId: string; token: string } | null>(null);
+  const [pdfReady, setPdfReady] = useState<boolean>(false);
+  const updateServiceJobRef = useRef(updateServiceJob);
+  updateServiceJobRef.current = updateServiceJob;
+
+  const activeToken = useMemo(() => {
+    if (job.publicVoucherToken) return job.publicVoucherToken;
+    return fallbackEntry && fallbackEntry.jobId === job.id ? fallbackEntry.token : '';
+  }, [job.id, job.publicVoucherToken, fallbackEntry]);
+
+  useEffect(() => {
+    if (!isOpen || !job?.id) return;
+
+    let tokenToUse = job.publicVoucherToken;
+    if (!tokenToUse) {
+      tokenToUse = createVoucherToken();
+      setFallbackEntry({ jobId: job.id, token: tokenToUse });
+      updateServiceJobRef.current(job.id, { publicVoucherToken: tokenToUse });
+    }
+
+    let cancelled = false;
+    setPdfReady(false);
+
+    fetch('/api/service-voucher/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        job: {
+          ...job,
+          publicVoucherToken: tokenToUse,
+        },
+      }),
+    })
+      .then((r) => {
+        if (!cancelled && r.ok) setPdfReady(true);
+      })
+      .catch(() => {
+        // Non-blocking: Firestore-backed lookup still works
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, job]);
 
   if (!isOpen) return null;
 
   const handlePrint = () => {
     window.print();
   };
+
+  const baseOrigin = getDynamicBaseOrigin();
+  const pdfPath = activeToken
+    ? `/service-voucher/${encodeURIComponent(job.id)}/${encodeURIComponent(activeToken)}.pdf`
+    : '';
+  const publicPdfUrl = pdfPath ? (baseOrigin ? `${baseOrigin}${pdfPath}` : pdfPath) : '';
+
+  const normalizedWhatsappDigits = (job.customerPhone || '').replace(/[^0-9]/g, '');
+  const waPhone = normalizedWhatsappDigits.startsWith('0')
+    ? `88${normalizedWhatsappDigits}`
+    : normalizedWhatsappDigits;
+  const whatsappShareUrl =
+    waPhone && publicPdfUrl
+      ? `https://wa.me/${waPhone}?text=${encodeURIComponent(
+          `Assalamu Alaikum ${job.customerName || ''},\nYour JHF Laptop Zone Service Voucher / Invoice (${job.id}) for ${job.laptopBrand} ${job.laptopModel} is ready.\n\nTotal Bill: ৳${(job.totalCost || 0).toLocaleString()}\nPaid: ৳${(job.paidAmount || 0).toLocaleString()}\nDue: ৳${(job.dueAmount || 0).toLocaleString()}\n\nView / Download Official PDF Voucher:\n${publicPdfUrl}`
+        )}`
+      : '';
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'N/A';
@@ -42,32 +115,85 @@ export const ServiceInvoiceModal: React.FC<ServiceInvoiceModalProps> = ({ job, i
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto print:static print:p-0 print:bg-white print:block">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-6 my-auto print:border-none print:shadow-none print:p-0 print:bg-white print:text-black print:max-w-none print:rounded-none">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto print:border-none print:shadow-none print:p-0 print:bg-white print:text-black print:max-w-none print:rounded-none">
         {/* Modal Action Bar (Hidden on Print) */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3 print:hidden">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded bg-blue-500/20 text-blue-400 font-mono text-xs font-bold">
-              {job.id}
-            </span>
-            <span className="text-xs text-slate-400">JHF Official Service Invoice &amp; Delivery Voucher</span>
+        <div className="space-y-3 border-b border-slate-800 pb-4 print:hidden">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded bg-blue-500/20 text-blue-400 font-mono text-xs font-bold">
+                {job.id}
+              </span>
+              <span className="text-xs text-slate-400">JHF Official Service Invoice &amp; Delivery Voucher</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                Print Voucher / Invoice (A4)
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              Print Voucher / Invoice (A4)
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+
+          {/* Public Unique Customer PDF Link (Right Below Print Button) */}
+          {publicPdfUrl && (
+            <div className="bg-slate-950/90 border border-emerald-500/30 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex items-center gap-2 text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
+                  <FileText className="w-3.5 h-3.5 shrink-0" />
+                  <span>Public Customer PDF Link (Unique &amp; Viewable Without Login)</span>
+                </div>
+                <a
+                  href={publicPdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block text-xs font-mono text-cyan-300 hover:text-cyan-200 hover:underline truncate"
+                  title={publicPdfUrl}
+                >
+                  {publicPdfUrl}
+                </a>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={publicPdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                    pdfReady
+                      ? 'bg-blue-600 hover:bg-blue-500 text-white shadow'
+                      : 'bg-blue-700/80 hover:bg-blue-600 text-white'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Open / View PDF</span>
+                  <ExternalLink className="w-3 h-3 opacity-80" />
+                </a>
+
+                {whatsappShareUrl && (
+                  <a
+                    href={whatsappShareUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition"
+                    title="Send PDF link directly to customer on WhatsApp"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>WhatsApp</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Printable A4 Container */}

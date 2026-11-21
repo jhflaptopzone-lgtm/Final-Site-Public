@@ -104,8 +104,8 @@ interface ProviderStatusInfo {
   ok: boolean;
   activeProvider: string;
   searchEngine?: string;
-  serpapiOnlyMode?: boolean;
-  unusedProvidersOptional?: boolean;
+  optionalSearchProvider?: boolean;
+  fallbackAvailable?: boolean;
   geminiVisionConfigured: boolean;
   visionModel: string;
   storageDir: string;
@@ -120,8 +120,6 @@ interface ProviderStatusInfo {
   cacheEntriesCount?: number;
   configuredApiKeys: {
     serpapi: boolean;
-    bingApi: boolean;
-    googleCse: boolean;
   };
 }
 
@@ -371,7 +369,7 @@ export const ProductImageManagerView: React.FC = () => {
       refreshProviderStatus();
       showNotice(
         data?.success ? 'success' : 'error',
-        data?.message || (data?.success ? 'SerpAPI connection verified.' : 'SerpAPI test failed.')
+        data?.message || (data?.success ? 'Image search test completed.' : 'Image search test failed.')
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unable to reach server test endpoint.';
@@ -1561,10 +1559,10 @@ export const ProductImageManagerView: React.FC = () => {
               onClick={runTestImageSearch}
               disabled={testingConnection || batchRunning}
               className="px-3 py-2.5 rounded-xl bg-purple-600/25 hover:bg-purple-600/35 text-purple-200 border border-purple-500/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-              title='Test SerpAPI Google Images with "HP EliteBook 840 G6 official product image"'
+              title='Test image search & fallback with "HP EliteBook 840 G6 official product image"'
             >
               <RefreshCw className={`w-3.5 h-3.5 ${testingConnection ? 'animate-spin' : ''}`} />
-              <span>{testingConnection ? 'Testing SerpAPI...' : 'Test Image Search'}</span>
+              <span>{testingConnection ? 'Testing Search...' : 'Test Image Search'}</span>
             </button>
 
             <button
@@ -1595,24 +1593,26 @@ export const ProductImageManagerView: React.FC = () => {
               <Globe className="w-3.5 h-3.5 text-cyan-400" />
               Image Provider:{' '}
               <strong className="text-slate-200 uppercase">
-                {providerStatus?.activeProvider || 'serpapi'} ({providerStatus?.searchEngine || 'google_images'})
+                {providerStatus?.activeProvider === 'serpapi'
+                  ? 'SerpAPI (Google Images)'
+                  : 'Built-in Open Fallback (Wikimedia + Web)'}
               </strong>
             </span>
             <span className="flex items-center gap-1.5">
               <span
                 className={`w-2 h-2 rounded-full ${
-                  providerStatus?.configuredApiKeys?.serpapi ? 'bg-emerald-400' : 'bg-rose-400'
+                  providerStatus?.configuredApiKeys?.serpapi ? 'bg-emerald-400' : 'bg-cyan-400'
                 }`}
               />
-              SerpAPI Key:{' '}
+              Optional SerpAPI:{' '}
               <strong
                 className={
-                  providerStatus?.configuredApiKeys?.serpapi ? 'text-emerald-300' : 'text-rose-300'
+                  providerStatus?.configuredApiKeys?.serpapi ? 'text-emerald-300' : 'text-cyan-300'
                 }
               >
                 {providerStatus?.configuredApiKeys?.serpapi
-                  ? 'Configured (Server-Side)'
-                  : 'Missing — Add SERPAPI_API_KEY in Server Secrets'}
+                  ? 'Active (Server-Side)'
+                  : 'Not Set — Fallback & Direct URL/Upload Ready'}
               </strong>
             </span>
             <span className="flex items-center gap-1.5">
@@ -1624,8 +1624,8 @@ export const ProductImageManagerView: React.FC = () => {
               AI Vision:{' '}
               <strong className={providerStatus?.geminiVisionConfigured ? 'text-emerald-300' : 'text-amber-300'}>
                 {providerStatus?.geminiVisionConfigured
-                  ? `Active (${providerStatus.visionModel} • Max ${providerStatus.verificationConfig?.visionResizeMaxDim || 896}px)`
-                  : 'GEMINI_API_KEY needed'}
+                  ? `Active (${providerStatus.visionModel} • Max ${providerStatus.verificationConfig?.visionResizeMaxDim || 768}px)`
+                  : 'Optional (Configure GEMINI_API_KEY in Secrets)'}
               </strong>
             </span>
             {typeof providerStatus?.cacheEntriesCount === 'number' && (
@@ -1658,7 +1658,7 @@ export const ProductImageManagerView: React.FC = () => {
                     <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
                   )}
                   <span className={testSearchResult.success ? 'text-emerald-200' : 'text-rose-200'}>
-                    SerpAPI Connection Test — Query: &quot;{testSearchResult.testQuery}&quot;
+                    Image Search Test — Query: &quot;{testSearchResult.testQuery}&quot;
                   </span>
                   {testSearchResult.errorCode && (
                     <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 font-mono text-[10px]">

@@ -708,6 +708,7 @@ export interface ServicePaymentRecord {
 
 export interface ServiceJob {
   id: string; // e.g. JHF-SRV-20260914001
+  publicVoucherToken?: string;
   srNumber?: string; // Linked Service Request number e.g. JHF-SR-20260914001
   createdAt: string;
   updatedAt: string;

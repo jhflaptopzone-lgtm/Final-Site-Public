@@ -5,7 +5,7 @@ import { Product } from '../types';
 import { SmartProductAddModal } from './SmartProductAddModal';
 import { BulkStockImportModal } from './BulkStockImportModal';
 import { BarcodeGenerator } from './BarcodeGenerator';
-import { buildShareUrl, copyTextToClipboard } from '../../utils/shareLinks';
+import { buildShareUrl } from '../../utils/shareLinks';
 import {
   Laptop,
   Plus,
@@ -27,7 +27,6 @@ import {
   X,
   Image as ImageIcon,
   Link2,
-  Check,
 } from 'lucide-react';
 
 interface ProductsViewProps {
@@ -63,7 +62,6 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
 
   // Notification Toast
   const [notification, setNotification] = useState<string | null>(null);
-  const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
 
   // Soft Delete Modal
   const [deleteModalId, setDeleteModalId] = useState<string | null>(null);
@@ -74,16 +72,6 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
     setTimeout(() => {
       setNotification(null);
     }, 4000);
-  };
-
-  const handleCopyProductShareLink = async (prod: Product) => {
-    const url = buildShareUrl('laptop', prod);
-    const ok = await copyTextToClipboard(url);
-    if (ok) {
-      setCopiedShareId(prod.id);
-      showToast(`Copied Facebook-ready share link: ${url}`);
-      setTimeout(() => setCopiedShareId((prev) => (prev === prod.id ? null : prev)), 2500);
-    }
   };
 
   const filteredProducts = products.filter((prod) => {
@@ -481,30 +469,16 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                           </div>
                         ) : (
                           <div className="flex items-center justify-end gap-1.5">
-                            <div className="inline-flex items-center rounded-lg border border-cyan-500/30 bg-cyan-600/10 overflow-hidden">
-                              <a
-                                href={buildShareUrl('laptop', prod)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="px-2 py-1 text-xs font-semibold text-cyan-400 hover:bg-cyan-600/20 flex items-center gap-1 transition"
-                                title={`Open Full Specs Link: ${buildShareUrl('laptop', prod)}`}
-                              >
-                                <Link2 className="w-3 h-3" />
-                                <span className="hidden xl:inline">Link</span>
-                              </a>
-                              <button
-                                type="button"
-                                onClick={() => handleCopyProductShareLink(prod)}
-                                className={`px-1.5 py-1 border-l border-cyan-500/20 text-xs transition ${
-                                  copiedShareId === prod.id
-                                    ? 'bg-emerald-600/30 text-emerald-300'
-                                    : 'text-cyan-300 hover:bg-cyan-600/20'
-                                }`}
-                                title={`Copy Link: ${buildShareUrl('laptop', prod)}`}
-                              >
-                                {copiedShareId === prod.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                              </button>
-                            </div>
+                            <a
+                              href={buildShareUrl('laptop', prod)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2 py-1 rounded-lg bg-cyan-600/10 hover:bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 text-xs font-semibold flex items-center gap-1 transition"
+                              title={`Open Full Specs Link: ${buildShareUrl('laptop', prod)}`}
+                            >
+                              <Link2 className="w-3 h-3" />
+                              <span className="hidden xl:inline">Link</span>
+                            </a>
 
                             <button
                               onClick={() => setBarcodePrintProduct(prod)}

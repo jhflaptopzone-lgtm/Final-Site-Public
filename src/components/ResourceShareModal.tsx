@@ -1,19 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { DownloadItem } from '../data/jhfData';
-import { ShareItemType, buildShareUrl, copyTextToClipboard } from '../utils/shareLinks';
+import { ShareItemType } from '../utils/shareLinks';
 import {
   X,
   Download,
-  Copy,
-  Check,
-  Share2,
   ShieldCheck,
   ExternalLink,
   HardDrive,
   Disc,
   Wrench,
-  Sparkles,
-  Link2,
 } from 'lucide-react';
 
 interface ResourceShareModalProps {
@@ -27,19 +22,7 @@ export const ResourceShareModal: React.FC<ResourceShareModalProps> = ({
   type,
   onClose,
 }) => {
-  const [copied, setCopied] = useState(false);
-
   if (!item) return null;
-
-  const shareUrl = buildShareUrl(type, item);
-
-  const handleCopyLink = async () => {
-    const ok = await copyTextToClipboard(shareUrl);
-    if (ok) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
-  };
 
   const zoneMeta =
     type === 'windows'
@@ -139,49 +122,6 @@ export const ResourceShareModal: React.FC<ResourceShareModalProps> = ({
             </div>
           </div>
 
-          {/* Direct Shareable Link Box (Auto-adapts to current domain) */}
-          <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 space-y-2">
-            <div className="flex items-center justify-between text-[11px]">
-              <a
-                href={shareUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5"
-                title={shareUrl}
-              >
-                <Link2 className="w-3.5 h-3.5" />
-                <span>Unique Shareable Direct Link</span>
-                <ExternalLink className="w-3 h-3 opacity-75" />
-              </a>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> Auto-adapts to domain
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <a
-                href={shareUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 min-w-0 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-blue-700 dark:text-blue-300 hover:underline truncate"
-              >
-                {shareUrl}
-              </a>
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shrink-0 ${
-                  copied
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white'
-                }`}
-              >
-                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Copied!' : 'Copy'}</span>
-              </button>
-            </div>
-          </div>
-
           {/* Action Footer */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-slate-800">
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
@@ -189,27 +129,16 @@ export const ResourceShareModal: React.FC<ResourceShareModalProps> = ({
               Verified Safe by JHF Laptop Zone
             </span>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className="px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>{copied ? 'Link Copied' : 'Share Link'}</span>
-              </button>
-
-              <a
-                href={item.link}
-                target="_blank"
-                rel="noreferrer"
-                className={`${zoneMeta.accentBg} text-white text-xs font-extrabold px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-lg transition`}
-              >
-                <Download className="w-4 h-4" />
-                <span>Download Now</span>
-                <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-              </a>
-            </div>
+            <a
+              href={item.link}
+              target="_blank"
+              rel="noreferrer"
+              className={`${zoneMeta.accentBg} text-white text-xs font-extrabold px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-lg transition`}
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Now</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+            </a>
           </div>
         </div>
       </div>

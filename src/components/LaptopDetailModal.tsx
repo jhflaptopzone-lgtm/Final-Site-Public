@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { LaptopItem, STORE_INFO } from '../data/jhfData';
 import { getDetailedSpecsForLaptop } from '../data/specsHelper';
 import { useTranslation } from '../context/LanguageContext';
-import { buildShareUrl, copyTextToClipboard, ShareItemType } from '../utils/shareLinks';
-import { X, ShieldCheck, MessageSquare, PhoneCall, Check, ExternalLink, Sparkles, Cpu, HardDrive, Battery, Monitor, Shield, Layers, Copy, Link2, Share2 } from 'lucide-react';
+import { X, ShieldCheck, MessageSquare, PhoneCall, Check, Sparkles, Layers } from 'lucide-react';
 
 interface LaptopDetailModalProps {
   laptop: LaptopItem | null;
@@ -12,25 +11,10 @@ interface LaptopDetailModalProps {
   shareType?: 'laptop' | 'recondition';
 }
 
-export const LaptopDetailModal: React.FC<LaptopDetailModalProps> = ({ laptop, onClose, onOrderNow, shareType = 'laptop' }) => {
+export const LaptopDetailModal: React.FC<LaptopDetailModalProps> = ({ laptop, onClose, onOrderNow }) => {
   const { formatPrice, currency, language } = useTranslation();
-  const [linkCopied, setLinkCopied] = useState(false);
-
-  useEffect(() => {
-    setLinkCopied(false);
-  }, [laptop?.id]);
 
   if (!laptop) return null;
-
-  const effectiveShareType: ShareItemType = shareType === 'recondition' ? 'recondition' : 'laptop';
-  const shareUrl = buildShareUrl(effectiveShareType, laptop);
-  const handleCopyShareLink = async () => {
-    const ok = await copyTextToClipboard(shareUrl);
-    if (ok) {
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2500);
-    }
-  };
 
   const modalTexts = {
     en: {
@@ -219,19 +203,6 @@ export const LaptopDetailModal: React.FC<LaptopDetailModalProps> = ({ laptop, on
           </div>
           <div className="flex items-center gap-2">
             <button
-              type="button"
-              onClick={handleCopyShareLink}
-              className={`text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
-                linkCopied
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-              }`}
-              title="Copy unique shareable link for Facebook groups & WhatsApp"
-            >
-              {linkCopied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">{linkCopied ? 'Link Copied!' : 'Copy Share Link'}</span>
-            </button>
-            <button
               onClick={onClose}
               className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition"
               aria-label="Close dialog"
@@ -344,43 +315,6 @@ export const LaptopDetailModal: React.FC<LaptopDetailModalProps> = ({ laptop, on
                   </a>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Unique Direct Share Link Box (Auto-adapts to current domain) */}
-          <div className="bg-blue-50/70 dark:bg-slate-800/70 border border-blue-200 dark:border-slate-700 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <a
-              href={shareUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline shrink-0"
-              title={shareUrl}
-            >
-              <Link2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span>Direct Spec Link</span>
-              <ExternalLink className="w-3 h-3 opacity-75" />
-            </a>
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <a
-                href={shareUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 min-w-0 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-blue-700 dark:text-blue-300 hover:underline truncate"
-              >
-                {shareUrl}
-              </a>
-              <button
-                type="button"
-                onClick={handleCopyShareLink}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shrink-0 ${
-                  linkCopied
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
-              >
-                {linkCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{linkCopied ? 'Copied!' : 'Copy'}</span>
-              </button>
             </div>
           </div>
 

@@ -8,7 +8,6 @@ import { CustomerOrderModal } from './CustomerOrderModal';
 import { ReviewsAndRatingModal } from './ReviewsAndRatingModal';
 import {
   buildShareUrl,
-  copyTextToClipboard,
   matchesShareSlug,
   handleShareAnchorClick,
   syncClientDocumentMeta,
@@ -39,8 +38,6 @@ import {
   Star,
   Check,
   Link2,
-  Copy,
-  ExternalLink,
 } from 'lucide-react';
 
 interface ReconditionZoneCustomerViewProps {
@@ -70,7 +67,6 @@ export const ReconditionZoneCustomerView: React.FC<ReconditionZoneCustomerViewPr
   const [selectedLaptopForDetails, setSelectedLaptopForDetails] = useState<ReconditionLaptop | null>(null);
   const [orderModalLaptop, setOrderModalLaptop] = useState<ReconditionLaptop | null>(null);
   const [reviewModalTarget, setReviewModalTarget] = useState<{ id: string; name: string } | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!deepLinkSlug || reconditionLaptops.length === 0) return;
@@ -92,15 +88,6 @@ export const ReconditionZoneCustomerView: React.FC<ReconditionZoneCustomerViewPr
       });
     }
   }, [deepLinkSlug, reconditionLaptops]);
-
-  const handleCopyRecondLink = async (laptop: ReconditionLaptop) => {
-    const url = buildShareUrl('recondition', laptop);
-    const ok = await copyTextToClipboard(url);
-    if (ok) {
-      setCopiedId(laptop.id);
-      setTimeout(() => setCopiedId((prev) => (prev === laptop.id ? null : prev)), 2500);
-    }
-  };
 
   const texts = {
     en: {
@@ -818,43 +805,6 @@ export const ReconditionZoneCustomerView: React.FC<ReconditionZoneCustomerViewPr
                 className="w-full h-full object-contain p-2"
                 referrerPolicy="no-referrer"
               />
-            </div>
-
-            {/* Unique Share Link Box (Auto-adapts to current domain) */}
-            <div className="mb-5 bg-blue-50/70 dark:bg-slate-800/70 border border-blue-200 dark:border-slate-700 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <a
-                href={buildShareUrl('recondition', selectedLaptopForDetails)}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline flex items-center gap-1.5 shrink-0"
-                title={buildShareUrl('recondition', selectedLaptopForDetails)}
-              >
-                <Link2 className="w-4 h-4 text-blue-500" />
-                <span>Direct Share Link</span>
-                <ExternalLink className="w-3 h-3 opacity-75" />
-              </a>
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <a
-                  href={buildShareUrl('recondition', selectedLaptopForDetails)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-1 min-w-0 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-blue-700 dark:text-blue-300 hover:underline truncate"
-                >
-                  {buildShareUrl('recondition', selectedLaptopForDetails)}
-                </a>
-                <button
-                  type="button"
-                  onClick={() => handleCopyRecondLink(selectedLaptopForDetails)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shrink-0 ${
-                    copiedId === selectedLaptopForDetails.id
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
-                >
-                  {copiedId === selectedLaptopForDetails.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedId === selectedLaptopForDetails.id ? 'Copied!' : 'Copy'}</span>
-                </button>
-              </div>
             </div>
 
             {/* Complete Hardware Specs Table */}

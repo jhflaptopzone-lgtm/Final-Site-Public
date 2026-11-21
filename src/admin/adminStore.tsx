@@ -5169,6 +5169,15 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // ==========================================
   // JHF SERVICE ZONE ACTIONS
   // ==========================================
+  const generatePublicVoucherToken = (): string => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let token = '';
+    for (let i = 0; i < 12; i++) {
+      token += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return `${token}${Date.now().toString(36).slice(-4)}`;
+  };
+
   const addServiceJob = (jobData: Omit<ServiceJob, 'id' | 'createdAt' | 'updatedAt' | 'logs'>): ServiceJob => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -5180,6 +5189,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const newJob: ServiceJob = {
       ...jobData,
       id: newId,
+      publicVoucherToken: jobData.publicVoucherToken || generatePublicVoucherToken(),
       createdAt: today.toISOString(),
       updatedAt: today.toISOString(),
       logs: [
@@ -5923,6 +5933,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       srNumber: req.srNumber,
       createdAt: now,
       updatedAt: now,
+      publicVoucherToken: generatePublicVoucherToken(),
       status: 'DIAGNOSING',
       isDummy: false,
       customerName: req.customerName,

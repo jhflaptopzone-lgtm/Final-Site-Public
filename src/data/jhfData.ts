@@ -1,4 +1,4 @@
-import { DELL_LATITUDE_CATALOG_SEED } from '../utils/dellLatitudeCatalogSpec';
+import { DELL_LATITUDE_CATALOG_SEED } from '../utils/dellLatitudeCatalogSpec.ts';
 
 export interface LaptopItem {
   id: string;

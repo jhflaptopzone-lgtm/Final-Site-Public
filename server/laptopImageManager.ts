@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { getValidatedServerEnv, isPrivateOrLocalHostname } from './envConfig.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -107,19 +108,18 @@ interface VerificationCacheEntry {
   expiresAt: number;
 }
 
-function getVerificationConfig() {
-  const clamp = (val: number, min: number, max: number, fallback: number) =>
-    Number.isFinite(val) ? Math.min(max, Math.max(min, Math.floor(val))) : fallback;
+const IMAGE_PROCESSING_DEFAULTS = {
+  downloadTimeoutMs: 12_000,
+  maxDownloadBytes: 10 * 1024 * 1024, // 10 MB
+  visionTimeoutMs: 45_000,
+  maxRetries: 2,
+  cacheTtlMs: 24 * 60 * 60 * 1000, // 24 hours
+  visionMaxDim: 768,
+  visionJpegQuality: 80,
+} as const;
 
-  return {
-    downloadTimeoutMs: clamp(Number(process.env.IMAGE_DOWNLOAD_TIMEOUT_MS), 3000, 60000, 12000),
-    maxDownloadBytes: clamp(Number(process.env.IMAGE_MAX_DOWNLOAD_BYTES), 512 * 1024, 20 * 1024 * 1024, 10 * 1024 * 1024),
-    visionTimeoutMs: clamp(Number(process.env.IMAGE_VISION_TIMEOUT_MS), 5000, 90000, 45000),
-    maxRetries: clamp(Number(process.env.IMAGE_VERIFY_MAX_RETRIES), 0, 4, 2),
-    cacheTtlMs: clamp(Number(process.env.IMAGE_VERIFY_CACHE_TTL_MS), 60000, 7 * 24 * 60 * 60 * 1000, 24 * 60 * 60 * 1000),
-    visionMaxDim: 768,
-    visionJpegQuality: 80,
-  };
+function getVerificationConfig() {
+  return { ...IMAGE_PROCESSING_DEFAULTS };
 }
 
 const verificationJobs = new Map<string, VerificationJobRecord>();
@@ -321,10 +321,10 @@ function ensureUploadsDir() {
 }
 
 function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-  if (!apiKey) return null;
+  const { geminiApiKey } = getValidatedServerEnv();
+  if (!geminiApiKey) return null;
   return new GoogleGenAI({
-    apiKey,
+    apiKey: geminiApiKey,
     httpOptions: {
       headers: {
         'User-Agent': 'aistudio-build',
@@ -514,10 +514,8 @@ function buildPriorityQueries(params: {
   ];
 }
 
-function determineActiveProvider(): string {
-  const explicit = (process.env.IMAGE_SEARCH_PROVIDER || 'serpapi').trim().toLowerCase();
-  if (!explicit || explicit === 'auto') return 'serpapi';
-  return explicit;
+function determineActiveProvider(): 'serpapi' | 'open_fallback' {
+  return getValidatedServerEnv().imageSearchProvider === 'serpapi' ? 'serpapi' : 'open_fallback';
 }
 
 class SerpApiProviderError extends Error {
@@ -539,12 +537,12 @@ async function searchViaSerpApi(query: string): Promise<{
   candidates: ImageSearchCandidate[];
   searchMetadata?: Record<string, any>;
 }> {
-  const key = process.env.SERPAPI_API_KEY?.trim();
-  if (!key || key === 'YOUR_SERPAPI_API_KEY' || key === 'MY_SERPAPI_API_KEY') {
+  const key = getValidatedServerEnv().serpapiApiKey;
+  if (!key) {
     throw new SerpApiProviderError(
       'SERPAPI_KEY_MISSING',
       503,
-      'SERPAPI_API_KEY is missing on the server. Add your real SerpAPI key in Environment Secrets (never client-side) to search images.'
+      'Optional SERPAPI_API_KEY is not configured; using built-in open fallback.'
     );
   }
 
@@ -581,7 +579,7 @@ async function searchViaSerpApi(query: string): Promise<{
     throw new SerpApiProviderError(
       'SERPAPI_KEY_INVALID',
       401,
-      rawErr || 'SerpAPI API key is invalid or unauthorized. Verify SERPAPI_API_KEY in server secrets.'
+      rawErr || 'Optional SerpAPI key was rejected; verify SERPAPI_API_KEY or leave unset for fallback mode.'
     );
   }
 
@@ -592,7 +590,7 @@ async function searchViaSerpApi(query: string): Promise<{
     throw new SerpApiProviderError(
       'SERPAPI_QUOTA_EXHAUSTED',
       429,
-      rawErr || 'SerpAPI search quota / monthly credits exhausted. Upgrade or top up your SerpAPI plan.'
+      rawErr || 'SerpAPI search quota / monthly credits exhausted.'
     );
   }
 
@@ -640,72 +638,6 @@ async function searchViaSerpApi(query: string): Promise<{
         }
       : undefined,
   };
-}
-
-async function searchViaAzureBing(query: string): Promise<ImageSearchCandidate[]> {
-  const key = process.env.BING_IMAGE_SEARCH_KEY?.trim();
-  if (!key) return [];
-  const url = `https://api.bing.microsoft.com/v7.0/images/search?q=${encodeURIComponent(query)}&count=12&imageType=Photo`;
-  const res = await fetch(url, {
-    headers: { 'Ocp-Apim-Subscription-Key': key },
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!res.ok) throw new Error(`Bing Image API HTTP ${res.status}`);
-  const data: any = await res.json();
-  const values: any[] = Array.isArray(data?.value) ? data.value : [];
-  return values.map((v, idx) => {
-    const imgUrl = String(v.contentUrl || '');
-    const pageUrl = String(v.hostPageUrl || imgUrl);
-    const { tier, tierScore, domain } = classifySourceTier(imgUrl, pageUrl);
-    return {
-      candidateId: `bingapi-${Date.now()}-${idx}`,
-      imageUrl: imgUrl,
-      thumbnailUrl: String(v.thumbnailUrl || imgUrl),
-      sourcePageUrl: pageUrl,
-      sourceName: String(v.hostPageDisplayUrl || domain),
-      sourceDomain: domain,
-      sourceTier: tier,
-      title: String(v.name || query),
-      width: Number(v.width || 0),
-      height: Number(v.height || 0),
-      license: 'Verify source license before commercial use',
-      attribution: domain,
-      preScore: tierScore,
-      providerUsed: 'bing_image_search_api',
-    };
-  });
-}
-
-async function searchViaGoogleCse(query: string): Promise<ImageSearchCandidate[]> {
-  const key = process.env.GOOGLE_CSE_KEY?.trim();
-  const cx = process.env.GOOGLE_CSE_CX?.trim();
-  if (!key || !cx) return [];
-  const url = `https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(key)}&cx=${encodeURIComponent(cx)}&q=${encodeURIComponent(query)}&searchType=image&num=10`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
-  if (!res.ok) throw new Error(`Google CSE HTTP ${res.status}`);
-  const data: any = await res.json();
-  const items: any[] = Array.isArray(data?.items) ? data.items : [];
-  return items.map((it, idx) => {
-    const imgUrl = String(it.link || '');
-    const pageUrl = String(it.image?.contextLink || imgUrl);
-    const { tier, tierScore, domain } = classifySourceTier(imgUrl, pageUrl);
-    return {
-      candidateId: `gcse-${Date.now()}-${idx}`,
-      imageUrl: imgUrl,
-      thumbnailUrl: String(it.image?.thumbnailLink || imgUrl),
-      sourcePageUrl: pageUrl,
-      sourceName: String(it.displayLink || domain),
-      sourceDomain: domain,
-      sourceTier: tier,
-      title: String(it.title || query),
-      width: Number(it.image?.width || 0),
-      height: Number(it.image?.height || 0),
-      license: 'Verify source license before commercial use',
-      attribution: String(it.displayLink || domain),
-      preScore: tierScore,
-      providerUsed: 'google_custom_search',
-    };
-  });
 }
 
 async function searchWikimediaCommons(query: string): Promise<ImageSearchCandidate[]> {
@@ -825,6 +757,27 @@ async function searchLiveWebImages(query: string): Promise<ImageSearchCandidate[
   } catch {
     return [];
   }
+}
+
+async function searchViaOpenFallback(
+  brand: string,
+  exactModel: string,
+  queries: string[]
+): Promise<ImageSearchCandidate[]> {
+  const fullPrefix = exactModel.toLowerCase().startsWith(brand.toLowerCase())
+    ? exactModel
+    : `${brand} ${exactModel}`;
+  const [wikiRes, webPrimaryRes, webSecondaryRes] = await Promise.allSettled([
+    searchWikimediaCommons(fullPrefix),
+    searchLiveWebImages(queries[0] || `${fullPrefix} official product image`),
+    searchLiveWebImages(queries[1] || `${fullPrefix} laptop`),
+  ]);
+
+  const out: ImageSearchCandidate[] = [];
+  if (wikiRes.status === 'fulfilled') out.push(...wikiRes.value);
+  if (webPrimaryRes.status === 'fulfilled') out.push(...webPrimaryRes.value);
+  if (webSecondaryRes.status === 'fulfilled') out.push(...webSecondaryRes.value);
+  return out;
 }
 
 function hasExactRelevanceTokens(
@@ -1043,6 +996,12 @@ async function fetchAndInspectImageBytes(
   if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
     throw createTaggedError(`Unsupported image URL protocol "${parsedUrl.protocol}". Only http/https allowed.`, {
       code: 'UNSUPPORTED_PROTOCOL',
+      retryable: false,
+    });
+  }
+  if (isPrivateOrLocalHostname(parsedUrl.hostname)) {
+    throw createTaggedError('Private or local network image URLs are not permitted.', {
+      code: 'DISALLOWED_HOST',
       retryable: false,
     });
   }
@@ -1634,17 +1593,16 @@ export function registerLaptopImageRoutes(app: Express) {
 
   // Provider & AI Vision configuration status (never leaks credentials)
   app.get('/api/images/provider-status', (_req: Request, res: Response) => {
-    const provider = determineActiveProvider();
-    const serpKey = process.env.SERPAPI_API_KEY?.trim();
-    const hasSerpKey = Boolean(serpKey && serpKey !== 'YOUR_SERPAPI_API_KEY' && serpKey !== 'MY_SERPAPI_API_KEY');
+    const env = getValidatedServerEnv();
     const cfg = getVerificationConfig();
+    const provider = env.imageSearchProvider;
     res.json({
       ok: true,
       activeProvider: provider,
-      searchEngine: provider === 'serpapi' ? 'google_images' : provider,
-      serpapiOnlyMode: provider === 'serpapi',
-      unusedProvidersOptional: true,
-      geminiVisionConfigured: Boolean(process.env.GEMINI_API_KEY?.trim()),
+      searchEngine: provider === 'serpapi' ? 'google_images' : 'open_web_and_wikimedia',
+      optionalSearchProvider: true,
+      fallbackAvailable: true,
+      geminiVisionConfigured: Boolean(env.geminiApiKey),
       visionModel: 'gemini-4-hydrogen',
       storageDir: '/uploads/laptop-images',
       verificationConfig: {
@@ -1657,9 +1615,7 @@ export function registerLaptopImageRoutes(app: Express) {
       },
       cacheEntriesCount: verificationCache.size,
       configuredApiKeys: {
-        serpapi: hasSerpKey,
-        bingApi: Boolean(process.env.BING_IMAGE_SEARCH_KEY?.trim()),
-        googleCse: Boolean(process.env.GOOGLE_CSE_KEY?.trim() && process.env.GOOGLE_CSE_CX?.trim()),
+        serpapi: Boolean(env.serpapiApiKey),
       },
     });
   });
@@ -1668,7 +1624,36 @@ export function registerLaptopImageRoutes(app: Express) {
   app.post('/api/images/test-search', async (req: Request, res: Response) => {
     const testQuery =
       String(req.body?.query || '').trim() || 'HP EliteBook 840 G6 official product image';
+    const env = getValidatedServerEnv();
     const provider = determineActiveProvider();
+
+    if (provider === 'open_fallback' || !env.serpapiApiKey) {
+      const collected = await searchViaOpenFallback('HP', 'EliteBook 840 G6', [
+        testQuery,
+        'HP EliteBook 840 G6 laptop',
+      ]);
+      const ranked = rankAndFilterCandidates(
+        collected,
+        { brand: 'HP', exactModel: 'EliteBook 840 G6', generation: '8th Gen' },
+        new Set<string>()
+      );
+      res.json({
+        success: true,
+        provider: 'open_fallback',
+        engine: 'open_web_and_wikimedia',
+        fallbackUsed: true,
+        testQuery,
+        rawCount: collected.length,
+        rankedCount: ranked.length,
+        searchMetadata: null,
+        candidates: ranked.slice(0, 6),
+        message:
+          ranked.length > 0
+            ? `Built-in open image fallback active (no extra API keys needed). Found ${ranked.length} clean candidate(s).`
+            : 'Built-in open image fallback checked cleanly (no extra API keys needed). You can also use Direct URL Scan or manual upload.',
+      });
+      return;
+    }
 
     try {
       const serpRes = await searchViaSerpApi(testQuery);
@@ -1682,39 +1667,44 @@ export function registerLaptopImageRoutes(app: Express) {
         success: true,
         provider: 'serpapi',
         engine: 'google_images',
+        fallbackUsed: false,
         testQuery,
         rawCount: serpRes.candidates.length,
         rankedCount: ranked.length,
         searchMetadata: serpRes.searchMetadata || null,
         candidates: ranked.slice(0, 6),
-        message: `Connected to SerpAPI Google Images successfully. Returned ${serpRes.candidates.length} image results (${ranked.length} clean exact-model candidates).`,
+        message: `Connected to optional SerpAPI Google Images successfully. Returned ${serpRes.candidates.length} image results (${ranked.length} clean exact-model candidates).`,
       });
     } catch (error) {
-      if (error instanceof SerpApiProviderError) {
-        res.status(error.httpStatus).json({
-          success: false,
-          provider,
-          engine: 'google_images',
-          testQuery,
-          errorCode: error.code,
-          message: error.message,
-          candidates: [],
-        });
-        return;
-      }
-      res.status(502).json({
-        success: false,
-        provider,
-        engine: 'google_images',
+      const errMsg = error instanceof Error ? error.message : 'SerpAPI connection test failed.';
+      const errCode = error instanceof SerpApiProviderError ? error.code : 'SERPAPI_ERROR';
+      const fallbackCollected = await searchViaOpenFallback('HP', 'EliteBook 840 G6', [
         testQuery,
-        errorCode: 'SERPAPI_ERROR',
-        message: error instanceof Error ? error.message : 'SerpAPI connection test failed.',
-        candidates: [],
+        'HP EliteBook 840 G6 laptop',
+      ]);
+      const fallbackRanked = rankAndFilterCandidates(
+        fallbackCollected,
+        { brand: 'HP', exactModel: 'EliteBook 840 G6', generation: '8th Gen' },
+        new Set<string>()
+      );
+
+      res.status(200).json({
+        success: true,
+        provider: 'open_fallback',
+        engine: 'open_web_and_wikimedia',
+        fallbackUsed: true,
+        errorCode: errCode,
+        testQuery,
+        rawCount: fallbackCollected.length,
+        rankedCount: fallbackRanked.length,
+        searchMetadata: null,
+        candidates: fallbackRanked.slice(0, 6),
+        message: `Optional SerpAPI unavailable (${errMsg}). Switched to built-in open image fallback (${fallbackRanked.length} candidate(s)).`,
       });
     }
   });
 
-  // Step 2: Search exact model images via SerpAPI Google Images (engine=google_images)
+  // Step 2: Search exact model images via optional SerpAPI Google Images with graceful open fallback
   app.post('/api/images/search', async (req: Request, res: Response) => {
     const brand = String(req.body?.brand || '').trim();
     const series = String(req.body?.series || '').trim();
@@ -1734,64 +1724,49 @@ export function registerLaptopImageRoutes(app: Express) {
     }
 
     const queries = buildPriorityQueries({ brand, series, exactModel, generation });
-    const provider = determineActiveProvider();
+    const env = getValidatedServerEnv();
+    let activeProvider: 'serpapi' | 'open_fallback' = determineActiveProvider();
+    let collected: ImageSearchCandidate[] = [];
+    let searchMetadata: Record<string, any> | undefined;
+    let fallbackUsed = false;
+    let fallbackReason: string | undefined;
 
-    try {
-      let collected: ImageSearchCandidate[] = [];
-      let searchMetadata: Record<string, any> | undefined;
-
-      if (provider === 'serpapi') {
+    if (activeProvider === 'serpapi' && env.serpapiApiKey) {
+      try {
         const serpRes = await searchViaSerpApi(queries[0]);
         collected = serpRes.candidates;
         searchMetadata = serpRes.searchMetadata;
-      } else if (provider === 'bing') {
-        collected = await searchViaAzureBing(queries[0]);
-      } else if (provider === 'google_cse') {
-        collected = await searchViaGoogleCse(queries[0]);
-      } else {
-        const fullPrefix = exactModel.toLowerCase().startsWith(brand.toLowerCase())
-          ? exactModel
-          : `${brand} ${exactModel}`;
-        const [wiki, webPrimary, webSecondary] = await Promise.all([
-          searchWikimediaCommons(fullPrefix),
-          searchLiveWebImages(queries[0]),
-          searchLiveWebImages(queries[1]),
-        ]);
-        collected = [...wiki, ...webPrimary, ...webSecondary];
+      } catch (err) {
+        fallbackUsed = true;
+        fallbackReason =
+          err instanceof Error
+            ? `Optional SerpAPI unavailable (${err.message}); using built-in open fallback.`
+            : 'Optional SerpAPI unavailable; using built-in open fallback.';
+        activeProvider = 'open_fallback';
       }
-
-      const ranked = rankAndFilterCandidates(collected, { brand, exactModel, generation }, excludeUrls);
-
-      res.json({
-        success: true,
-        provider,
-        engine: provider === 'serpapi' ? 'google_images' : provider,
-        queriesUsed: queries,
-        totalRawFound: collected.length,
-        searchMetadata,
-        candidates: ranked,
-      });
-    } catch (error) {
-      if (error instanceof SerpApiProviderError) {
-        res.status(error.httpStatus).json({
-          success: false,
-          provider: 'serpapi',
-          errorCode: error.code,
-          queriesUsed: queries,
-          message: error.message,
-          candidates: [],
-        });
-        return;
-      }
-      res.status(502).json({
-        success: false,
-        provider,
-        errorCode: 'PROVIDER_ERROR',
-        queriesUsed: queries,
-        message: error instanceof Error ? error.message : 'Image search provider error',
-        candidates: [],
-      });
+    } else {
+      fallbackUsed = true;
+      activeProvider = 'open_fallback';
+      fallbackReason = 'Using built-in open image fallback (no optional image search API key required).';
     }
+
+    if (activeProvider === 'open_fallback') {
+      collected = await searchViaOpenFallback(brand, exactModel, queries);
+    }
+
+    const ranked = rankAndFilterCandidates(collected, { brand, exactModel, generation }, excludeUrls);
+
+    res.json({
+      success: true,
+      provider: activeProvider,
+      engine: activeProvider === 'serpapi' ? 'google_images' : 'open_web_and_wikimedia',
+      fallbackUsed,
+      fallbackReason,
+      queriesUsed: queries,
+      totalRawFound: collected.length,
+      searchMetadata,
+      candidates: ranked,
+    });
   });
 
   // Step 3A: Start Asynchronous Verification Job (prevents long-lived HTTP request timeouts)
@@ -2126,8 +2101,15 @@ export function registerLaptopImageRoutes(app: Express) {
     const exactModel = String(req.body?.exactModel || '').trim();
     const generation = String(req.body?.generation || '').trim();
 
-    if (!/^https?:\/\//i.test(pageUrl)) {
+    let parsedPageUrl: URL;
+    try {
+      parsedPageUrl = new URL(pageUrl);
+    } catch {
       res.status(400).json({ success: false, message: 'Provide a valid http/https product page URL.', candidates: [] });
+      return;
+    }
+    if (!['http:', 'https:'].includes(parsedPageUrl.protocol) || isPrivateOrLocalHostname(parsedPageUrl.hostname)) {
+      res.status(400).json({ success: false, message: 'Provide a public http/https product page URL.', candidates: [] });
       return;
     }
 

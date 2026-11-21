@@ -10,15 +10,18 @@ import {
   type BdstallSellerListing,
 } from './src/utils/dellLatitudeCatalogSpec.ts';
 import { registerLaptopImageRoutes } from './server/laptopImageManager.ts';
+import { registerServiceVoucherRoutes } from './server/serviceVoucherPdf.ts';
 import { injectShareMetaTags } from './server/shareMeta.ts';
 import { parseShareRoute } from './src/utils/shareLinks.ts';
+import { getValidatedServerEnv, logValidatedServerEnvSummary } from './server/envConfig.ts';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = Number(process.env.PORT || 3000);
+const initialEnv = logValidatedServerEnvSummary();
+const PORT = initialEnv.port;
 const BDSTALL_BASE_URL = 'https://www.bdstall.com/laptop/dell-latitude/';
 
 interface ExcludedListingInfo {
@@ -351,8 +354,7 @@ async function startServer() {
   // Live BDStall Permitted Fetch Endpoint (with pagination & anti-bot transparency)
   app.post('/api/bdstall/fetch-latitude', async (req: Request, res: Response) => {
     const requestedMaxPages = Math.min(Math.max(Number(req.body?.maxPages || 3), 1), 6);
-    const targetUrl =
-      process.env.BDSTALL_PERMITTED_SOURCE_URL?.trim() || BDSTALL_BASE_URL;
+    const targetUrl = getValidatedServerEnv().bdstallPermittedSourceUrl;
 
     try {
       const robots = await checkRobotsTxtAllowed();
@@ -579,10 +581,14 @@ async function startServer() {
   // Universal Exact Model Laptop Image Finder & AI Vision Verification Routes
   registerLaptopImageRoutes(app);
 
+  // Public Service Zone Voucher / Invoice PDF Routes
+  registerServiceVoucherRoutes(app);
+
   const isSharePageGetRequest = (req: Request) => {
     if (req.method !== 'GET') return false;
     if (
       req.path.startsWith('/api/') ||
+      req.path.startsWith('/service-voucher/') ||
       req.path.startsWith('/src/') ||
       req.path.startsWith('/@') ||
       req.path.startsWith('/node_modules/') ||
@@ -594,7 +600,17 @@ async function startServer() {
     return Boolean(parseShareRoute(req.path, queryPart));
   };
 
-  if (process.env.NODE_ENV !== 'production') {
+  const distDir = path.resolve(__dirname, 'dist');
+  const distIndexPath = path.join(distDir, 'index.html');
+  const isExplicitProd = process.env.NODE_ENV === 'production';
+  const isDevScript = process.env.npm_lifecycle_event === 'dev';
+  const isStartScript = process.env.npm_lifecycle_event === 'start';
+  const isRunningViaTsx = process.execArgv.some((arg) => arg.includes('tsx'));
+  const useProductionStatic =
+    isExplicitProd ||
+    (!isDevScript && (isStartScript || !isRunningViaTsx) && fs.existsSync(distIndexPath));
+
+  if (!useProductionStatic) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -618,17 +634,18 @@ async function startServer() {
 
     app.use(vite.middlewares);
   } else {
-    const distDir = path.resolve(__dirname, 'dist');
+    app.use('/api/*', (_req: Request, res: Response) => {
+      res.status(404).json({ ok: false, error: 'API endpoint not found' });
+    });
     app.use(express.static(distDir));
     app.get('*', async (req: Request, res: Response) => {
-      const indexPath = path.join(distDir, 'index.html');
-      if (fs.existsSync(indexPath)) {
+      if (fs.existsSync(distIndexPath)) {
         try {
-          const rawHtml = fs.readFileSync(indexPath, 'utf-8');
+          const rawHtml = fs.readFileSync(distIndexPath, 'utf-8');
           const enrichedHtml = await injectShareMetaTags(rawHtml, req);
           res.status(200).set({ 'Content-Type': 'text/html' }).send(enrichedHtml);
         } catch {
-          res.sendFile(indexPath);
+          res.sendFile(distIndexPath);
         }
       } else {
         res.status(404).send('Build output not found. Run npm run build first.');

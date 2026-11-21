@@ -95,7 +95,13 @@ export function parseShareRoute(pathname: string, search = ''): DeepLinkTarget |
     const parts = cleanPath.split('/').filter(Boolean);
     if (parts.length >= 2) {
       const seg = parts[0].toLowerCase();
-      const rawSlug = decodeURIComponent(parts.slice(1).join('/'));
+      const joinedSlug = parts.slice(1).join('/');
+      let rawSlug = joinedSlug;
+      try {
+        rawSlug = decodeURIComponent(joinedSlug);
+      } catch {
+        rawSlug = joinedSlug;
+      }
       if (seg === 'laptop' || seg === 'laptops' || seg === 'product') {
         return { type: 'laptop', slug: rawSlug };
       }
@@ -141,8 +147,16 @@ export function parseShareRoute(pathname: string, search = ''): DeepLinkTarget |
 
 export function matchesShareSlug(item: ShareableItemLike, targetSlug: string): boolean {
   if (!targetSlug) return false;
-  const normalizedTarget = decodeURIComponent(targetSlug).trim().toLowerCase();
-  const [slugHead, slugIdSuffix] = normalizedTarget.split('--');
+  let decodedTarget = targetSlug;
+  try {
+    decodedTarget = decodeURIComponent(targetSlug);
+  } catch {
+    decodedTarget = targetSlug;
+  }
+  const normalizedTarget = decodedTarget.trim().toLowerCase();
+  const sepIdx = normalizedTarget.lastIndexOf('--');
+  const slugHead = sepIdx > -1 ? normalizedTarget.slice(0, sepIdx) : normalizedTarget;
+  const slugIdSuffix = sepIdx > -1 ? normalizedTarget.slice(sepIdx + 2) : '';
 
   const itemId = cleanIdToken(item.id);
   const itemSku = cleanIdToken(item.sku || item.code);

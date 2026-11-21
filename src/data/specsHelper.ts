@@ -1,15 +1,4 @@
-import React from 'react';
-import {
-  LaptopItem,
-  DownloadItem,
-  WarrantyTier,
-  STORE_INFO,
-  LAPTOPS_DATA,
-  TESTING_TOOLS,
-  SOFTWARE_LIBRARY,
-  OS_ISOS,
-  WARRANTY_TIERS
-} from '../data/jhfData';
+import type { LaptopItem } from '../data/jhfData.ts';
 
 export interface DetailedLaptopSpecs {
   brand: string;
